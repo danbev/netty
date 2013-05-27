@@ -240,6 +240,7 @@
     <module>codec-memcache</module>
     <module>codec-mqtt</module>
     <module>codec-socks</module>
+    <module>codec-sockjs</module>
     <module>codec-stomp</module>
     <module>codec-xml</module>
     <module>resolver</module>
@@ -407,6 +408,12 @@
         <optional>true</optional>
       </dependency>
 
+      <dependency>
+        <groupId>com.fasterxml.jackson.core</groupId>
+        <artifactId>jackson-databind</artifactId>
+        <version>2.3.0</version>
+      </dependency>
+
       <!-- Metrics providers -->
       <dependency>
         <groupId>com.yammer.metrics</groupId>
@@ -522,6 +529,7 @@
         <version>1.5.7</version>
         <scope>test</scope>
       </dependency>
+      
     </dependencies>
   </dependencyManagement>
 
@@ -1227,6 +1235,11 @@
               </pluginExecutions>
             </lifecycleMappingMetadata>
           </configuration>
+        </plugin>
+        <plugin>
+          <groupId>org.codehaus.mojo</groupId>
+          <artifactId>exec-maven-plugin</artifactId>
+          <version>1.2</version>
         </plugin>
       </plugins>
     </pluginManagement>
