@@ -425,6 +425,7 @@
     <module>codec-memcache</module>
     <module>codec-mqtt</module>
     <module>codec-socks</module>
+    <module>codec-sockjs</module>
     <module>codec-stomp</module>
     <module>transport</module>
     <module>transport-rxtx</module>
@@ -432,7 +433,6 @@
     <module>transport-udt</module>
     <module>handler</module>
     <module>example</module>
-    <module>sockjs</module>
     <module>testsuite</module>
     <module>microbench</module>
     <module>all</module>
