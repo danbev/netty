@@ -15,11 +15,6 @@
  */
 package io.netty.handler.codec.sockjs.handler;
 
-import static io.netty.handler.codec.http.HttpHeaders.Names.CONNECTION;
-import static io.netty.handler.codec.http.HttpHeaders.Names.CONTENT_LENGTH;
-import static io.netty.handler.codec.http.HttpHeaders.Values.KEEP_ALIVE;
-import static io.netty.handler.codec.http.HttpResponseStatus.NOT_FOUND;
-import static java.util.UUID.randomUUID;
 import io.netty.buffer.Unpooled;
 import io.netty.channel.Channel;
 import io.netty.channel.ChannelFuture;
@@ -28,12 +23,11 @@ import io.netty.channel.ChannelHandler;
 import io.netty.channel.ChannelHandlerContext;
 import io.netty.channel.SimpleChannelInboundHandler;
 import io.netty.handler.codec.http.DefaultFullHttpResponse;
-import io.netty.handler.codec.http.FullHttpRequest;
 import io.netty.handler.codec.http.FullHttpResponse;
 import io.netty.handler.codec.http.HttpHeaders;
 import io.netty.handler.codec.http.HttpRequest;
 import io.netty.handler.codec.http.QueryStringDecoder;
-import io.netty.handler.codec.sockjs.SockJsServiceFactory;
+import io.netty.handler.codec.sockjs.SockJsChannelConfig;
 import io.netty.handler.codec.sockjs.transport.EventSourceTransport;
 import io.netty.handler.codec.sockjs.transport.HtmlFileTransport;
 import io.netty.handler.codec.sockjs.transport.JsonpPollingTransport;
@@ -45,15 +39,19 @@ import io.netty.handler.codec.sockjs.transport.XhrPollingTransport;
 import io.netty.handler.codec.sockjs.transport.XhrSendTransport;
 import io.netty.handler.codec.sockjs.transport.XhrStreamingTransport;
 import io.netty.util.CharsetUtil;
+import io.netty.util.ReferenceCountUtil;
 import io.netty.util.internal.logging.InternalLogger;
 import io.netty.util.internal.logging.InternalLoggerFactory;
 
-import java.util.LinkedHashMap;
-import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
+
+import static io.netty.handler.codec.http.HttpHeaders.Names.*;
+import static io.netty.handler.codec.http.HttpHeaders.Values.*;
+import static io.netty.handler.codec.http.HttpResponseStatus.*;
+import static java.util.UUID.*;
 
 /**
  * This handler is the main entry point for SockJS HTTP Request.
@@ -62,115 +60,104 @@ import java.util.regex.Pattern;
  * different transport protocols that SockJS support. Once this has been done this
  * handler will be removed from the channel pipeline.
  */
-public class SockJsHandler extends SimpleChannelInboundHandler<FullHttpRequest> {
+public class SockJsHandler extends SimpleChannelInboundHandler<HttpRequest> {
 
     private static final InternalLogger logger = InternalLoggerFactory.getInstance(SockJsHandler.class);
-    private final Map<String, SockJsServiceFactory> factories = new LinkedHashMap<String, SockJsServiceFactory>();
     private static final ConcurrentMap<String, SockJsSession> sessions = new ConcurrentHashMap<String, SockJsSession>();
     private static final PathParams NON_SUPPORTED_PATH = new NonSupportedPath();
     private static final Pattern SERVER_SESSION_PATTERN = Pattern.compile("^/([^/.]+)/([^/.]+)/([^/.]+)");
 
-    /**
-     * Sole constructor which takes one or more {@code SockJSServiceFactory}. These factories will
-     * later be used by the server to create the SockJS services that will be exposed by this server
-     *
-     * @param factories one or more {@link SockJsServiceFactory}s.
-     */
-    public SockJsHandler(final SockJsServiceFactory... factories) {
-        for (SockJsServiceFactory factory : factories) {
-            this.factories.put(factory.config().prefix(), factory);
-        }
-    }
-
     @Override
-    public void messageReceived(final ChannelHandlerContext ctx, final FullHttpRequest request) throws Exception {
-        final String path = new QueryStringDecoder(request.getUri()).path();
-        for (SockJsServiceFactory factory : factories.values()) {
-            if (path.startsWith(factory.config().prefix())) {
-                handleService(factory, request, ctx);
-                return;
-            }
+    public void messageReceived(final ChannelHandlerContext ctx, final HttpRequest request) throws Exception {
+        final SockJsChannelConfig config = (SockJsChannelConfig) ctx.channel().config();
+        if (requestPathMatchesPrefix(request, config)) {
+            handleService(request, ctx, config);
+        } else {
+            writeNotFoundResponse(request, ctx);
         }
-        writeNotFoundResponse(request, ctx);
     }
 
-    private static void handleService(final SockJsServiceFactory factory,
-                                      final FullHttpRequest request,
-                                      final ChannelHandlerContext ctx) throws Exception {
+    private static boolean requestPathMatchesPrefix(final HttpRequest request, SockJsChannelConfig config) {
+        final String path = new QueryStringDecoder(request.getUri()).path();
+        return path.startsWith(config.getPrefix());
+    }
+
+    private static void handleService(final HttpRequest request,
+                                      final ChannelHandlerContext ctx,
+                                      final SockJsChannelConfig config) throws Exception {
         if (logger.isDebugEnabled()) {
             logger.debug("RequestUri : [{}]", request.getUri());
         }
-        final String pathWithoutPrefix = request.getUri().replaceFirst(factory.config().prefix(), "");
+        final String pathWithoutPrefix = request.getUri().replaceFirst(config.getPrefix(), "");
         final String path = new QueryStringDecoder(pathWithoutPrefix).path();
         if (Greeting.matches(path)) {
             writeResponse(ctx.channel(), request, Greeting.response(request));
         } else if (Info.matches(path)) {
-            writeResponse(ctx.channel(), request, Info.response(factory.config(), request));
+            writeResponse(ctx.channel(), request, Info.response(config, request));
         } else if (Iframe.matches(path)) {
-            writeResponse(ctx.channel(), request, Iframe.response(factory.config(), request));
+            writeResponse(ctx.channel(), request, Iframe.response(config, request));
         } else if (Transports.Type.WEBSOCKET.path().equals(path)) {
-            addTransportHandler(new RawWebSocketTransport(factory.config(), factory.create()), ctx);
-            ctx.fireChannelRead(request.retain());
+            addTransportHandler(new RawWebSocketTransport(config), ctx);
+            ctx.fireChannelRead(ReferenceCountUtil.retain(request));
         } else {
             final PathParams sessionPath = matches(path);
             if (sessionPath.matches()) {
-                handleSession(factory, request, ctx, sessionPath);
+                handleSession(config, request, ctx, sessionPath);
             } else {
                 writeNotFoundResponse(request, ctx);
             }
         }
     }
 
-    private static void handleSession(final SockJsServiceFactory factory,
-                                      final FullHttpRequest request,
+    private static void handleSession(final SockJsChannelConfig config,
+                                      final HttpRequest request,
                                       final ChannelHandlerContext ctx,
                                       final PathParams pathParams) throws Exception {
         switch (pathParams.transport()) {
         case XHR:
-            addTransportHandler(new XhrPollingTransport(factory.config(), request), ctx);
-            addSessionHandler(new PollingSessionState(sessions, getSession(factory, pathParams.sessionId())), ctx);
+            addTransportHandler(new XhrPollingTransport(config, request), ctx);
+            addSessionHandler(new PollingSessionState(sessions, getSession(pathParams.sessionId(), config)), ctx);
             break;
         case JSONP:
-            addTransportHandler(new JsonpPollingTransport(factory.config(), request), ctx);
-            addSessionHandler(new PollingSessionState(sessions, getSession(factory, pathParams.sessionId())), ctx);
+            addSessionHandler(new PollingSessionState(sessions, getSession(pathParams.sessionId(), config)), ctx);
+            addTransportHandler(new JsonpPollingTransport(config, request), ctx);
             break;
         case XHR_SEND:
             checkSessionExists(pathParams.sessionId(), request);
-            addTransportHandler(new XhrSendTransport(factory.config()), ctx);
             addSessionHandler(new SendingSessionState(sessions, sessions.get(pathParams.sessionId())), ctx);
+            addTransportHandler(new XhrSendTransport(config), ctx);
             break;
         case XHR_STREAMING:
-            addTransportHandler(new XhrStreamingTransport(factory.config(), request), ctx);
-            addSessionHandler(new StreamingSessionState(sessions, getSession(factory, pathParams.sessionId())), ctx);
+            addTransportHandler(new XhrStreamingTransport(config, request), ctx);
+            addSessionHandler(new StreamingSessionState(sessions, getSession(pathParams.sessionId(), config)), ctx);
             break;
         case EVENTSOURCE:
-            addTransportHandler(new EventSourceTransport(factory.config(), request), ctx);
-            addSessionHandler(new StreamingSessionState(sessions, getSession(factory, pathParams.sessionId())), ctx);
+            addTransportHandler(new EventSourceTransport(config, request), ctx);
+            addSessionHandler(new StreamingSessionState(sessions, getSession(pathParams.sessionId(), config)), ctx);
             break;
         case HTMLFILE:
-            addTransportHandler(new HtmlFileTransport(factory.config(), request), ctx);
-            addSessionHandler(new StreamingSessionState(sessions, getSession(factory, pathParams.sessionId())), ctx);
+            addSessionHandler(new StreamingSessionState(sessions, getSession(pathParams.sessionId(), config)), ctx);
+            addTransportHandler(new HtmlFileTransport(config, request), ctx);
             break;
         case JSONP_SEND:
             checkSessionExists(pathParams.sessionId(), request);
-            addTransportHandler(new JsonpSendTransport(factory.config()), ctx);
             addSessionHandler(new SendingSessionState(sessions, sessions.get(pathParams.sessionId())), ctx);
+            addTransportHandler(new JsonpSendTransport(config), ctx);
             break;
         case WEBSOCKET:
-            addTransportHandler(new WebSocketTransport(factory.config()), ctx);
-            addSessionHandler(new WebSocketSessionState(new SockJsSession(randomUUID().toString(), factory.create())),
-                    ctx);
+            addSessionHandler(new WebSocketSessionState(new SockJsSession(randomUUID().toString(), config)), ctx);
+            addTransportHandler(new WebSocketTransport(config), ctx);
             break;
         }
-        ctx.fireChannelRead(request.retain());
+        ctx.fireChannelRead(ReferenceCountUtil.retain(request));
     }
 
     private static void addTransportHandler(final ChannelHandler transportHandler, final ChannelHandlerContext ctx) {
-        ctx.pipeline().addLast(transportHandler);
+        ctx.pipeline().addAfter(ctx.name(), "transportHandler", transportHandler);
     }
 
     private static void addSessionHandler(final SessionState sessionState, final ChannelHandlerContext ctx) {
-        ctx.pipeline().addLast(new SessionHandler(sessionState));
+        ctx.pipeline().addAfter(ctx.name(), "sessionHandler", new SessionHandler(sessionState));
     }
 
     private static void checkSessionExists(final String sessionId, final HttpRequest request)
@@ -180,10 +167,10 @@ public class SockJsHandler extends SimpleChannelInboundHandler<FullHttpRequest> 
         }
     }
 
-    private static SockJsSession getSession(final SockJsServiceFactory factory, final String sessionId) {
+    private static SockJsSession getSession(final String sessionId, final SockJsChannelConfig config) {
         SockJsSession session = sessions.get(sessionId);
         if (session == null) {
-            final SockJsSession newSession = new SockJsSession(sessionId, factory.create());
+            final SockJsSession newSession = new SockJsSession(sessionId, config);
             session = sessions.putIfAbsent(sessionId, newSession);
             if (session == null) {
                 session = newSession;

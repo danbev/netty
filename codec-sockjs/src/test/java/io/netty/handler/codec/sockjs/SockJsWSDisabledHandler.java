@@ -15,20 +15,15 @@
  */
 package io.netty.handler.codec.sockjs;
 
-public abstract class AbstractSockJsServiceFactory implements SockJsServiceFactory {
+import io.netty.channel.ChannelHandler;
+import io.netty.channel.ChannelHandlerContext;
+import io.netty.channel.SimpleChannelInboundHandler;
 
-    private final SockJsConfig config;
-
-    protected AbstractSockJsServiceFactory(final SockJsConfig config) {
-        this.config = config;
-    }
-
-    @Override
-    public abstract SockJsService create();
+@ChannelHandler.Sharable
+public class SockJsWSDisabledHandler extends SimpleChannelInboundHandler<String> {
 
     @Override
-    public SockJsConfig config() {
-        return config;
+    protected void messageReceived(ChannelHandlerContext ctx, String msg) throws Exception {
+        ctx.writeAndFlush(msg);
     }
-
 }

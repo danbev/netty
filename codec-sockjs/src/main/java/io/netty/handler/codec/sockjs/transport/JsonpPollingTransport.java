@@ -55,11 +55,11 @@ import java.util.List;
  */
 public class JsonpPollingTransport extends ChannelHandlerAdapter {
 
-    private final FullHttpRequest request;
+    private final HttpRequest request;
     private final SockJsConfig config;
     private String callback;
 
-    public JsonpPollingTransport(final SockJsConfig config, final FullHttpRequest request) {
+    public JsonpPollingTransport(final SockJsConfig config, final HttpRequest request) {
         this.request = request;
         this.config = config;
     }
@@ -72,7 +72,7 @@ public class JsonpPollingTransport extends ChannelHandlerAdapter {
             if (c == null) {
                 ReferenceCountUtil.release(msg);
                 respond(ctx, request.getProtocolVersion(), INTERNAL_SERVER_ERROR, "\"callback\" parameter required");
-                ctx.fireUserEventTriggered(Event.CLOSE_SESSION);
+                ctx.fireUserEventTriggered(Event.CLOSE_CONTEXT);
                 return;
             } else {
                 callback = c.get(0);

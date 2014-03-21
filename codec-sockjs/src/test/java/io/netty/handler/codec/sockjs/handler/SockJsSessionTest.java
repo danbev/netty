@@ -18,10 +18,8 @@ package io.netty.handler.codec.sockjs.handler;
 import static org.hamcrest.CoreMatchers.equalTo;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.is;
-import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.verify;
-import io.netty.handler.codec.sockjs.SockJsSessionContext;
-import io.netty.handler.codec.sockjs.SockJsService;
+
+import io.netty.handler.codec.sockjs.DefaultSockJsConfig;
 import io.netty.handler.codec.sockjs.handler.SessionState.State;
 
 import org.junit.Test;
@@ -32,50 +30,34 @@ public class SockJsSessionTest {
 
     @Test
     public void setState() throws Exception {
-        final SockJsService service = mock(SockJsService.class);
-        final SockJsSession session = new SockJsSession("123", service);
+        final SockJsSession session = new SockJsSession("123", new DefaultSockJsConfig("/echo"));
         session.setState(State.OPEN);
         assertThat(session.getState(), is(State.OPEN));
     }
 
     @Test
     public void onOpen() throws Exception {
-        final SockJsService service = mock(SockJsService.class);
-        final SockJsSession sockJSSession = new SockJsSession("123", service);
-        final SockJsSessionContext session = mock(SockJsSessionContext.class);
-        sockJSSession.onOpen(session);
-        verify(service).onOpen(session);
+        final SockJsSession sockJSSession = new SockJsSession("123", new DefaultSockJsConfig("/echo"));
+        sockJSSession.onOpen();
         assertThat(sockJSSession.getState(), is(State.OPEN));
     }
 
     @Test
-    public void onMessage() throws Exception {
-        final SockJsService service = mock(SockJsService.class);
-        final SockJsSession sockJSSession = new SockJsSession("123", service);
-        sockJSSession.onMessage("testing");
-        verify(service).onMessage("testing");
-    }
-
-    @Test
     public void onClose() throws Exception {
-        final SockJsService service = mock(SockJsService.class);
-        final SockJsSession sockJSSession = new SockJsSession("123", service);
+        final SockJsSession sockJSSession = new SockJsSession("123", new DefaultSockJsConfig("/echo"));
         sockJSSession.onClose();
-        verify(service).onClose();
     }
 
     @Test
     public void addMessage() throws Exception {
-        final SockJsService service = mock(SockJsService.class);
-        final SockJsSession sockJSSession = new SockJsSession("123", service);
+        final SockJsSession sockJSSession = new SockJsSession("123", new DefaultSockJsConfig("/echo"));
         sockJSSession.addMessage("hello");
         assertThat(sockJSSession.getAllMessages().size(), is(1));
     }
 
     @Test
     public void addMessages() throws Exception {
-        final SockJsService service = mock(SockJsService.class);
-        final SockJsSession sockJSSession = new SockJsSession("123", service);
+        final SockJsSession sockJSSession = new SockJsSession("123", new DefaultSockJsConfig("/echo"));
         sockJSSession.addMessages(new String[]{"hello", "world"});
         final List<String> messages = sockJSSession.getAllMessages();
         assertThat(messages.size(), is(2));

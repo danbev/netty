@@ -16,7 +16,6 @@
 package io.netty.handler.codec.sockjs.handler;
 
 import io.netty.channel.ChannelHandlerContext;
-import io.netty.handler.codec.sockjs.SockJsSessionContext;
 import io.netty.handler.codec.sockjs.util.ArgumentUtil;
 import io.netty.util.internal.StringUtil;
 import io.netty.util.internal.logging.InternalLogger;
@@ -52,9 +51,9 @@ class SendingSessionState implements SessionState {
     }
 
     @Override
-    public void onConnect(final ChannelHandlerContext ctx, final SockJsSessionContext sockJsSessionContext) {
+    public void onConnect(final ChannelHandlerContext ctx) {
         session.setConnectionContext(ctx);
-        session.onOpen(sockJsSessionContext);
+        session.onOpen();
     }
 
     @Override
@@ -69,7 +68,8 @@ class SendingSessionState implements SessionState {
 
     @Override
     public ChannelHandlerContext getSendingContext() {
-        return session.openContext();
+        final ChannelHandlerContext openCtx = session.openContext();
+        return openCtx == null ? session.connectionContext() : openCtx;
     }
 
     @Override

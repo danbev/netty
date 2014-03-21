@@ -24,6 +24,7 @@ import io.netty.channel.embedded.EmbeddedChannel;
 import io.netty.handler.codec.http.DefaultFullHttpRequest;
 import io.netty.handler.codec.http.FullHttpResponse;
 import io.netty.handler.codec.http.HttpResponseStatus;
+import io.netty.handler.codec.sockjs.DefaultSockJsConfig;
 import io.netty.handler.codec.sockjs.SockJsConfig;
 import io.netty.handler.codec.sockjs.protocol.CloseFrame;
 import io.netty.handler.codec.sockjs.protocol.Frame;
@@ -82,7 +83,7 @@ public class JsonpPollingTransportTest {
     private static FullHttpResponse writeFrame(final Frame frame, final boolean withCallback) {
         final String queryUrl = withCallback ? "/jsonp?c=callback" : "/jsonp";
         final DefaultFullHttpRequest request = new DefaultFullHttpRequest(HTTP_1_1, GET, queryUrl);
-        final SockJsConfig config = SockJsConfig.withPrefix(queryUrl).cookiesNeeded().build();
+        final SockJsConfig config = new DefaultSockJsConfig(queryUrl).setCookiesNeeded(true);
         final JsonpPollingTransport jsonpPollingOutbound = new JsonpPollingTransport(config, request);
         final EmbeddedChannel ch = new EmbeddedChannel(jsonpPollingOutbound);
         ch.writeInbound(request);

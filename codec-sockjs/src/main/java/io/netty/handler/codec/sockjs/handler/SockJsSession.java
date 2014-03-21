@@ -17,8 +17,6 @@ package io.netty.handler.codec.sockjs.handler;
 
 import io.netty.channel.ChannelHandlerContext;
 import io.netty.handler.codec.sockjs.SockJsConfig;
-import io.netty.handler.codec.sockjs.SockJsSessionContext;
-import io.netty.handler.codec.sockjs.SockJsService;
 import io.netty.handler.codec.sockjs.handler.SessionState.State;
 import io.netty.util.internal.StringUtil;
 
@@ -49,17 +47,17 @@ import java.util.concurrent.atomic.AtomicReference;
 final class SockJsSession {
 
     private final String sessionId;
-    private final SockJsService service;
     private final AtomicLong timestamp = new AtomicLong();
     private final AtomicBoolean inuse = new AtomicBoolean();
     private final ConcurrentLinkedQueue<String> messageQueue = new ConcurrentLinkedQueue<String>();
     private final AtomicReference<State> state = new AtomicReference<State>(State.CONNECTING);
     private final AtomicReference<ChannelHandlerContext> connectionCtx = new AtomicReference<ChannelHandlerContext>();
     private final AtomicReference<ChannelHandlerContext> openCtx = new AtomicReference<ChannelHandlerContext>();
+    private final SockJsConfig config;
 
-    SockJsSession(final String sessionId, final SockJsService service) {
+    SockJsSession(final String sessionId, final SockJsConfig config) {
         this.sessionId = sessionId;
-        this.service = service;
+        this.config = config;
     }
 
     /**
@@ -135,7 +133,7 @@ final class SockJsSession {
     }
 
     public SockJsConfig config() {
-        return service.config();
+        return config;
     }
 
     public String sessionId() {
@@ -143,19 +141,16 @@ final class SockJsSession {
     }
 
     public void onMessage(final String message) throws Exception {
-        service.onMessage(message);
         updateTimestamp();
     }
 
-    public void onOpen(final SockJsSessionContext session) {
+    public void onOpen() {
         setState(State.OPEN);
-        service.onOpen(session);
         updateTimestamp();
     }
 
     public void onClose() {
         setState(State.CLOSED);
-        service.onClose();
     }
 
     public void addMessage(final String message) {

@@ -15,15 +15,17 @@
  */
 package io.netty.handler.codec.sockjs.handler;
 
-import io.netty.channel.Channel;
+import io.netty.channel.ChannelFuture;
 import io.netty.channel.ChannelFutureListener;
 import io.netty.channel.ChannelHandlerAdapter;
 import io.netty.channel.ChannelHandlerContext;
+import io.netty.channel.ChannelPromise;
 import io.netty.handler.codec.http.HttpRequest;
 import io.netty.util.ReferenceCountUtil;
+import io.netty.util.concurrent.Future;
+import io.netty.util.concurrent.GenericFutureListener;
 import io.netty.util.internal.logging.InternalLogger;
 import io.netty.util.internal.logging.InternalLoggerFactory;
-import io.netty.handler.codec.sockjs.SockJsSessionContext;
 import io.netty.handler.codec.sockjs.handler.SessionState.State;
 import io.netty.handler.codec.sockjs.protocol.CloseFrame;
 import io.netty.handler.codec.sockjs.protocol.MessageFrame;
@@ -42,7 +44,7 @@ import io.netty.handler.codec.sockjs.util.ArgumentUtil;
  */
 public class SessionHandler extends ChannelHandlerAdapter {
 
-    public enum Event { CLOSE_SESSION, HANDLE_SESSION }
+    public enum Event { ON_SESSION_OPEN, HANDLE_SESSION, CLOSE_CONTEXT, CLOSE_SESSION }
 
     private static final InternalLogger logger = InternalLoggerFactory.getInstance(SessionHandler.class);
 
@@ -62,7 +64,7 @@ public class SessionHandler extends ChannelHandlerAdapter {
             ReferenceCountUtil.release(msg);
             handleSession(ctx);
         } else if (msg instanceof String) {
-            handleMessage((String) msg);
+            handleMessage(ctx, (String) msg);
         } else {
             ctx.fireChannelRead(ReferenceCountUtil.retain(msg));
         }
@@ -87,8 +89,8 @@ public class SessionHandler extends ChannelHandlerAdapter {
 
     private void sessionConnecting(final ChannelHandlerContext ctx) {
         logger.debug("State.CONNECTING sending open frame");
+        sessionState.onConnect(ctx);
         writeOpenFrame(ctx);
-        sessionState.onConnect(ctx, new DefaultSockJsSessionContext());
     }
 
     private void sessionOpen(ChannelHandlerContext ctx) {
@@ -112,8 +114,9 @@ public class SessionHandler extends ChannelHandlerAdapter {
         sessionState.onClose();
     }
 
-    private void handleMessage(final String message) throws Exception {
+    private void handleMessage(final ChannelHandlerContext ctx, final String message) throws Exception {
         sessionState.onMessage(message);
+        ctx.fireChannelRead(message);
     }
 
     @Override
@@ -122,17 +125,51 @@ public class SessionHandler extends ChannelHandlerAdapter {
         ctx.fireChannelInactive();
     }
 
-    private static boolean isWritable(final Channel channel) {
-        return channel.isActive() && channel.isRegistered();
+    private static boolean isWritable(final ChannelHandlerContext ctx) {
+        return ctx != null && ctx.channel().isActive() && ctx.channel().isRegistered();
+    }
+
+    @Override
+    public void write(final ChannelHandlerContext ctx, final Object msg, final ChannelPromise promise)
+            throws Exception {
+        if (msg instanceof String) {
+            final String message = (String) msg;
+            final ChannelHandlerContext context = sessionState.getSendingContext();
+            if (isWritable(context)) {
+                context.channel().write(new MessageFrame(message));
+            } else {
+                sessionState.storeMessage(message);
+            }
+        } else {
+            super.write(ctx, msg, promise);
+        }
     }
 
     @Override
     public void userEventTriggered(final ChannelHandlerContext ctx, final Object event) throws Exception {
-        if (event == Event.CLOSE_SESSION) {
-            sessionState.onClose();
-            sessionState.onSockJSServerInitiatedClose();
+        if (event == Event.CLOSE_CONTEXT) {
+            closeContext();
+        } else if (event == Event.CLOSE_SESSION) {
+            closeSession();
         } else if (event == Event.HANDLE_SESSION) {
             handleSession(ctx);
+        }
+    }
+
+    private void closeContext() {
+        sessionState.onClose();
+        sessionState.onSockJSServerInitiatedClose();
+    }
+
+    private void closeSession() {
+        sessionState.onClose();
+        final ChannelHandlerContext context = sessionState.getSendingContext();
+        if (isWritable(context)) {
+            final CloseFrame closeFrame = new CloseFrame(3000, "Go away!");
+            if (logger.isDebugEnabled()) {
+                logger.debug("Writing {}", closeFrame);
+            }
+            context.channel().writeAndFlush(closeFrame).addListener(ChannelFutureListener.CLOSE);
         }
     }
 
@@ -141,38 +178,12 @@ public class SessionHandler extends ChannelHandlerAdapter {
     }
 
     private static void writeOpenFrame(final ChannelHandlerContext ctx) {
-        ctx.channel().writeAndFlush(new OpenFrame());
-    }
-
-    public class DefaultSockJsSessionContext implements SockJsSessionContext {
-
-        @Override
-        public void send(String message) {
-            final Channel channel = sessionState.getSendingContext().channel();
-            if (isWritable(channel)) {
-                channel.writeAndFlush(new MessageFrame(message));
-            } else {
-                sessionState.storeMessage(message);
+        ctx.channel().writeAndFlush(new OpenFrame()).addListener(new ChannelFutureListener() {
+            @Override
+            public void operationComplete(ChannelFuture future) throws Exception {
+                ctx.fireUserEventTriggered(Event.ON_SESSION_OPEN);
             }
-        }
-
-        @Override
-        public void close() {
-            sessionState.onClose();
-            final Channel channel = sessionState.getSendingContext().channel();
-            if (isWritable(channel)) {
-                final CloseFrame closeFrame = new CloseFrame(3000, "Go away!");
-                if (logger.isDebugEnabled()) {
-                    logger.debug("Writing {}", closeFrame);
-                }
-                channel.writeAndFlush(closeFrame).addListener(ChannelFutureListener.CLOSE);
-            }
-        }
-
-        @Override
-        public ChannelHandlerContext getContext() {
-            return sessionState.getSendingContext();
-        }
+        });
     }
 
 }

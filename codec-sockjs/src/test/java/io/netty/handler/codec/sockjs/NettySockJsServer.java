@@ -17,9 +17,11 @@ package io.netty.handler.codec.sockjs;
 
 import io.netty.bootstrap.ServerBootstrap;
 import io.netty.channel.Channel;
+import io.netty.channel.ChannelInitializer;
 import io.netty.channel.EventLoopGroup;
-import io.netty.channel.nio.NioEventLoopGroup;
-import io.netty.channel.socket.nio.NioServerSocketChannel;
+import io.netty.channel.socket.ServerSocketChannel;
+
+import static io.netty.handler.codec.sockjs.SockJsChannelOption.*;
 
 /**
  * A SockJS server that will start the services required for the
@@ -35,19 +37,24 @@ public class NettySockJsServer {
     }
 
     public void run() throws Exception {
-        final EventLoopGroup bossGroup = new NioEventLoopGroup();
-        final EventLoopGroup workerGroup = new NioEventLoopGroup();
+        final EventLoopGroup bossGroup = new SockJsEventLoopGroup();
+        final EventLoopGroup workerGroup = new SockJsEventLoopGroup();
         try {
-            final SockJsServiceFactory echoService = echoService();
-            final SockJsServiceFactory wsDisabled = wsDisabledService();
-            final SockJsServiceFactory closeService = closeService();
-            final SockJsServiceFactory cookieNeededService = cookieService();
-            final ServerBootstrap sb = new ServerBootstrap().channel(NioServerSocketChannel.class);
-            final SockJsChannelInitializer chInit = new SockJsChannelInitializer(echoService,
-                    wsDisabled,
-                    closeService,
-                    cookieNeededService);
-            sb.group(bossGroup, workerGroup).childHandler(chInit);
+            final ServerBootstrap sb = new ServerBootstrap();
+            sb.channel(SockJsServerChannel.class);
+            sb.group(bossGroup, workerGroup);
+
+            sb.childHandler(new ChannelInitializer<SockJsChannel>() {
+                @Override
+                protected void initChannel(final SockJsChannel ch) throws Exception {
+                    ch.pipeline().addLast("echo", new SockJsEchoHandler());
+                }
+            });
+            sb.childOption(PREFIX, "/echo");
+            sb.childOption(MAX_STREAMING_BYTES_SIZE, 4096);
+            sb.childOption(WEBSOCKET_ENABLED, true);
+            sb.childOption(SESSION_TIMEOUT, Long.MAX_VALUE);
+
             final Channel ch = sb.bind(port).sync().channel();
             System.out.println("Web socket server started on port [" + port + "], ");
             ch.closeFuture().sync();
@@ -55,51 +62,6 @@ public class NettySockJsServer {
             bossGroup.shutdownGracefully();
             workerGroup.shutdownGracefully();
         }
-    }
-
-    private static SockJsServiceFactory echoService() {
-        final SockJsConfig config = SockJsConfig.withPrefix("/echo")
-                .cookiesNeeded()
-                .heartbeatInterval(25000)
-                .sessionTimeout(5000)
-                .maxStreamingBytesSize(4096)
-                .build();
-        return new AbstractSockJsServiceFactory(config) {
-            @Override
-            public SockJsService create() {
-                return new EchoService(config);
-            }
-        };
-    }
-
-    private static SockJsServiceFactory wsDisabledService() {
-        final SockJsConfig config = SockJsConfig.withPrefix("/disabled_websocket_echo").disableWebSocket().build();
-        return new AbstractSockJsServiceFactory(config) {
-            @Override
-            public SockJsService create() {
-                return new EchoService(config);
-            }
-        };
-    }
-
-    private static SockJsServiceFactory closeService() {
-        final SockJsConfig config = SockJsConfig.withPrefix("/close").build();
-        return new AbstractSockJsServiceFactory(config) {
-            @Override
-            public SockJsService create() {
-                return new CloseService(config);
-            }
-        };
-    }
-
-    private static SockJsServiceFactory cookieService() {
-        final SockJsConfig config = SockJsConfig.withPrefix("/cookie_needed_echo").cookiesNeeded().build();
-        return new AbstractSockJsServiceFactory(config) {
-            @Override
-            public SockJsService create() {
-                return new CloseService(config);
-            }
-        };
     }
 
     public static void main(final String[] args) throws Exception {

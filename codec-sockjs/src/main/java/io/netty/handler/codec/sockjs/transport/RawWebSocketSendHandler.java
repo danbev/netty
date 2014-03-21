@@ -38,9 +38,11 @@ class RawWebSocketSendHandler extends ChannelHandlerAdapter {
                     ctx.write(new TextWebSocketFrame(message));
                 }
             }
+            ctx.flush();
+            promise.setSuccess();
+        } else {
+            ctx.write(msg, promise);
         }
-        ctx.flush();
-        promise.setSuccess();
     }
 
 }

@@ -29,6 +29,7 @@ import io.netty.channel.SimpleChannelInboundHandler;
 import io.netty.handler.codec.http.FullHttpRequest;
 import io.netty.handler.codec.http.HttpHeaders;
 import io.netty.handler.codec.http.HttpRequest;
+import io.netty.handler.codec.http.cors.CorsHandler;
 import io.netty.handler.codec.http.websocketx.CloseWebSocketFrame;
 import io.netty.handler.codec.http.websocketx.PingWebSocketFrame;
 import io.netty.handler.codec.http.websocketx.PongWebSocketFrame;
@@ -103,7 +104,7 @@ public class WebSocketTransport extends SimpleChannelInboundHandler<Object> {
         return true;
     }
 
-    private void handleHttpRequest(final ChannelHandlerContext ctx, FullHttpRequest req) {
+    private void handleHttpRequest(final ChannelHandlerContext ctx, final FullHttpRequest req) {
         if (!checkRequestHeaders(ctx, req)) {
             return;
         }
@@ -119,8 +120,7 @@ public class WebSocketTransport extends SimpleChannelInboundHandler<Object> {
                     if (future.isSuccess()) {
                         final ChannelPipeline pipeline = future.channel().pipeline();
                         pipeline.remove(SockJsHandler.class);
-                        pipeline.remove(CorsInboundHandler.class);
-                        pipeline.remove(CorsOutboundHandler.class);
+                        pipeline.remove(CorsHandler.class);
                         pipeline.replace(WebSocketTransport.class, "websocket-ha-proxy",
                                 new WebSocketHAProxyTransport(haHandshaker));
                         pipeline.addLast(new WebSocketSendHandler());
@@ -141,17 +141,16 @@ public class WebSocketTransport extends SimpleChannelInboundHandler<Object> {
                 @Override
                 public void operationComplete(final ChannelFuture future) throws Exception {
                     if (future.isSuccess()) {
+                        ctx.pipeline().remove(CorsHandler.class);
                         ctx.pipeline().remove(SockJsHandler.class);
-                        ctx.pipeline().remove(CorsInboundHandler.class);
-                        ctx.pipeline().remove(CorsOutboundHandler.class);
                         ctx.pipeline().addLast(new WebSocketSendHandler());
                     } else {
                         logger.error("Handshake error", future.cause());
                     }
                 }
             });
-            ctx.fireChannelRead(ReferenceCountUtil.retain(req));
         }
+        ctx.fireChannelRead(ReferenceCountUtil.retain(req));
     }
 
     private static String getWebSocketLocation(final boolean tls, final FullHttpRequest req) {
@@ -169,7 +168,7 @@ public class WebSocketTransport extends SimpleChannelInboundHandler<Object> {
             wsFrame.retain();
             logger.debug("CloseWebSocketFrame received");
             handshaker.close(ctx.channel(), (CloseWebSocketFrame) wsFrame);
-            ctx.fireUserEventTriggered(Event.CLOSE_SESSION);
+            ctx.fireUserEventTriggered(Event.CLOSE_CONTEXT);
             return;
         }
         if (wsFrame instanceof PingWebSocketFrame) {

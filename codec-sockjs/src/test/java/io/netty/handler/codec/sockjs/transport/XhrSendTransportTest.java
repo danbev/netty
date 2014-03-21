@@ -32,7 +32,7 @@ import io.netty.handler.codec.http.HttpHeaders;
 import io.netty.handler.codec.http.HttpMethod;
 import io.netty.handler.codec.http.HttpResponseStatus;
 import io.netty.handler.codec.http.HttpVersion;
-import io.netty.handler.codec.sockjs.SockJsConfig;
+import io.netty.handler.codec.sockjs.DefaultSockJsConfig;
 
 import org.junit.Test;
 
@@ -111,8 +111,8 @@ public class XhrSendTransportTest {
     }
 
     private static FullHttpResponse processHttpRequest(final FullHttpRequest request) {
-        final XhrSendTransport transport = new XhrSendTransport(SockJsConfig.withPrefix("/test")
-                .cookiesNeeded().build());
+        final XhrSendTransport transport = new XhrSendTransport(new DefaultSockJsConfig("/test")
+                .setCookiesNeeded(true));
         final EmbeddedChannel channel = new EmbeddedChannel(transport);
         channel.writeInbound(request);
         final FullHttpResponse response = channel.readOutbound();

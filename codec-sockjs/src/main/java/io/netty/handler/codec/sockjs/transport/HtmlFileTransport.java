@@ -101,7 +101,7 @@ public class HtmlFileTransport extends ChannelHandlerAdapter {
             if (c.isEmpty()) {
                 ReferenceCountUtil.release(msg);
                 respondCallbackRequired(ctx);
-                ctx.fireUserEventTriggered(Event.CLOSE_SESSION);
+                ctx.fireUserEventTriggered(Event.CLOSE_CONTEXT);
                 return;
             } else {
                 callback = c;

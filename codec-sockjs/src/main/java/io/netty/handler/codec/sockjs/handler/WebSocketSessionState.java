@@ -18,7 +18,6 @@ package io.netty.handler.codec.sockjs.handler;
 import java.util.concurrent.TimeUnit;
 
 import io.netty.channel.ChannelHandlerContext;
-import io.netty.handler.codec.sockjs.SockJsSessionContext;
 import io.netty.handler.codec.sockjs.protocol.HeartbeatFrame;
 import io.netty.util.concurrent.ScheduledFuture;
 import io.netty.util.internal.StringUtil;
@@ -52,9 +51,9 @@ class WebSocketSessionState implements SessionState {
     }
 
     @Override
-    public void onConnect(final ChannelHandlerContext ctx, final SockJsSessionContext sockJsSessionContext) {
+    public void onConnect(final ChannelHandlerContext ctx) {
         session.setConnectionContext(ctx);
-        session.onOpen(sockJsSessionContext);
+        session.onOpen();
         startHeartbeatTimer(ctx, session);
     }
 

@@ -16,7 +16,6 @@
 package io.netty.handler.codec.sockjs.handler;
 
 import io.netty.channel.ChannelHandlerContext;
-import io.netty.handler.codec.sockjs.SockJsSessionContext;
 
 /**
  * A SessionState represents differences in the types of sessions possible with SockJS.
@@ -52,9 +51,8 @@ interface SessionState {
      * Called when a new session is connecting.
      *
      * @param ctx the {@link ChannelHandlerContext} for the current connection/channel
-     * @param sockJsSessionContext the {@link SockJsSessionContext} for the current connection/channel
      */
-    void onConnect(ChannelHandlerContext ctx, SockJsSessionContext sockJsSessionContext);
+    void onConnect(ChannelHandlerContext ctx);
 
     /**
      * Called when a request for a connected session is received.

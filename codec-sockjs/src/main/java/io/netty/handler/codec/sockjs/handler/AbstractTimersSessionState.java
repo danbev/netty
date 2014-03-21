@@ -16,7 +16,7 @@
 package io.netty.handler.codec.sockjs.handler;
 
 import io.netty.channel.ChannelHandlerContext;
-import io.netty.handler.codec.sockjs.SockJsSessionContext;
+import io.netty.handler.codec.sockjs.SockJsConfig;
 import io.netty.handler.codec.sockjs.protocol.HeartbeatFrame;
 import io.netty.handler.codec.sockjs.util.ArgumentUtil;
 import io.netty.util.concurrent.ScheduledFuture;
@@ -69,14 +69,15 @@ abstract class AbstractTimersSessionState implements SessionState {
     }
 
     @Override
-    public void onConnect(final ChannelHandlerContext ctx, final SockJsSessionContext sockJsSessionContext) {
+    public void onConnect(final ChannelHandlerContext ctx) {
         session.setConnectionContext(ctx);
-        session.onOpen(sockJsSessionContext);
+        session.onOpen();
         startSessionTimer(ctx, session);
         startHeartbeatTimer(ctx, session);
     }
 
     private void startSessionTimer(final ChannelHandlerContext ctx, final SockJsSession session) {
+        final SockJsConfig config = session.config();
         if (sessionTimer == null) {
             sessionTimer = ctx.executor().scheduleAtFixedRate(new Runnable() {
                 @Override
@@ -85,7 +86,7 @@ abstract class AbstractTimersSessionState implements SessionState {
                     if (isInUse()) {
                         return;
                     }
-                    if (session.timestamp() + session.config().sessionTimeout() < now) {
+                    if (session.timestamp() + config.sessionTimeout() < now) {
                         final SockJsSession removed = sessions.remove(session.sessionId());
                         session.connectionContext().close();
                         sessionTimer.cancel(true);
@@ -95,7 +96,7 @@ abstract class AbstractTimersSessionState implements SessionState {
                         }
                     }
                 }
-            }, session.config().sessionTimeout(), session.config().sessionTimeout(), TimeUnit.MILLISECONDS);
+            }, config.sessionTimeout(), config.sessionTimeout(), TimeUnit.MILLISECONDS);
         }
     }
 

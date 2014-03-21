@@ -15,35 +15,15 @@
  */
 package io.netty.handler.codec.sockjs;
 
-/**
- * Test service required by
- * <a href="http://sockjs.github.io/sockjs-protocol/sockjs-protocol-0.3.3.html">sockjs-protocol</a>
- * which will close the session as soon as a message is received.
- */
-public final class CloseService implements SockJsService {
+import io.netty.channel.ChannelHandler;
+import io.netty.channel.ChannelHandlerContext;
+import io.netty.channel.SimpleChannelInboundHandler;
 
-    private final SockJsConfig config;
-
-    public CloseService(final SockJsConfig config) {
-        this.config = config;
-    }
+@ChannelHandler.Sharable
+public class SockJsCookiesNeededHandler extends SimpleChannelInboundHandler<String> {
 
     @Override
-    public SockJsConfig config() {
-        return config;
+    protected void messageReceived(ChannelHandlerContext ctx, String msg) throws Exception {
+        ctx.writeAndFlush(msg);
     }
-
-    @Override
-    public void onMessage(final String message) throws Exception {
-    }
-
-    @Override
-    public void onOpen(final SockJsSessionContext session) {
-        session.close();
-    }
-
-    @Override
-    public void onClose() {
-    }
-
 }

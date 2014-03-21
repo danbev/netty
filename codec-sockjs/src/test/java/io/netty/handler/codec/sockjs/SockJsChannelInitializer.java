@@ -31,12 +31,6 @@ import io.netty.handler.codec.sockjs.handler.SockJsHandler;
  */
 public class SockJsChannelInitializer extends ChannelInitializer<Channel> {
 
-    private final SockJsServiceFactory[] services;
-
-    public SockJsChannelInitializer(final SockJsServiceFactory... services) {
-        this.services = services;
-    }
-
     @Override
     protected void initChannel(final Channel channel) throws Exception {
         final ChannelPipeline pipeline = channel.pipeline();
@@ -44,7 +38,7 @@ public class SockJsChannelInitializer extends ChannelInitializer<Channel> {
         pipeline.addLast("chunkAggregator", new HttpObjectAggregator(130 * 1024));
         pipeline.addLast("encoder", new HttpResponseEncoder());
         pipeline.addLast("corsInbound", new CorsInboundHandler());
-        pipeline.addLast("sockjs", new SockJsHandler(services));
+        pipeline.addLast("sockjs", new SockJsHandler());
         pipeline.addLast("corsOutbound", new CorsOutboundHandler());
     }
 

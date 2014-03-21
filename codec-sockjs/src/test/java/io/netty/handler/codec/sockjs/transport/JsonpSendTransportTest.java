@@ -29,7 +29,7 @@ import io.netty.handler.codec.http.HttpHeaders;
 import io.netty.handler.codec.http.HttpMethod;
 import io.netty.handler.codec.http.HttpResponseStatus;
 import io.netty.handler.codec.http.HttpVersion;
-import io.netty.handler.codec.sockjs.SockJsConfig;
+import io.netty.handler.codec.sockjs.DefaultSockJsConfig;
 import io.netty.util.CharsetUtil;
 
 import org.junit.Test;
@@ -86,8 +86,8 @@ public class JsonpSendTransportTest {
     }
 
     private static FullHttpResponse processHttpRequest(final FullHttpRequest request) {
-        final JsonpSendTransport transport = new JsonpSendTransport(SockJsConfig.withPrefix("/test")
-                .cookiesNeeded().build());
+        final JsonpSendTransport transport = new JsonpSendTransport(new DefaultSockJsConfig("/test")
+                .setCookiesNeeded(true));
         final EmbeddedChannel channel = new EmbeddedChannel(transport);
         channel.writeInbound(request);
         final FullHttpResponse response = channel.readOutbound();

@@ -31,6 +31,7 @@ import io.netty.handler.codec.http.DefaultHttpContent;
 import io.netty.handler.codec.http.HttpRequest;
 import io.netty.handler.codec.http.HttpResponse;
 import io.netty.handler.codec.http.HttpResponseStatus;
+import io.netty.handler.codec.sockjs.DefaultSockJsConfig;
 import io.netty.handler.codec.sockjs.SockJsConfig;
 import io.netty.handler.codec.sockjs.protocol.OpenFrame;
 import io.netty.util.CharsetUtil;
@@ -63,7 +64,7 @@ public class XhrStreamingTransportTest {
     }
 
     private static EmbeddedChannel newStreamingChannel() {
-        return newStreamingChannel(SockJsConfig.withPrefix("/test").cookiesNeeded().build());
+        return newStreamingChannel(new DefaultSockJsConfig("/test").setCookiesNeeded(true));
     }
 
     private static EmbeddedChannel newStreamingChannel(final SockJsConfig config) {

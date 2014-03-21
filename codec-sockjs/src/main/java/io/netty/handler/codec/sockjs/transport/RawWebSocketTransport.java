@@ -22,10 +22,12 @@ import static io.netty.handler.codec.sockjs.transport.Transports.methodNotAllowe
 import io.netty.channel.ChannelFuture;
 import io.netty.channel.ChannelFutureListener;
 import io.netty.channel.ChannelHandlerContext;
+import io.netty.channel.ChannelPromise;
 import io.netty.channel.SimpleChannelInboundHandler;
 import io.netty.handler.codec.http.FullHttpRequest;
 import io.netty.handler.codec.http.HttpHeaders;
 import io.netty.handler.codec.http.HttpRequest;
+import io.netty.handler.codec.http.cors.CorsHandler;
 import io.netty.handler.codec.http.websocketx.CloseWebSocketFrame;
 import io.netty.handler.codec.http.websocketx.PingWebSocketFrame;
 import io.netty.handler.codec.http.websocketx.PongWebSocketFrame;
@@ -35,11 +37,9 @@ import io.netty.handler.codec.http.websocketx.WebSocketHandshakeException;
 import io.netty.handler.codec.http.websocketx.WebSocketServerHandshaker;
 import io.netty.handler.codec.http.websocketx.WebSocketServerHandshakerFactory;
 import io.netty.handler.codec.sockjs.SockJsConfig;
-import io.netty.handler.codec.sockjs.SockJsSessionContext;
-import io.netty.handler.codec.sockjs.SockJsService;
-import io.netty.handler.codec.sockjs.handler.CorsInboundHandler;
-import io.netty.handler.codec.sockjs.handler.CorsOutboundHandler;
+import io.netty.handler.codec.sockjs.handler.SessionHandler.Event;
 import io.netty.handler.codec.sockjs.handler.SockJsHandler;
+import io.netty.handler.codec.sockjs.protocol.MessageFrame;
 import io.netty.util.AttributeKey;
 import io.netty.util.internal.logging.InternalLogger;
 import io.netty.util.internal.logging.InternalLoggerFactory;
@@ -52,12 +52,10 @@ public class RawWebSocketTransport extends SimpleChannelInboundHandler<Object> {
     private static final InternalLogger logger = InternalLoggerFactory.getInstance(RawWebSocketTransport.class);
     private static final AttributeKey<HttpRequest> REQUEST_KEY = AttributeKey.valueOf("raw.ws.request.key");
     private final SockJsConfig config;
-    private final SockJsService service;
     private WebSocketServerHandshaker handshaker;
 
-    public RawWebSocketTransport(final SockJsConfig config, final SockJsService service) {
+    public RawWebSocketTransport(final SockJsConfig config) {
         this.config = config;
-        this.service = service;
     }
 
     @Override
@@ -115,24 +113,9 @@ public class RawWebSocketTransport extends SimpleChannelInboundHandler<Object> {
                 @Override
                 public void operationComplete(final ChannelFuture future) throws Exception {
                     if (future.isSuccess()) {
-                        ctx.pipeline().remove(SockJsHandler.class);
-                        ctx.pipeline().remove(CorsInboundHandler.class);
-                        ctx.pipeline().remove(CorsOutboundHandler.class);
-                        ctx.pipeline().addLast(new RawWebSocketSendHandler());
-                        service.onOpen(new SockJsSessionContext() {
-                            @Override
-                            public void send(String message) {
-                                ctx.writeAndFlush(new TextWebSocketFrame(message));
-                            }
-                            @Override
-                            public void close() {
-                                ctx.close();
-                            }
-                            @Override
-                            public ChannelHandlerContext getContext() {
-                                return ctx;
-                            }
-                        });
+                        ctx.pipeline().replace(SockJsHandler.class, "rawWebSocket", new RawWebSocketSendHandler());
+                        ctx.pipeline().remove(CorsHandler.class);
+                        ctx.fireUserEventTriggered(Event.ON_SESSION_OPEN);
                     }
                 }
             });
@@ -147,7 +130,6 @@ public class RawWebSocketTransport extends SimpleChannelInboundHandler<Object> {
     private void handleWebSocketFrame(final ChannelHandlerContext ctx, final WebSocketFrame wsFrame) throws Exception {
         if (wsFrame instanceof CloseWebSocketFrame) {
             wsFrame.retain();
-            service.onClose();
             handshaker.close(ctx.channel(), (CloseWebSocketFrame) wsFrame);
             return;
         }
@@ -161,7 +143,16 @@ public class RawWebSocketTransport extends SimpleChannelInboundHandler<Object> {
                     wsFrame.getClass().getName()));
         }
         final String message = ((TextWebSocketFrame) wsFrame).text();
-        service.onMessage(message);
+        ctx.fireChannelRead(message);
+    }
+
+    @Override
+    public void write(ChannelHandlerContext ctx, Object msg, ChannelPromise promise) throws Exception {
+        if (msg instanceof String) {
+            ctx.channel().write(new MessageFrame((String) msg));
+        } else {
+            super.write(ctx, msg, promise);
+        }
     }
 
     @Override
@@ -174,6 +165,15 @@ public class RawWebSocketTransport extends SimpleChannelInboundHandler<Object> {
         } else {
             ctx.fireExceptionCaught(cause);
         }
+    }
+
+    @Override
+    public void userEventTriggered(final ChannelHandlerContext ctx, final Object event) throws Exception {
+        if (event == Event.CLOSE_SESSION) {
+            ctx.writeAndFlush(new CloseWebSocketFrame(1000, "SockJS Service close the connection"))
+                    .addListener(ChannelFutureListener.CLOSE);
+        }
+        ctx.fireChannelRead(event);
     }
 
 }

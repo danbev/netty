@@ -27,6 +27,7 @@ import io.netty.handler.codec.http.HttpMethod;
 import io.netty.handler.codec.http.HttpRequest;
 import io.netty.handler.codec.http.HttpResponseStatus;
 import io.netty.handler.codec.http.HttpVersion;
+import io.netty.handler.codec.sockjs.DefaultSockJsConfig;
 import io.netty.handler.codec.sockjs.SockJsConfig;
 
 import org.junit.Test;
@@ -36,7 +37,7 @@ public class IframeTest {
     @Test
     public void iframeHtm() throws Exception {
         final SockJsConfig config = config();
-        final String path = config.prefix() + "/iframe.htm";
+        final String path = config.getPrefix() + "/iframe.htm";
         final FullHttpResponse response = Iframe.response(config, createHttpRequest(path));
         assertThat(response.getStatus().code(), is(HttpResponseStatus.NOT_FOUND.code()));
         response.release();
@@ -45,7 +46,7 @@ public class IframeTest {
     @Test
     public void iframeHTML() throws Exception {
         final SockJsConfig config = config();
-        final String path = config.prefix() + "/iframe.HTML";
+        final String path = config.getPrefix() + "/iframe.HTML";
         final FullHttpResponse response = Iframe.response(config, createHttpRequest(path));
         assertThat(response.getStatus().code(), is(HttpResponseStatus.NOT_FOUND.code()));
         response.release();
@@ -54,7 +55,7 @@ public class IframeTest {
     @Test
     public void iframeHtmlUppercase() throws Exception {
         final SockJsConfig config = config();
-        final String path = config.prefix() + "/IFRAME.HTML";
+        final String path = config.getPrefix() + "/IFRAME.HTML";
         final FullHttpResponse response = Iframe.response(config, createHttpRequest(path));
         assertThat(response.getStatus().code(), is(HttpResponseStatus.NOT_FOUND.code()));
         response.release();
@@ -63,7 +64,7 @@ public class IframeTest {
     @Test
     public void iframeXml() throws Exception {
         final SockJsConfig config = config();
-        final String path = config.prefix() + "/iframe.xml";
+        final String path = config.getPrefix() + "/iframe.xml";
         final FullHttpResponse response = Iframe.response(config, createHttpRequest(path));
         assertThat(response.getStatus().code(), is(HttpResponseStatus.NOT_FOUND.code()));
         response.release();
@@ -72,7 +73,7 @@ public class IframeTest {
     @Test
     public void iframeUppercase() throws Exception {
         final SockJsConfig config = config();
-        final String path = config.prefix() + "/IFRAME";
+        final String path = config.getPrefix() + "/IFRAME";
         final FullHttpResponse response = Iframe.response(config, createHttpRequest(path));
         assertThat(response.getStatus().code(), is(HttpResponseStatus.NOT_FOUND.code()));
         response.release();
@@ -81,7 +82,7 @@ public class IframeTest {
     @Test
     public void ifNoneMatchHeader() throws Exception {
         final SockJsConfig config = config();
-        final String path = config.prefix() + "/iframe.html";
+        final String path = config.getPrefix() + "/iframe.html";
         final HttpRequest httpRequest = createHttpRequest(path);
         httpRequest.headers().set(HttpHeaders.Names.IF_NONE_MATCH, "*");
         final FullHttpResponse response = Iframe.response(config, httpRequest);
@@ -93,7 +94,7 @@ public class IframeTest {
     @Test
     public void iframeHtml() throws Exception {
         final SockJsConfig config = config();
-        final String path = config.prefix() + "/iframe.html";
+        final String path = config.getPrefix() + "/iframe.html";
         final FullHttpResponse response = Iframe.response(config, createHttpRequest(path));
         assertThat(response.getStatus().code(), is(HttpResponseStatus.OK.code()));
         assertThat(response.headers().get(HttpHeaders.Names.CONTENT_TYPE), equalTo("text/html; charset=UTF-8"));
@@ -105,7 +106,7 @@ public class IframeTest {
     }
 
     private static SockJsConfig config() {
-        return SockJsConfig.withPrefix("/simplepush").sockJsUrl("http://cdn.sockjs.org/sockjs-0.3.4.min.js").build();
+        return new DefaultSockJsConfig("/simplepush").setSockJsUrl("http://cdn.sockjs.org/sockjs-0.3.4.min.js");
     }
 
     private static HttpRequest createHttpRequest(final String path) {

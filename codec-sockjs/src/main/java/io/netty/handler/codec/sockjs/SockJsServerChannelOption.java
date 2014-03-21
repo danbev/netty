@@ -15,25 +15,15 @@
  */
 package io.netty.handler.codec.sockjs;
 
-/**
- * A factory for creating {@link SockJsService} instances.
- */
-public interface SockJsServiceFactory {
+import io.netty.channel.ChannelOption;
 
-    /**
-     * Creates a new instance, or reuse and existing instance, of the service.
-     * Allows for either creating new instances for every session of to use
-     * a single instance, whatever is appropriate for the use case.
-     *
-     * @return {@link SockJsService} the service instance.
-     */
-    SockJsService create();
+import static io.netty.channel.ChannelOption.valueOf;
 
-    /**
-     * The {@link SockJsConfig} for the session itself.
-     *
-     * @return Config the configuration for the session.
-     */
-    SockJsConfig config();
+public final class SockJsServerChannelOption {
 
+    private static final Class<SockJsServerChannelOption> T = SockJsServerChannelOption.class;
+    public static final ChannelOption<Boolean> TLS = valueOf(T, "TLS");
+
+    private SockJsServerChannelOption() {
+    }
 }

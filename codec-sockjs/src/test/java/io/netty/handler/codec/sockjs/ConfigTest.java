@@ -24,18 +24,23 @@ import static org.hamcrest.Matchers.is;
 
 import org.junit.Test;
 
+import java.util.Arrays;
+import java.util.HashSet;
+
 public class ConfigTest {
 
     @Test
     public void webSocketProtocols() {
-        final SockJsConfig config = SockJsConfig.withPrefix("/echo").webSocketProtocols("one", "two").build();
+        final SockJsConfig config = new DefaultSockJsConfig("/echo")
+                .setWebSocketProtocol(new HashSet<String>(Arrays.asList("one", "two")));
         assertThat(config.webSocketProtocol().size(), is(2));
         assertThat(config.webSocketProtocol(), hasItems("one", "two"));
     }
 
     @Test
     public void webSocketProtocolsAsCSV() {
-        final SockJsConfig config = SockJsConfig.withPrefix("/echo").webSocketProtocols("one", "two").build();
+        final SockJsConfig config = new DefaultSockJsConfig("/echo")
+                .setWebSocketProtocol(new HashSet<String>(Arrays.asList("one", "two")));
         assertThat(config.webSocketProtocol().size(), is(2));
         assertThat(config.webSocketProtocolCSV(), containsString("one"));
         assertThat(config.webSocketProtocolCSV(), containsString("two"));
@@ -43,35 +48,19 @@ public class ConfigTest {
 
     @Test
     public void webSocketProtocolsAsCSVNoProtocols() {
-        final SockJsConfig config = SockJsConfig.withPrefix("/echo").build();
+        final SockJsConfig config = new DefaultSockJsConfig("/echo");
         assertThat(config.webSocketProtocol().size(), is(0));
         assertThat(config.webSocketProtocolCSV(), is(nullValue()));
-    }
-
-    @Test (expected = IllegalStateException.class)
-    public void tlsWithoutKeystoreOrPassword() {
-        SockJsConfig.withPrefix("/echo").tls(true).build();
-    }
-
-    @Test (expected = IllegalStateException.class)
-    public void tlsWithoutKeystore() {
-        SockJsConfig.withPrefix("/echo").tls(true).keyStorePassword("changeme").build();
-    }
-
-    @Test (expected = IllegalStateException.class)
-    public void tlsWithoutKeystorePassword() {
-        SockJsConfig.withPrefix("/echo").tls(true).keyStore("/test.jks").build();
     }
 
     @Test
     public void keystore() {
         final String keystore = "/somepath/keystore.jks";
         final String keystorePassword = "changme";
-        final SockJsConfig config = SockJsConfig.withPrefix("/echo")
-                .tls(true)
-                .keyStore(keystore)
-                .keyStorePassword(keystorePassword)
-                .build();
+        final SockJsConfig config = new DefaultSockJsConfig("/echo")
+                .setTls(true)
+                .setKeyStore(keystore)
+                .setKeyStorePassword(keystorePassword);
         assertThat(config.keyStore(), equalTo(keystore));
         assertThat(config.keyStorePassword(), equalTo(keystorePassword));
     }

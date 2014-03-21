@@ -15,65 +15,43 @@
  */
 package io.netty.handler.codec.sockjs;
 
-import java.util.Arrays;
-import java.util.HashSet;
-import java.util.Iterator;
+import io.netty.channel.ChannelInitializer;
+import io.netty.handler.codec.http.cors.CorsConfig;
+
 import java.util.Set;
 
-import io.netty.handler.codec.sockjs.util.ArgumentUtil;
-import io.netty.util.internal.StringUtil;
-
-/**
- * Configuration for a SockJS Session.
- */
-public final class SockJsConfig {
-
-    private final String prefix;
-    private final boolean webSocketEnabled;
-    private final long webSocketHeartbeatInterval;
-    private final Set<String> webSocketProtocols;
-    private final boolean cookiesNeeded;
-    private final String sockjsUrl;
-    private final long sessionTimeout;
-    private final long heartbeatInterval;
-    private final int maxStreamingBytesSize;
-    private final boolean tls;
-    private final String keyStore;
-    private final String keystorePassword;
-
-    private SockJsConfig(final Builder builder) {
-        prefix = builder.prefix;
-        webSocketEnabled = builder.webSocketEnabled;
-        webSocketProtocols = builder.webSocketProtocols;
-        webSocketHeartbeatInterval = builder.webSocketHeartbeatInterval;
-        cookiesNeeded = builder.cookiesNeeded;
-        sockjsUrl = builder.sockJsUrl;
-        sessionTimeout = builder.sessionTimeout;
-        heartbeatInterval = builder.heartbeatInterval;
-        maxStreamingBytesSize = builder.maxStreamingBytesSize;
-        tls = builder.tls;
-        keyStore = builder.keyStore;
-        keystorePassword = builder.keyStorePassword;
-    }
+public interface SockJsConfig {
 
     /**
-     * The prefix/name, of the SockJS service.
-     * For example, in the url "http://localhost/echo/111/12345/xhr", 'echo' is the prefix.
+     * The getPrefix/name, of the SockJS service.
+     * For example, in the url "http://localhost/echo/111/12345/xhr", 'echo' is the getPrefix.
      *
-     * @return {@code String} the prefix/name of the SockJS service.
+     * @return {@code String} the getPrefix/name of the SockJS service.
      */
-    public String prefix() {
-        return prefix;
-    }
+    String getPrefix();
+
+    /**
+     * Sets the SockJS service prefix.
+     *
+     * @param prefix the prefix for the SockJS service.
+     * @return SockJsConfig to support method chaining.
+     */
+    SockJsConfig setPrefix(String prefix);
 
     /**
      * Determines whether WebSocket support will not be enabled.
      *
      * @return {@code true} if WebSocket support is enabled.
      */
-    public boolean isWebSocketEnabled() {
-        return webSocketEnabled;
-    }
+    boolean isWebSocketEnabled();
+
+    /**
+     * Enables/disables WebSocket support.
+     *
+     * @param enable if true then WebSocket support will be enabled.
+     * @return SockJsConfig to support method chaining.
+     */
+    SockJsConfig setWebSocketEnabled(boolean enable);
 
     /**
      * The WebSocket heartbeat interval.
@@ -85,9 +63,15 @@ public final class SockJsConfig {
      *
      * @return {@code long} how often, in ms, that a WebSocket heartbeat should be sent
      */
-    public long webSocketHeartbeatInterval() {
-        return webSocketHeartbeatInterval;
-    }
+    long webSocketHeartbeatInterval();
+
+    /**
+     * Sets the WebSocket heartbeat interval
+     *
+     * @param ms the interval in milliseconds.
+     * @return SockJsConfig to support method chaining.
+     */
+    SockJsConfig setWebSocketHeartbeatInterval(long ms);
 
     /**
      * If WebSockets are in use the this give the oppertunity to specify
@@ -96,31 +80,24 @@ public final class SockJsConfig {
      *
      * @return {@code Set<String>} of WebSocket protocols supported.
      */
-    public Set<String> webSocketProtocol() {
-        return webSocketProtocols;
-    }
+    Set<String> webSocketProtocol();
 
     /**
-    * If WebSockets are in use the this give the oppertunity to specify
-    * what 'WebSocket-Protocols' should be returned and supported by this
-    * SockJS session.
-    *
-    * @return {@code String} A comma separated value String with the WebSocket protocols supported
-    */
-   public String webSocketProtocolCSV() {
-       if (webSocketProtocols.isEmpty()) {
-           return null;
-       }
-       final StringBuilder sb = new StringBuilder();
-       final Iterator<String> iterator = webSocketProtocols.iterator();
-       if (iterator.hasNext()) {
-           sb.append(iterator.next());
-           while (iterator.hasNext()) {
-               sb.append(',').append(iterator.next());
-           }
-       }
-       return sb.toString();
-   }
+     * Sets the WebSocket protocols that this configuration supports.
+     *
+     * @param protocols the WebSocket protocols that are supported.
+     * @return SockJsConfig to support method chaining.
+     */
+    SockJsConfig setWebSocketProtocol(Set<String> protocols);
+
+    /**
+     * If WebSockets are in use the this give the oppertunity to specify
+     * what 'WebSocket-Protocols' should be returned and supported by this
+     * SockJS session.
+     *
+     * @return {@code String} A comma separated value String with the WebSocket protocols supported
+     */
+    String webSocketProtocolCSV();
 
     /**
      * Determines if a {@code JSESSIONID} cookie will be set. This is used by some
@@ -128,38 +105,62 @@ public final class SockJsConfig {
      *
      * @return {@code true} if a {@code JSESSIONID} cookie should be set.
      */
-    public boolean areCookiesNeeded() {
-        return cookiesNeeded;
-    }
+    boolean areCookiesNeeded();
 
     /**
-     * The url to the sock-js-<version>.json. This is used by the 'prefix/iframe' protocol and
+     * Configures if a {@code JSESSIONID} cookie will be set.
+     *
+     * @param needed if true then a JSESSIONID will be set.
+     * @return SockJsConfig to support method chaining.
+     */
+    SockJsConfig setCookiesNeeded(boolean needed);
+
+    /**
+     * The url to the sock-js-<version>.json. This is used by the 'getPrefix/iframe' protocol and
      * the url is replaced in the script returned to the client. This allows for configuring
      * the version of sockjs used. By default it is 'http://cdn.sockjs.org/sockjs-0.3.4.min.js'.
      *
      * @return {@code String} the url to the sockjs version to be used.
      */
-    public String sockJsUrl() {
-        return sockjsUrl;
-    }
+    String sockJsUrl();
+
+    /**
+     * Sets the SockJS url to be used with the iframe protocol.
+     *
+     * @param url the url.
+     * @return SockJsConfig to support method chaining.
+     */
+    SockJsConfig setSockJsUrl(String url);
 
     /**
      * A time out for inactive sessions.
      *
      * @return {@code long} the timeout in ms. The default is 5000ms.
      */
-    public long sessionTimeout() {
-        return sessionTimeout;
-    }
+    long sessionTimeout();
+
+    /**
+     * Sets the session timeout
+     *
+     * @param ms the timeout in milliseconds.
+     * @return SockJsConfig to support method chaining.
+     */
+    SockJsConfig setSessionTimeout(long ms);
 
     /**
      * A heartbeat interval.
      *
      * @return {@code long} how often, in ms, that a heartbeat should be sent
      */
-    public long heartbeatInterval() {
-        return heartbeatInterval;
-    }
+    long heartbeatInterval();
+
+    /**
+     * Sets the heartbeat interval.
+     *
+     * @param ms the heartbeat interval in milliseconds.
+     * @return SockJsConfig to support method chaining.
+     */
+    SockJsConfig setHeartbeatInterval(long ms);
 
     /**
      * The max number of types that a streaming transport protocol should allow to be returned
@@ -170,221 +171,91 @@ public final class SockJsConfig {
      *
      * @return {@code int} the max number of bytes that can be written. Default is 131072.
      */
-    public int maxStreamingBytesSize() {
-        return maxStreamingBytesSize;
-    }
+    int maxStreamingBytesSize();
+
+    /**
+     * Sets the max streaming bytes size.
+     *
+     * @param max the maximum size for streaming bytes, after which a new connection will be foreced.
+     * @return SockJsConfig to support method chaining.
+     */
+    SockJsConfig setMaxStreamingBytesSize(int max);
 
     /**
      * Determines whether transport layer security (TLS) should be used.
      *
      * @return {@code true} if transport layer security should be used.
      */
-    public boolean isTls() {
-        return tls;
-    }
+    boolean isTls();
+
+    /**
+     * Enables/disables Transport Layer Security (TLS)
+     *
+     * @param tls if true TLS will be enabled.
+     * @return SockJsConfig to support method chaining.
+     */
+    SockJsConfig setTls(boolean tls);
 
     /**
      * Returns the keystore to be used if transport layer security is enabled.
+     * TODO: This should probably be moved into the SockJsChannel and not be per service.
      *
      * @return {@code String} the path to the keystore to be used
      */
-    public String keyStore() {
-        return keyStore;
-    }
+    String keyStore();
+
+    /**
+     * Sets the keystore to be used.
+     * TODO: This should probably be moved into the SockJsChannel and not be per service.
+     *
+     * @param keyStore the keystore to be used.
+     * @return SockJsConfig to support method chaining.
+     */
+    SockJsConfig setKeyStore(String keyStore);
 
     /**
      * Returns the keystore password to be used if transport layer security is enabled.
+     * TODO: This should probably be moved into the SockJsChannel and not be per service.
      *
      * @return {@code String} the password to the configured keystore
      */
-    public String keyStorePassword() {
-        return keystorePassword;
-    }
-
-    public String toString() {
-        return StringUtil.simpleClassName(this) + "[prefix=" + prefix +
-            ", webSocketEnabled=" + webSocketEnabled +
-            ", webSocketProtocols=" + webSocketProtocols +
-            ", webSocketHeartbeatInterval=" + webSocketHeartbeatInterval +
-            ", cookiesNeeded=" + cookiesNeeded +
-            ", sockJsUrl=" + sockjsUrl +
-            ", sessionTimeout=" + sessionTimeout +
-            ", heartbeatInterval=" + heartbeatInterval +
-            ", maxStreamingBytesSize=" + maxStreamingBytesSize +
-            ", tls=" + tls +
-            ", keyStore=" + keyStore +
-            ']';
-    }
+    String keyStorePassword();
 
     /**
-     * The prefix, or name, of the service.
-     * For example, in the url "http://localhost/echo/111/12345/xhr", 'echo' is the prefix.
+     * Sets the keystore password.
+     * TODO: This should probably be moved into the SockJsChannel and not be per service.
      *
-     * @param prefix the prefix/name of the SockJS service.
+     * @param password the password for the keystore.
+     * @return SockJsConfig to support method chaining.
      */
-    public static Builder withPrefix(final String prefix) {
-        ArgumentUtil.checkNotNullAndNotEmpty(prefix, "prefix");
-        return new Builder(prefix);
-    }
+    SockJsConfig setKeyStorePassword(String password);
 
-    public static class Builder {
-        private final String prefix;
-        private boolean webSocketEnabled = true;
-        private long webSocketHeartbeatInterval = -1;
-        private final Set<String> webSocketProtocols = new HashSet<String>();
-        private boolean cookiesNeeded;
-        private String sockJsUrl = "http://cdn.sockjs.org/sockjs-0.3.4.min.js" ;
-        private long sessionTimeout = 5000;
-        private long heartbeatInterval = 25000;
-        private int maxStreamingBytesSize = 128 * 1024;
-        private boolean tls;
-        private String keyStore;
-        private String keyStorePassword;
+    /**
+     * Returns the CORS configuration for this SockJS configuration
+     *
+     * @return CorsConfiguration the CORS configuration for this SockJS config.
+     */
+    CorsConfig corsConfig();
 
-        /**
-         * The prefix, or name, of the service.
-         * For example, in the url "http://localhost/echo/111/12345/xhr", 'echo' is the prefix.
-         *
-         * @param prefix the prefix/name of the SockJS service.
-         */
-        public Builder(final String prefix) {
-            this.prefix = prefix;
-        }
+    /**
+     * Sets the CORS configuration for this SockJS configuration
+     *
+     * @return SockJsConfig to support method chaining.
+     */
+    SockJsConfig setCorsConfig(CorsConfig corsConfig);
 
-        /**
-         * Will disable WebSocket suppport.
-         */
-        public Builder disableWebSocket() {
-            webSocketEnabled = false;
-            return this;
-        }
+    /**
+     * Returns the {@link ChannelInitializer} for a SockJS service.
+     *
+     * @return
+     */
+    ChannelInitializer<SockJsChannel> channelInitializer();
 
-        /**
-         * Specifies a heartbeat interval for SockJS WebSocket transport.
-         * This might be required in certain environments where idle connections
-         * are closed by a proxy. It is a separate value from the hearbeat that
-         * the streaming protocols use as it is often desirable to have a mush
-         * larger value for it.
-         *
-         * @param ms how often that a WebSocket heartbeat should be sent
-         */
-        public Builder webSocketHeartbeatInterval(final long ms) {
-            webSocketHeartbeatInterval = ms;
-            return this;
-        }
-
-        /**
-         * Adds the given protocols which will be returned to during the
-         * Http upgrade request as the header 'WebSocket-Protocol'.
-         *
-         * @param protocols the protocols that are supported.
-         */
-        public Builder webSocketProtocols(final String... protocols) {
-            webSocketProtocols.addAll(Arrays.asList(protocols));
-            return this;
-        }
-
-        /**
-         * Determines if a {@code JSESSIONID} cookie will be set. This is used by some
-         * load balancers to enable session stickyness.
-         */
-        public Builder cookiesNeeded() {
-            cookiesNeeded = true;
-            return this;
-        }
-
-        /**
-         * The url to the sock-js-<version>.json. This is used by the 'prefix/iframe' protocol and
-         * the url is replaced in the script returned to the client. This allows for configuring
-         * the version of sockjs used. By default it is 'http://cdn.sockjs.org/sockjs-0.3.4.min.js'.
-         *
-         * @param sockJsUrl the url to the sockjs version to be used.
-         */
-        public Builder sockJsUrl(final String sockJsUrl) {
-            this.sockJsUrl = sockJsUrl;
-            return this;
-        }
-
-        /**
-         * The max number of types that a streaming transport protocol should allow to be returned
-         * before closing the connection, forcing the client to reconnect. This is done so that the
-         * responseText in the XHR Object will not grow and be come an issue for the client. Instead,
-         * by forcing a reconnect the client will create a new XHR object and this can be see as a
-         * form of garbage collection.
-         *
-         * @param ms the max number of bytes that can be written. Default is 131072.
-         */
-        public Builder sessionTimeout(final long ms) {
-            sessionTimeout = ms;
-            return this;
-        }
-
-        /**
-         * Specifies a heartbeat interval.
-         *
-         * @param ms how often that a heartbeat should be sent
-         */
-        public Builder heartbeatInterval(final long ms) {
-            heartbeatInterval = ms;
-            return this;
-        }
-
-        /**
-         * The max number of types that a streaming transport protocol should allow to be returned
-         * before closing the connection, forcing the client to reconnect. This is done so that the
-         * responseText in the XHR Object will not grow and be come an issue for the client. Instead,
-         * by forcing a reconnect the client will create a new XHR object and this can be see as a
-         * form of garbage collection.
-         *
-         * @param max the max number of bytes that can be written. Default is 131072.
-         */
-        public Builder maxStreamingBytesSize(final int max) {
-            maxStreamingBytesSize = max;
-            return this;
-        }
-
-        /**
-         * Determines whether transport layer security (TLS) should be used.
-         *
-         * @param tls if transport layer security should be used.
-         */
-        public Builder tls(final boolean tls) {
-            this.tls = tls;
-            return this;
-        }
-
-        /**
-         * Specifies the keystore to be used if transport layer security (TLS) is enabled.
-         *
-         * @param keyStore the keystore to be used when TLS is enabled.
-         */
-        public Builder keyStore(final String keyStore) {
-            this.keyStore = keyStore;
-            return this;
-        }
-
-        /**
-         * Specifies the keystore password to be used if transport layer security (TLS) is enabled.
-         *
-         * @param password the keystore password to be used when TLS is enabled.
-         */
-        public Builder keyStorePassword(final String password) {
-            keyStorePassword = password;
-            return this;
-        }
-
-        /**
-         * Builds Config with the previously set values.
-         *
-         * @return {@link SockJsConfig} the configuration for the SockJS service.
-         */
-        public SockJsConfig build() {
-            if (tls && (keyStore == null || keyStorePassword == null)) {
-                throw new IllegalStateException("keyStore and keyStorePassword must be specified if 'tls' is enabled");
-            }
-            return new SockJsConfig(this);
-        }
-    }
+    /**
+     * Sets the {@link ChannelInitializer} for this SockJS service.
+     * @param init the ChannelInitilizer to be used.
+     * @return SockJsConfig to support method chaining.
+     */
+    SockJsConfig setChannelInitializer(ChannelInitializer<SockJsChannel> init);
 
 }
-

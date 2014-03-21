@@ -15,28 +15,16 @@
  */
 package io.netty.handler.codec.sockjs;
 
-import io.netty.channel.ChannelHandlerContext;
+import io.netty.channel.Channel;
 
-/**
- * Allows a {@link SockJsService} to interact with its session by providing
- * methods to send data, and to close the session.
- */
-public interface SockJsSessionContext {
+public interface SockJsChannel extends Channel {
+
     /**
-     * Send data to the current session. This data might be delivered immediately
-     * of queued up in the session depending on the type of session (polling, streaming etc)
+     * Returns a configuration that is shared among all SockJs services/handlers.
      *
-     * @param message the message to be sent.
+     * @return SockJsChannelConfig the shared among all SockJs services/handlers.
      */
-    void send(String message);
+    @Override
+    SockJsChannelConfig config();
 
-    /**
-     * Close the current session.
-     */
-    void close();
-
-    /**
-     * Get the underlying ChannelHandlerContext.
-     */
-    ChannelHandlerContext getContext();
 }

@@ -15,38 +15,31 @@
  */
 package io.netty.handler.codec.sockjs;
 
+import io.netty.channel.ChannelHandler;
+import io.netty.channel.ChannelHandlerContext;
+import io.netty.channel.SimpleChannelInboundHandler;
+import io.netty.handler.codec.sockjs.handler.SessionHandler.Event;
 
 /**
  * Test service required by
  * <a href="http://sockjs.github.io/sockjs-protocol/sockjs-protocol-0.3.3.html">sockjs-protocol</a>
- * which will send back message it receives.
+ * which will close the session as soon as a message is received.
  */
-public class EchoService implements SockJsService {
+@ChannelHandler.Sharable
+public final class SockJsCloseHandler extends SimpleChannelInboundHandler<String> {
 
-    private final SockJsConfig config;
-    private SockJsSessionContext session;
-
-    public EchoService(final SockJsConfig config) {
-        this.config = config;
+    @Override
+    public void userEventTriggered(final ChannelHandlerContext ctx, final Object evt) throws Exception {
+        if (evt == Event.ON_SESSION_OPEN) {
+            ctx.pipeline().fireUserEventTriggered(Event.CLOSE_SESSION);
+        } else {
+            super.userEventTriggered(ctx, evt);
+        }
     }
 
     @Override
-    public SockJsConfig config() {
-        return config;
-    }
-
-    @Override
-    public void onMessage(final String message) throws Exception {
-        session.send(message);
-    }
-
-    @Override
-    public void onOpen(final SockJsSessionContext session) {
-        this.session = session;
-    }
-
-    @Override
-    public void onClose() {
+    public void messageReceived(final ChannelHandlerContext ctx, final String msg) {
+        // noop
     }
 
 }
