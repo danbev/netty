@@ -41,7 +41,7 @@ public class DefaultSockJsConfig implements SockJsConfig {
     private boolean tls;
     private String keyStore;
     private String keystorePassword;
-    private CorsConfig corsConfig = CorsConfig.anyOrigin().allowCredentials().maxAge(31536000).build();
+    private CorsConfig corsConfig = CorsConfig.withAnyOrigin().allowCredentials().maxAge(31536000).build();
     private ChannelInitializer<SockJsChannel> channelInitializer;
 
     public DefaultSockJsConfig() {

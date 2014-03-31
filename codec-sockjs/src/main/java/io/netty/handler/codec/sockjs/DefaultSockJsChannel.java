@@ -57,7 +57,7 @@ public class DefaultSockJsChannel extends NioSocketChannel implements SockJsChan
 
     // TODO: This must be made configurable.
     public static Builder defaultCorsConfig() {
-        return CorsConfig.anyOrigin()
+        return CorsConfig.withAnyOrigin()
                 .allowCredentials()
                 .preflightResponseHeader(Names.CACHE_CONTROL, "public, max-age=31536000")
                 .preflightResponseHeader(Names.SET_COOKIE, "JSESSIONID=dummy;path=/")
