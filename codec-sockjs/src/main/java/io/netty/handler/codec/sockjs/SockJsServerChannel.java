@@ -17,7 +17,6 @@ package io.netty.handler.codec.sockjs;
 
 import io.netty.channel.EventLoop;
 import io.netty.channel.EventLoopGroup;
-import io.netty.channel.nio.NioEventLoop;
 import io.netty.channel.socket.nio.NioServerSocketChannel;
 import io.netty.util.internal.logging.InternalLogger;
 import io.netty.util.internal.logging.InternalLoggerFactory;
@@ -32,11 +31,9 @@ import java.util.List;
 public class SockJsServerChannel extends NioServerSocketChannel {
 
     private static final InternalLogger logger = InternalLoggerFactory.getInstance(SockJsServerChannel.class);
-    private final SockJsEventLoop sockJsEventLoop;
 
     public SockJsServerChannel(final EventLoop eventLoop, final EventLoopGroup childGroup) {
         super(eventLoop, childGroup);
-        sockJsEventLoop = (SockJsEventLoop) eventLoop;
     }
 
     @Override
@@ -56,16 +53,6 @@ public class SockJsServerChannel extends NioServerSocketChannel {
             }
         }
         return 0;
-    }
-
-    @Override
-    public NioEventLoop eventLoop() {
-        return sockJsEventLoop.delegate();
-    }
-
-    @Override
-    protected boolean isCompatible(EventLoop loop) {
-        return loop instanceof SockJsEventLoop;
     }
 
 }

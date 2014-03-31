@@ -38,7 +38,7 @@ public class DefaultSockJsChannel extends NioSocketChannel implements SockJsChan
     private final SockJsChannelConfig channelConfig;
 
     public DefaultSockJsChannel(Channel parent, EventLoop eventLoop, SocketChannel socket) {
-        super(parent, ((SockJsEventLoop) eventLoop).delegate(), socket);
+        super(parent, eventLoop, socket);
         channelConfig = new DefaultSockJsChannelConfig(this, socket.socket());
 
         pipeline().addLast(new ChannelInitializer<SockJsChannel>() {

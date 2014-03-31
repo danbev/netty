@@ -19,6 +19,7 @@ import io.netty.bootstrap.ServerBootstrap;
 import io.netty.channel.Channel;
 import io.netty.channel.ChannelInitializer;
 import io.netty.channel.EventLoopGroup;
+import io.netty.channel.nio.NioEventLoopGroup;
 import io.netty.channel.socket.ServerSocketChannel;
 
 import static io.netty.handler.codec.sockjs.SockJsChannelOption.*;
@@ -37,8 +38,8 @@ public class NettySockJsServer {
     }
 
     public void run() throws Exception {
-        final EventLoopGroup bossGroup = new SockJsEventLoopGroup();
-        final EventLoopGroup workerGroup = new SockJsEventLoopGroup();
+        final EventLoopGroup bossGroup = new NioEventLoopGroup();
+        final EventLoopGroup workerGroup = new NioEventLoopGroup();
         try {
             final ServerBootstrap sb = new ServerBootstrap();
             sb.channel(SockJsServerChannel.class);
