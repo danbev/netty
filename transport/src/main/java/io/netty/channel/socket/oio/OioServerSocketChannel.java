@@ -144,6 +144,10 @@ public class OioServerSocketChannel extends AbstractOioMessageChannel
         socket.close();
     }
 
+    protected ServerSocket serverSocket() {
+        return socket;
+    }
+
     @Override
     protected int doReadMessages(List<Object> buf) throws Exception {
         if (socket.isClosed()) {
