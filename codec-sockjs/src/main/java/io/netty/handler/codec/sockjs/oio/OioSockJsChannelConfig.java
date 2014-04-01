@@ -13,21 +13,11 @@
  * License for the specific language governing permissions and limitations under
  * the License.
  */
-package io.netty.handler.codec.sockjs;
+package io.netty.handler.codec.sockjs.oio;
 
-import io.netty.channel.ChannelHandler;
-import io.netty.channel.socket.SocketChannel;
+import io.netty.channel.socket.oio.OioSocketChannelConfig;
+import io.netty.handler.codec.sockjs.SockJsChannelConfig;
 
-public interface SockJsChannel extends SocketChannel {
-
-    @Override
-    SockJsChannelConfig config();
-
-    /**
-     * Adds the {@link ChannelHandler} required for SockJS.
-     *
-     * @param handler the channel handler to setup SockJS.
-     */
-    void addSockJsHandler(ChannelHandler handler);
+public interface OioSockJsChannelConfig extends OioSocketChannelConfig, SockJsChannelConfig {
 
 }

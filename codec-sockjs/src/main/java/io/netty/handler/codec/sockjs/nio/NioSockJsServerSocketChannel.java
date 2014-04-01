@@ -13,7 +13,7 @@
  * License for the specific language governing permissions and limitations under
  * the License.
  */
-package io.netty.handler.codec.sockjs;
+package io.netty.handler.codec.sockjs.nio;
 
 import io.netty.channel.EventLoop;
 import io.netty.channel.EventLoopGroup;
@@ -24,15 +24,11 @@ import io.netty.util.internal.logging.InternalLoggerFactory;
 import java.nio.channels.SocketChannel;
 import java.util.List;
 
-/**
- * A server socket channel that extends NioServerSocketChannel to
- * return DefaultSockJsChannel instead of NioSocketChannels.
- */
-public class SockJsServerChannel extends NioServerSocketChannel {
+public class NioSockJsServerSocketChannel extends NioServerSocketChannel {
 
-    private static final InternalLogger logger = InternalLoggerFactory.getInstance(SockJsServerChannel.class);
+    private static final InternalLogger logger = InternalLoggerFactory.getInstance(NioSockJsServerSocketChannel.class);
 
-    public SockJsServerChannel(final EventLoop eventLoop, final EventLoopGroup childGroup) {
+    public NioSockJsServerSocketChannel(final EventLoop eventLoop, final EventLoopGroup childGroup) {
         super(eventLoop, childGroup);
     }
 
@@ -41,7 +37,7 @@ public class SockJsServerChannel extends NioServerSocketChannel {
         final SocketChannel ch = javaChannel().accept();
         try {
             if (ch != null) {
-                buf.add(new DefaultSockJsChannel(this, childEventLoopGroup().next(), ch));
+                buf.add(new NioSockJsSocketChannel(this, childEventLoopGroup().next(), ch));
                 return 1;
             }
         } catch (final Throwable t) {

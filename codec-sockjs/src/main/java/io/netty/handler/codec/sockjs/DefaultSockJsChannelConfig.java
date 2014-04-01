@@ -15,11 +15,8 @@
  */
 package io.netty.handler.codec.sockjs;
 
-import io.netty.buffer.ByteBufAllocator;
 import io.netty.channel.ChannelInitializer;
 import io.netty.channel.ChannelOption;
-import io.netty.channel.MessageSizeEstimator;
-import io.netty.channel.RecvByteBufAllocator;
 import io.netty.channel.socket.DefaultSocketChannelConfig;
 import io.netty.channel.socket.SocketChannel;
 import io.netty.handler.codec.http.cors.CorsConfig;
@@ -29,7 +26,6 @@ import java.util.Set;
 
 import static io.netty.handler.codec.sockjs.SockJsChannelOption.*;
 
-
 /**
  * Represents a configuration options for a SockJs Channel.
  */
@@ -37,14 +33,13 @@ public class DefaultSockJsChannelConfig extends DefaultSocketChannelConfig imple
 
     private final SockJsConfig config;
 
-    public DefaultSockJsChannelConfig(final SocketChannel channel, final Socket javaSocket) {
-        super(channel, javaSocket);
+    public DefaultSockJsChannelConfig(final SocketChannel channel, final Socket socket) {
+        super(channel, socket);
         config = new DefaultSockJsConfig();
     }
 
     @Override
     public <T> boolean setOption(ChannelOption<T> option, T value) {
-        super.setOption(option, value);
         if (option == PREFIX) {
             config.setPrefix((String) value);
         } else if (option == WEBSOCKET_ENABLED) {
@@ -74,7 +69,7 @@ public class DefaultSockJsChannelConfig extends DefaultSocketChannelConfig imple
         } else {
             return false;
         }
-        return true;
+        return super.setOption(option, value);
     }
 
     @Override
@@ -120,60 +115,6 @@ public class DefaultSockJsChannelConfig extends DefaultSocketChannelConfig imple
             return (T) config.corsConfig();
         }
         return super.getOption(option);
-    }
-
-    @Override
-    public DefaultSockJsChannelConfig setConnectTimeoutMillis(final int connectTimeoutMillis) {
-        super.setConnectTimeoutMillis(connectTimeoutMillis);
-        return this;
-    }
-
-    @Override
-    public DefaultSockJsChannelConfig setMaxMessagesPerRead(final int maxMessagesPerRead) {
-        super.setMaxMessagesPerRead(maxMessagesPerRead);
-        return this;
-    }
-
-    @Override
-    public DefaultSockJsChannelConfig setWriteSpinCount(final int writeSpinCount) {
-        super.setWriteSpinCount(writeSpinCount);
-        return this;
-    }
-
-    @Override
-    public DefaultSockJsChannelConfig setAllocator(final ByteBufAllocator allocator) {
-        super.setAllocator(allocator);
-        return this;
-    }
-
-    @Override
-    public DefaultSockJsChannelConfig setRecvByteBufAllocator(final RecvByteBufAllocator allocator) {
-        super.setRecvByteBufAllocator(allocator);
-        return this;
-    }
-
-    @Override
-    public DefaultSockJsChannelConfig setAutoRead(final boolean autoRead) {
-        super.setAutoRead(autoRead);
-        return this;
-    }
-
-    @Override
-    public DefaultSockJsChannelConfig setWriteBufferHighWaterMark(final int writeBufferHighWaterMark) {
-        super.setWriteBufferHighWaterMark(writeBufferHighWaterMark);
-        return this;
-    }
-
-    @Override
-    public DefaultSockJsChannelConfig setWriteBufferLowWaterMark(final int writeBufferLowWaterMark) {
-        super.setWriteBufferLowWaterMark(writeBufferLowWaterMark);
-        return this;
-    }
-
-    @Override
-    public DefaultSockJsChannelConfig setMessageSizeEstimator(final MessageSizeEstimator estimator) {
-        super.setMessageSizeEstimator(estimator);
-        return this;
     }
 
     @Override

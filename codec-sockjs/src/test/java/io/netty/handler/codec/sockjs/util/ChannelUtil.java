@@ -24,8 +24,9 @@ import io.netty.handler.codec.http.websocketx.WebSocket00FrameEncoder;
 import io.netty.handler.codec.http.websocketx.WebSocket07FrameEncoder;
 import io.netty.handler.codec.http.websocketx.WebSocket08FrameEncoder;
 import io.netty.handler.codec.http.websocketx.WebSocket13FrameEncoder;
-import io.netty.handler.codec.sockjs.DefaultSockJsChannel;
 import io.netty.handler.codec.sockjs.SockJsChannelOption;
+
+import static io.netty.handler.codec.sockjs.SockJsChannelInitializer.*;
 
 public final class ChannelUtil {
 
@@ -34,7 +35,7 @@ public final class ChannelUtil {
 
     public static EmbeddedChannel wsSockJsPipeline(final String prefix, final ChannelHandler handler) {
         final TestEmbeddedChannel ch = new TestEmbeddedChannel();
-        DefaultSockJsChannel.addDefaultSockJsHandlers(ch.pipeline(), DefaultSockJsChannel.defaultCorsConfig().build());
+        addDefaultSockJsHandlers(ch.pipeline(), CorsConfig.withAnyOrigin().build());
         ch.pipeline().addLast(new WsCodecRemover());
         ch.pipeline().addLast(handler);
         ch.pipeline().remove(HttpObjectAggregator.class);
@@ -44,7 +45,7 @@ public final class ChannelUtil {
 
     public static TestEmbeddedChannel sockJsPipeline(final String prefix, final ChannelHandler handler) {
         final TestEmbeddedChannel ch = new TestEmbeddedChannel();
-        DefaultSockJsChannel.addDefaultSockJsHandlers(ch.pipeline(), DefaultSockJsChannel.defaultCorsConfig().build());
+        addDefaultSockJsHandlers(ch.pipeline(), defaultCorsConfig().build());
         ch.pipeline().addLast(handler);
         setDefaultSockJsChannelOptions(ch, prefix);
 
@@ -58,7 +59,7 @@ public final class ChannelUtil {
                                                       final ChannelHandler handler,
                                                       final CorsConfig corsConfig) {
         final TestEmbeddedChannel ch = new TestEmbeddedChannel();
-        DefaultSockJsChannel.addDefaultSockJsHandlers(ch.pipeline(), corsConfig);
+        addDefaultSockJsHandlers(ch.pipeline(), corsConfig);
         ch.pipeline().addLast(handler);
         // remove the HttpResponseEncoder so that we can check the plain HttpResponses.
         ch.pipeline().remove(HttpResponseEncoder.class);

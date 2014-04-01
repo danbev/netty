@@ -40,8 +40,8 @@ import io.netty.handler.codec.http.cors.CorsConfig;
 import io.netty.handler.codec.http.websocketx.CloseWebSocketFrame;
 import io.netty.handler.codec.http.websocketx.TextWebSocketFrame;
 import io.netty.handler.codec.http.websocketx.WebSocketVersion;
-import io.netty.handler.codec.sockjs.DefaultSockJsChannel;
 import io.netty.handler.codec.sockjs.SockJsChannelConfig;
+import io.netty.handler.codec.sockjs.SockJsChannelInitializer;
 import io.netty.handler.codec.sockjs.SockJsChannelOption;
 import io.netty.handler.codec.sockjs.SockJsCloseHandler;
 import io.netty.handler.codec.sockjs.SockJsEchoHandler;
@@ -207,7 +207,7 @@ public class SockJsProtocolTest {
      */
     @Test
     public void infoTestOptions() throws Exception {
-        final CorsConfig corsConfig = DefaultSockJsChannel.defaultCorsConfig()
+        final CorsConfig corsConfig = SockJsChannelInitializer.defaultCorsConfig()
                 .preflightResponseHeader(Names.CONTENT_TYPE, "text/plain; charset=UTF-8")
                 .build();
         final EmbeddedChannel ch = sockJsPipeline("/echo", new SockJsEchoHandler(), corsConfig);
@@ -226,7 +226,7 @@ public class SockJsProtocolTest {
      */
     @Test
     public void infoTestOptionsNullOrigin() throws Exception {
-        final CorsConfig corsConfig = DefaultSockJsChannel.defaultCorsConfig()
+        final CorsConfig corsConfig = SockJsChannelInitializer.defaultCorsConfig()
                 .preflightResponseHeader(Names.CONTENT_TYPE, "text/plain; charset=UTF-8")
                 .build();
         final EmbeddedChannel ch = sockJsPipeline("/echo", new SockJsEchoHandler(), corsConfig);
@@ -644,7 +644,7 @@ public class SockJsProtocolTest {
      */
     @Test
     public void xhrPollingTestOptions() throws Exception {
-        final CorsConfig corsConfig = DefaultSockJsChannel.defaultCorsConfig()
+        final CorsConfig corsConfig = SockJsChannelInitializer.defaultCorsConfig()
                 .preflightResponseHeader(Names.CONTENT_TYPE, "text/plain; charset=UTF-8")
                 .build();
         final ChannelHandler echoHandler = new SockJsEchoHandler();
@@ -785,7 +785,7 @@ public class SockJsProtocolTest {
 
         final FullHttpRequest okRequest = httpRequest(sessionUrl + "/xhr", POST);
         okRequest.headers().set(ACCESS_CONTROL_REQUEST_HEADERS, "a, b, c");
-        CorsConfig corsConfig = DefaultSockJsChannel.defaultCorsConfig().allowedRequestHeaders("a, b, c").build();
+        CorsConfig corsConfig = SockJsChannelInitializer.defaultCorsConfig().allowedRequestHeaders("a, b, c").build();
         final HttpResponse response = xhrRequest(okRequest, sockJsPipeline("/echo", echoHandler, corsConfig));
         assertThat(response.getStatus(), is(HttpResponseStatus.OK));
         assertCORSHeaders(response, "*");
@@ -794,7 +794,7 @@ public class SockJsProtocolTest {
         final String emptySessionUrl = "/echo/abc/" + UUID.randomUUID();
         final FullHttpRequest emptyHeaderRequest = httpRequest(emptySessionUrl + "/xhr", POST);
         emptyHeaderRequest.headers().set(ACCESS_CONTROL_REQUEST_HEADERS, "");
-        corsConfig = DefaultSockJsChannel.defaultCorsConfig().allowedRequestHeaders("").build();
+        corsConfig = SockJsChannelInitializer.defaultCorsConfig().allowedRequestHeaders("").build();
         final HttpResponse emptyHeaderResponse = xhrRequest(emptyHeaderRequest,
                 sockJsPipeline("/echo", echoHandler, corsConfig));
         assertThat(emptyHeaderResponse.getStatus(), is(HttpResponseStatus.OK));
