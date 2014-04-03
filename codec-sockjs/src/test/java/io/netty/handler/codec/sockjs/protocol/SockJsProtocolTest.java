@@ -234,6 +234,20 @@ public class SockJsProtocolTest {
     }
 
     /*
+    * Equivalent to InfoTest.test_options in sockjs-protocol-0.3.3.py.
+    */
+    @Test
+    public void corsConfigOverride() throws Exception {
+        final String origin = "http://localhost";
+        final CorsConfig corsConfig = CorsConfig.withOrigin(origin).build();
+        final EmbeddedChannel ch = sockJsPipeline("/echo", new SockJsEchoHandler(), corsConfig);
+        ch.writeInbound(httpRequest("/echo", OPTIONS));
+
+        final HttpResponse response = ch.readOutbound();
+        assertThat(response.headers().get(ACCESS_CONTROL_ALLOW_ORIGIN), equalTo(origin));
+    }
+
+    /*
      * Equivalent to InfoTest.test_options_null_origin in sockjs-protocol-0.3.3.py.
      */
     @Test

@@ -32,8 +32,6 @@ public final class SockJsTestUtil {
         final HttpHeaders headers = response.headers();
         assertThat(headers.get(HttpHeaders.Names.CONTENT_TYPE), equalTo(contentType));
         verifyNoCacheHeaders(response);
-        assertThat(headers.get(HttpHeaders.Names.ACCESS_CONTROL_ALLOW_ORIGIN), equalTo("*"));
-        assertThat(headers.get(HttpHeaders.Names.ACCESS_CONTROL_ALLOW_CREDENTIALS), equalTo("true"));
         assertThat(headers.get(HttpHeaders.Names.SET_COOKIE), is(notNullValue()));
     }
 

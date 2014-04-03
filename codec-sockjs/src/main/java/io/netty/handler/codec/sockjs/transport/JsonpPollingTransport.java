@@ -90,8 +90,6 @@ public class JsonpPollingTransport extends ChannelHandlerAdapter {
                     .content(content)
                     .contentType(HttpResponseBuilder.CONTENT_TYPE_JAVASCRIPT)
                     .setCookie(config)
-                    .header(ACCESS_CONTROL_ALLOW_ORIGIN, "*")
-                    .header(ACCESS_CONTROL_ALLOW_CREDENTIALS, "true")
                     .header(CONNECTION, CLOSE)
                     .header(CACHE_CONTROL, HttpResponseBuilder.NO_CACHE_HEADER)
                     .buildFullResponse(),
