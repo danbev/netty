@@ -16,6 +16,7 @@
 package io.netty.handler.codec.sockjs.transport;
 
 import io.netty.buffer.ByteBuf;
+import io.netty.channel.ChannelFuture;
 import io.netty.channel.ChannelFutureListener;
 import io.netty.channel.ChannelHandlerAdapter;
 import io.netty.channel.ChannelHandlerContext;
@@ -30,9 +31,6 @@ import io.netty.handler.codec.sockjs.protocol.PreludeFrame;
 import io.netty.util.ReferenceCountUtil;
 import io.netty.util.internal.logging.InternalLogger;
 import io.netty.util.internal.logging.InternalLoggerFactory;
-
-import java.util.concurrent.atomic.AtomicBoolean;
-import java.util.concurrent.atomic.AtomicInteger;
 
 import static io.netty.handler.codec.http.HttpHeaders.Names.*;
 import static io.netty.handler.codec.http.HttpHeaders.Values.*;
@@ -49,10 +47,10 @@ import static io.netty.handler.codec.http.HttpHeaders.Values.*;
  */
 public class XhrStreamingTransport extends ChannelHandlerAdapter {
     private static final InternalLogger logger = InternalLoggerFactory.getInstance(XhrStreamingTransport.class);
-    private final AtomicBoolean headerSent = new AtomicBoolean(false);
-    private final AtomicInteger bytesSent = new AtomicInteger(0);
     private final SockJsConfig config;
     private final HttpRequest request;
+    private boolean headerSent;
+    private int bytesSent;
 
     /**
      * Sole constructor.
@@ -70,7 +68,7 @@ public class XhrStreamingTransport extends ChannelHandlerAdapter {
             throws Exception {
         if (msg instanceof Frame) {
             final Frame frame = (Frame) msg;
-            if (headerSent.compareAndSet(false, true)) {
+            if (!headerSent) {
                 ctx.writeAndFlush(HttpResponseBuilder.responseFor(request)
                         .ok()
                         .contentType(HttpResponseBuilder.CONTENT_TYPE_JAVASCRIPT)
@@ -82,7 +80,14 @@ public class XhrStreamingTransport extends ChannelHandlerAdapter {
 
                 final ByteBuf content = HttpResponseBuilder.wrapWithLN(new PreludeFrame().content());
                 final DefaultHttpContent preludeChunk = new DefaultHttpContent(content);
-                ctx.writeAndFlush(preludeChunk);
+                ctx.writeAndFlush(preludeChunk).addListener(new ChannelFutureListener() {
+                    @Override
+                    public void operationComplete(ChannelFuture future) throws Exception {
+                        if (future.isSuccess()) {
+                            headerSent = true;
+                        }
+                    }
+                });
             }
 
             ctx.writeAndFlush(new DefaultHttpContent(HttpResponseBuilder.wrapWithLN(frame.content())), promise);
@@ -101,8 +106,8 @@ public class XhrStreamingTransport extends ChannelHandlerAdapter {
     }
 
     private boolean maxBytesLimit(final int bytesWritten) {
-        bytesSent.addAndGet(bytesWritten);
-        return bytesSent.get() >= config.maxStreamingBytesSize();
+        bytesSent += bytesWritten;
+        return bytesSent >= config.maxStreamingBytesSize();
     }
 
 }

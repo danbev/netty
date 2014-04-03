@@ -16,6 +16,7 @@
 package io.netty.handler.codec.sockjs.transport;
 
 import io.netty.buffer.ByteBuf;
+import io.netty.channel.ChannelFuture;
 import io.netty.channel.ChannelFutureListener;
 import io.netty.channel.ChannelHandlerAdapter;
 import io.netty.channel.ChannelHandlerContext;
@@ -35,8 +36,6 @@ import io.netty.util.internal.logging.InternalLogger;
 import io.netty.util.internal.logging.InternalLoggerFactory;
 
 import java.util.List;
-import java.util.concurrent.atomic.AtomicBoolean;
-import java.util.concurrent.atomic.AtomicInteger;
 
 import static io.netty.buffer.Unpooled.*;
 import static io.netty.handler.codec.http.HttpConstants.*;
@@ -80,8 +79,8 @@ public class HtmlFileTransport extends ChannelHandlerAdapter {
 
     private final SockJsConfig config;
     private final HttpRequest request;
-    private final AtomicBoolean headerSent = new AtomicBoolean(false);
-    private final AtomicInteger bytesSent = new AtomicInteger(0);
+    private boolean headerSent;
+    private int bytesSent;
     private String callback;
 
     public HtmlFileTransport(final SockJsConfig config, final HttpRequest request) {
@@ -116,7 +115,7 @@ public class HtmlFileTransport extends ChannelHandlerAdapter {
             throws Exception {
         if (msg instanceof Frame) {
             final Frame frame = (Frame) msg;
-            if (headerSent.compareAndSet(false, true)) {
+            if (!headerSent) {
                 final HttpResponse response = createResponse(HttpResponseBuilder.CONTENT_TYPE_HTML);
                 final ByteBuf header = ctx.alloc().buffer();
                 header.writeBytes(HEADER_PART1.duplicate());
@@ -133,7 +132,14 @@ public class HtmlFileTransport extends ChannelHandlerAdapter {
                 }
                 paddedBuffer.writeBytes(END_HEADER.duplicate());
                 ctx.write(response, promise);
-                ctx.writeAndFlush(new DefaultHttpContent(paddedBuffer));
+                ctx.writeAndFlush(new DefaultHttpContent(paddedBuffer)).addListener(new ChannelFutureListener() {
+                    @Override
+                    public void operationComplete(ChannelFuture future) throws Exception {
+                        if (future.isSuccess()) {
+                            headerSent = true;
+                        }
+                    }
+                });
             }
 
             final ByteBuf data = ctx.alloc().buffer();
@@ -165,8 +171,8 @@ public class HtmlFileTransport extends ChannelHandlerAdapter {
     }
 
     private boolean maxBytesLimit(final int bytesWritten) {
-        bytesSent.addAndGet(bytesWritten);
-        return bytesSent.get() >= config.maxStreamingBytesSize();
+        bytesSent += bytesWritten;
+        return bytesSent >= config.maxStreamingBytesSize();
     }
 
     protected HttpResponse createResponse(final String contentType) {

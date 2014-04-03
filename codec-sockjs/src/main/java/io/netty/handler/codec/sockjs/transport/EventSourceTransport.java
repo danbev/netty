@@ -16,6 +16,7 @@
 package io.netty.handler.codec.sockjs.transport;
 
 import io.netty.buffer.ByteBuf;
+import io.netty.channel.ChannelFuture;
 import io.netty.channel.ChannelFutureListener;
 import io.netty.channel.ChannelHandlerAdapter;
 import io.netty.channel.ChannelHandlerContext;
@@ -28,9 +29,6 @@ import io.netty.handler.codec.sockjs.SockJsConfig;
 import io.netty.handler.codec.sockjs.protocol.Frame;
 import io.netty.util.internal.logging.InternalLogger;
 import io.netty.util.internal.logging.InternalLoggerFactory;
-
-import java.util.concurrent.atomic.AtomicBoolean;
-import java.util.concurrent.atomic.AtomicInteger;
 
 import static io.netty.buffer.Unpooled.*;
 import static io.netty.handler.codec.http.HttpConstants.*;
@@ -59,8 +57,8 @@ public class EventSourceTransport extends ChannelHandlerAdapter {
 
     private final SockJsConfig config;
     private final HttpRequest request;
-    private final AtomicBoolean headerSent = new AtomicBoolean(false);
-    private final AtomicInteger bytesSent = new AtomicInteger(0);
+    private boolean headerSent;
+    private int bytesSent;
 
     public EventSourceTransport(final SockJsConfig config, final HttpRequest request) {
         this.config = config;
@@ -72,9 +70,16 @@ public class EventSourceTransport extends ChannelHandlerAdapter {
             throws Exception {
         if (msg instanceof Frame) {
             final Frame frame = (Frame) msg;
-            if (headerSent.compareAndSet(false, true)) {
+            if (!headerSent) {
                 ctx.write(createResponse(CONTENT_TYPE_EVENT_STREAM), promise);
-                ctx.writeAndFlush(new DefaultHttpContent(CRLF.duplicate()));
+                ctx.writeAndFlush(new DefaultHttpContent(CRLF.duplicate())).addListener(new ChannelFutureListener() {
+                    @Override
+                    public void operationComplete(ChannelFuture future) throws Exception {
+                        if (future.isSuccess()) {
+                            headerSent = true;
+                        }
+                    }
+                });
             }
 
             final ByteBuf data = ctx.alloc().buffer();
@@ -95,8 +100,8 @@ public class EventSourceTransport extends ChannelHandlerAdapter {
     }
 
     private boolean maxBytesLimit(final int bytesWritten) {
-        bytesSent.addAndGet(bytesWritten);
-        return bytesSent.get() >= config.maxStreamingBytesSize();
+        bytesSent += bytesWritten;
+        return bytesSent >= config.maxStreamingBytesSize();
     }
 
     protected HttpResponse createResponse(String contentType) {
