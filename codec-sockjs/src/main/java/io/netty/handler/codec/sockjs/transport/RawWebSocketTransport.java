@@ -109,7 +109,7 @@ public class RawWebSocketTransport extends SimpleChannelInboundHandler<Object> {
             return;
         }
         ctx.attr(REQUEST_KEY).set(req);
-        final String wsUrl = getWebSocketLocation(config.isTls(), req, Transports.Type.WEBSOCKET.path());
+        final String wsUrl = getWebSocketLocation(config.isTls(), req, TransportType.WEBSOCKET.path());
         final WebSocketServerHandshakerFactory wsFactory = new WebSocketServerHandshakerFactory(wsUrl,
                 config.webSocketProtocolCSV(), false);
         handshaker = wsFactory.newHandshaker(req);

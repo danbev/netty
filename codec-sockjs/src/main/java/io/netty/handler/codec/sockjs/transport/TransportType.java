@@ -16,29 +16,30 @@
 package io.netty.handler.codec.sockjs.transport;
 
 /**
- * Transports contains constants, enums, and utility methods that are
- * common across transport implementations.
+ * Enum for the different transport types.
  */
-public final class Transports {
+public enum TransportType {
+    WEBSOCKET,
+    XHR,
+    XHR_SEND,
+    XHR_STREAMING,
+    JSONP,
+    JSONP_SEND,
+    EVENTSOURCE,
+    HTMLFILE;
 
-    public enum Type {
-        WEBSOCKET,
-        XHR,
-        XHR_SEND,
-        XHR_STREAMING,
-        JSONP,
-        JSONP_SEND,
-        EVENTSOURCE,
-        HTMLFILE;
+    private final String path;
 
-        private final String path = '/' + name().toLowerCase();
-
-        public String path() {
-            return path;
-        }
+    private TransportType() {
+        path = '/' + name().toLowerCase();
     }
 
-    private Transports() {
+    /**
+     * Returns the name of the tranport, in lowercase, and with a '/' prefixed.
+     *
+     * @return {code String} the transport name in lower case, prefixed with '/'.
+     */
+    public String path() {
+        return path;
     }
-
 }

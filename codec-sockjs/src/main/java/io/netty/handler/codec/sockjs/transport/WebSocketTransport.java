@@ -133,7 +133,7 @@ public class WebSocketTransport extends SimpleChannelInboundHandler<Object> {
             });
             return;
         }
-        final String wsUrl = getWebSocketLocation(config.isTls(), req, Transports.Type.WEBSOCKET.path());
+        final String wsUrl = getWebSocketLocation(config.isTls(), req, TransportType.WEBSOCKET.path());
         final WebSocketServerHandshakerFactory wsFactory = new WebSocketServerHandshakerFactory(wsUrl, null, false);
         handshaker = wsFactory.newHandshaker(req);
 

@@ -46,7 +46,7 @@ import io.netty.handler.codec.sockjs.SockJsChannelOption;
 import io.netty.handler.codec.sockjs.SockJsCloseHandler;
 import io.netty.handler.codec.sockjs.SockJsEchoHandler;
 import io.netty.handler.codec.sockjs.transport.EventSourceTransport;
-import io.netty.handler.codec.sockjs.transport.Transports;
+import io.netty.handler.codec.sockjs.transport.TransportType;
 import io.netty.handler.codec.sockjs.util.HttpUtil;
 import io.netty.handler.codec.sockjs.util.JsonUtil;
 import io.netty.handler.codec.sockjs.util.TestEmbeddedChannel;
@@ -893,7 +893,7 @@ public class SockJsProtocolTest {
         final String sessionUrl = "/echo/222/" + UUID.randomUUID();
         final EmbeddedChannel ch = sockJsPipeline("/echo", echoHandler);
 
-        final FullHttpRequest request = httpRequest(sessionUrl + Transports.Type.XHR_STREAMING.path(), GET);
+        final FullHttpRequest request = httpRequest(sessionUrl + TransportType.XHR_STREAMING.path(), GET);
         ch.writeInbound(request);
 
         final HttpResponse response = ch.readOutbound();
@@ -933,7 +933,7 @@ public class SockJsProtocolTest {
         final EmbeddedChannel ch = sockJsPipeline("/echo", echoHandler);
         ch.config().setOption(SockJsChannelOption.MAX_STREAMING_BYTES_SIZE, 4096);
 
-        final FullHttpRequest request = httpRequest(sessionUrl + Transports.Type.XHR_STREAMING.path(), GET);
+        final FullHttpRequest request = httpRequest(sessionUrl + TransportType.XHR_STREAMING.path(), GET);
         ch.writeInbound(request);
         final HttpResponse response = ch.readOutbound();
         assertThat(response.getStatus(), equalTo(HttpResponseStatus.OK));
@@ -978,7 +978,7 @@ public class SockJsProtocolTest {
         final EmbeddedChannel ch = sockJsPipeline("/echo", echoHandler);
         ch.config().setOption(SockJsChannelOption.MAX_STREAMING_BYTES_SIZE, 4096);
 
-        final FullHttpRequest request = httpRequest(sessionUrl + Transports.Type.EVENTSOURCE.path(), GET);
+        final FullHttpRequest request = httpRequest(sessionUrl + TransportType.EVENTSOURCE.path(), GET);
         ch.writeInbound(request);
         final HttpResponse response =  ch.readOutbound();
         assertThat(response.getStatus(), equalTo(HttpResponseStatus.OK));
@@ -1014,7 +1014,7 @@ public class SockJsProtocolTest {
         final EmbeddedChannel ch = sockJsPipeline("/echo", echoHandler);
         ch.config().setOption(SockJsChannelOption.MAX_STREAMING_BYTES_SIZE, 4096);
 
-        final FullHttpRequest request = httpRequest(sessionUrl + Transports.Type.EVENTSOURCE.path(), GET);
+        final FullHttpRequest request = httpRequest(sessionUrl + TransportType.EVENTSOURCE.path(), GET);
         ch.writeInbound(request);
         final HttpResponse response =  ch.readOutbound();
         assertThat(response.getStatus(), equalTo(HttpResponseStatus.OK));
@@ -1050,7 +1050,7 @@ public class SockJsProtocolTest {
         final EmbeddedChannel ch = sockJsPipeline("/echo", echoHandler);
         ch.config().setOption(SockJsChannelOption.MAX_STREAMING_BYTES_SIZE, 4096);
 
-        final FullHttpRequest request = httpRequest(sessionUrl + Transports.Type.HTMLFILE.path() + "?c=callback", GET);
+        final FullHttpRequest request = httpRequest(sessionUrl + TransportType.HTMLFILE.path() + "?c=callback", GET);
         ch.writeInbound(request);
         final HttpResponse response =  ch.readOutbound();
         assertThat(response.getStatus(), equalTo(HttpResponseStatus.OK));
@@ -1088,7 +1088,7 @@ public class SockJsProtocolTest {
         final EmbeddedChannel ch = sockJsPipeline("/echo", echoHandler);
         ch.config().setOption(SockJsChannelOption.MAX_STREAMING_BYTES_SIZE, 4096);
 
-        final FullHttpRequest request = httpRequest(sessionUrl + Transports.Type.HTMLFILE.path() + "?c=", GET);
+        final FullHttpRequest request = httpRequest(sessionUrl + TransportType.HTMLFILE.path() + "?c=", GET);
         ch.writeInbound(request);
         final FullHttpResponse response =  ch.readOutbound();
         assertThat(response.getStatus(), equalTo(HttpResponseStatus.INTERNAL_SERVER_ERROR));
@@ -1107,7 +1107,7 @@ public class SockJsProtocolTest {
         final EmbeddedChannel ch = sockJsPipeline("/echo", echoHandler);
         ch.config().setOption(SockJsChannelOption.MAX_STREAMING_BYTES_SIZE, 4096);
 
-        final FullHttpRequest request = httpRequest(sessionUrl + Transports.Type.HTMLFILE.path() + "?c=callback", GET);
+        final FullHttpRequest request = httpRequest(sessionUrl + TransportType.HTMLFILE.path() + "?c=callback", GET);
         ch.writeInbound(request);
         final HttpResponse response =  ch.readOutbound();
         assertThat(response.getStatus(), equalTo(HttpResponseStatus.OK));
@@ -1294,11 +1294,11 @@ public class SockJsProtocolTest {
         final ChannelHandler echoHandler = new SockJsEchoHandler();
         final EmbeddedChannel ch = sockJsPipeline("/echo", echoHandler);
         ch.config().setOption(SockJsChannelOption.COOKIES_NEEDED, true);
-        assertSetCookie(Transports.Type.XHR.path());
+        assertSetCookie(TransportType.XHR.path());
 
         final String serviceName = "/echo";
         final String sessionUrl = serviceName + "/abc/" + UUID.randomUUID();
-        final FullHttpRequest request = httpRequest(sessionUrl + Transports.Type.XHR.path(), GET);
+        final FullHttpRequest request = httpRequest(sessionUrl + TransportType.XHR.path(), GET);
         request.headers().set("Cookie", ClientCookieEncoder.encode("JSESSIONID", "abcdef"));
         ch.writeInbound(request);
         final FullHttpResponse response = ch.readOutbound();
@@ -1312,7 +1312,7 @@ public class SockJsProtocolTest {
      */
     @Test
     public void jsessionIdCookieTestXhrStreaming() throws Exception {
-        assertSetCookie(Transports.Type.XHR_STREAMING.path());
+        assertSetCookie(TransportType.XHR_STREAMING.path());
     }
 
     /*
@@ -1320,7 +1320,7 @@ public class SockJsProtocolTest {
      */
     @Test
     public void jsessionIdCookieTestEventSource() throws Exception {
-        assertSetCookie(Transports.Type.EVENTSOURCE.path());
+        assertSetCookie(TransportType.EVENTSOURCE.path());
     }
 
     /*
@@ -1328,7 +1328,7 @@ public class SockJsProtocolTest {
      */
     @Test
     public void jsessionIdCookieTestHtmlFile() throws Exception {
-        assertSetCookie(Transports.Type.HTMLFILE.path() + "?c=callback");
+        assertSetCookie(TransportType.HTMLFILE.path() + "?c=callback");
     }
 
     /*
@@ -1336,7 +1336,7 @@ public class SockJsProtocolTest {
      */
     @Test
     public void jsessionIdCookieTestJsonp() throws Exception {
-        assertSetCookie(Transports.Type.JSONP.path() + "?c=callback");
+        assertSetCookie(TransportType.JSONP.path() + "?c=callback");
     }
 
     /*
@@ -1458,7 +1458,7 @@ public class SockJsProtocolTest {
         final ChannelHandler closeHandler = new SockJsCloseHandler();
         final String sessionUrl = "/close/222/" + UUID.randomUUID();
         final EmbeddedChannel ch = sockJsPipeline("/close", closeHandler);
-        final FullHttpRequest request = httpRequest(sessionUrl + Transports.Type.XHR_STREAMING.path(), GET);
+        final FullHttpRequest request = httpRequest(sessionUrl + TransportType.XHR_STREAMING.path(), GET);
         ch.writeInbound(request);
 
         final HttpResponse response =  ch.readOutbound();
@@ -1473,7 +1473,7 @@ public class SockJsProtocolTest {
         closeResponse.release();
 
         final EmbeddedChannel ch2 = sockJsPipeline("/close", closeHandler);
-        final FullHttpRequest request2 = httpRequest(sessionUrl + Transports.Type.XHR_STREAMING.path(), GET);
+        final FullHttpRequest request2 = httpRequest(sessionUrl + TransportType.XHR_STREAMING.path(), GET);
         ch2.writeInbound(request2);
 
         final HttpResponse response2 =  ch2.readOutbound();
@@ -1498,7 +1498,7 @@ public class SockJsProtocolTest {
         final ChannelHandler echoHandler = new SockJsEchoHandler();
         final String sessionUrl = "/echo/222/" + UUID.randomUUID();
         final EmbeddedChannel ch = sockJsPipeline("/echo", echoHandler);
-        final FullHttpRequest request = httpRequest(sessionUrl + Transports.Type.XHR_STREAMING.path(), POST);
+        final FullHttpRequest request = httpRequest(sessionUrl + TransportType.XHR_STREAMING.path(), POST);
         ch.writeInbound(request);
 
         final HttpResponse response = ch.readOutbound();
@@ -1510,7 +1510,7 @@ public class SockJsProtocolTest {
         openResponse.release();
 
         final EmbeddedChannel ch2 = sockJsPipeline("/echo", echoHandler);
-        final FullHttpRequest request2 = httpRequest(sessionUrl + Transports.Type.XHR_STREAMING.path(), POST);
+        final FullHttpRequest request2 = httpRequest(sessionUrl + TransportType.XHR_STREAMING.path(), POST);
         ch2.writeInbound(request2);
 
         final HttpResponse response2 =  ch2.readOutbound();
@@ -1533,7 +1533,7 @@ public class SockJsProtocolTest {
         final ChannelHandler echoHandler = new SockJsEchoHandler();
         final String sessionUrl = "/echo/222/" + UUID.randomUUID();
         final EmbeddedChannel ch = sockJsPipeline("/echo", echoHandler);
-        final FullHttpRequest request = httpRequest(sessionUrl + Transports.Type.XHR_STREAMING.path(), GET);
+        final FullHttpRequest request = httpRequest(sessionUrl + TransportType.XHR_STREAMING.path(), GET);
         ch.writeInbound(request);
 
         final HttpResponse response =  ch.readOutbound();
@@ -1545,7 +1545,7 @@ public class SockJsProtocolTest {
         openResponse.release();
 
         final EmbeddedChannel ch2 = sockJsPipeline("/echo", echoHandler);
-        final FullHttpRequest request2 = httpRequest(sessionUrl + Transports.Type.XHR_STREAMING.path(), GET);
+        final FullHttpRequest request2 = httpRequest(sessionUrl + TransportType.XHR_STREAMING.path(), GET);
         ch2.writeInbound(request2);
 
         final HttpResponse response2 =  ch2.readOutbound();
@@ -1561,7 +1561,7 @@ public class SockJsProtocolTest {
         ch.close();
 
         final EmbeddedChannel ch3 = sockJsPipeline("/echo", echoHandler);
-        final FullHttpRequest request3 = httpRequest(sessionUrl + Transports.Type.XHR_STREAMING.path(), POST);
+        final FullHttpRequest request3 = httpRequest(sessionUrl + TransportType.XHR_STREAMING.path(), POST);
         ch3.writeInbound(request3);
 
         final HttpResponse response3 =  ch3.readOutbound();
@@ -1586,7 +1586,7 @@ public class SockJsProtocolTest {
         final String sessionUrl = "/echo/000/" + UUID.randomUUID();
 
         final EmbeddedChannel ch = sockJsPipeline("/echo", echoHandler);
-        ch.writeInbound(httpRequest(sessionUrl + Transports.Type.XHR.path(), GET));
+        ch.writeInbound(httpRequest(sessionUrl + TransportType.XHR.path(), GET));
 
         final FullHttpResponse response = ch.readOutbound();
         assertThat(response.getStatus(), is(HttpResponseStatus.OK));
@@ -1594,13 +1594,13 @@ public class SockJsProtocolTest {
         response.release();
 
         final EmbeddedChannel ch2 = sockJsPipeline("/echo", echoHandler);
-        ch2.writeInbound(httpRequest(sessionUrl + Transports.Type.XHR.path(), GET));
+        ch2.writeInbound(httpRequest(sessionUrl + TransportType.XHR.path(), GET));
         final FullHttpResponse response2 = ch2.readOutbound();
         assertThat(response2.content().toString(UTF_8), equalTo("c[2010,\"Another connection still open\"]\n"));
         response2.release();
 
         final EmbeddedChannel ch3 = sockJsPipeline("/echo", echoHandler);
-        ch3.writeInbound(httpRequest(sessionUrl + Transports.Type.XHR.path(), GET));
+        ch3.writeInbound(httpRequest(sessionUrl + TransportType.XHR.path(), GET));
 
         final FullHttpResponse response3 = ch3.readOutbound();
         assertThat(response3.content().toString(UTF_8), equalTo("c[1002,\"Connection interrupted\"]\n"));
@@ -1651,7 +1651,7 @@ public class SockJsProtocolTest {
         final ChannelHandler closeHandler = new SockJsCloseHandler();
         final String sessionUrl = "/close/222/" + UUID.randomUUID();
         final EmbeddedChannel ch = sockJsPipeline("/close", closeHandler);
-        final FullHttpRequest request = httpPostRequest(sessionUrl + Transports.Type.XHR_STREAMING.path(), HTTP_1_0);
+        final FullHttpRequest request = httpPostRequest(sessionUrl + TransportType.XHR_STREAMING.path(), HTTP_1_0);
         request.headers().set(CONNECTION, KEEP_ALIVE);
         ch.writeInbound(request);
 
@@ -1723,7 +1723,7 @@ public class SockJsProtocolTest {
         final ChannelHandler closeHandler = new SockJsCloseHandler();
         final String sessionUrl = "/close/222/" + UUID.randomUUID();
         final EmbeddedChannel ch = sockJsPipeline("/close", closeHandler);
-        final FullHttpRequest request = httpPostRequest(sessionUrl + Transports.Type.XHR_STREAMING.path(), HTTP_1_1);
+        final FullHttpRequest request = httpPostRequest(sessionUrl + TransportType.XHR_STREAMING.path(), HTTP_1_1);
         request.headers().set(CONNECTION, KEEP_ALIVE);
         ch.writeInbound(request);
 
@@ -2102,7 +2102,7 @@ public class SockJsProtocolTest {
                                                    final String content,
                                                    final String contentType,
                                                    final EmbeddedChannel ch) {
-        final FullHttpRequest request = httpRequest(path + Transports.Type.XHR_SEND.path(), POST);
+        final FullHttpRequest request = httpRequest(path + TransportType.XHR_SEND.path(), POST);
         request.headers().set(CONTENT_TYPE, contentType);
         final ByteBuf byteBuf = Unpooled.copiedBuffer(content, UTF_8);
         request.content().writeBytes(byteBuf);
@@ -2122,7 +2122,7 @@ public class SockJsProtocolTest {
     }
 
     private static FullHttpResponse xhrRequest(final String url, EmbeddedChannel ch) {
-        final FullHttpRequest request = httpRequest(url + Transports.Type.XHR.path(), GET);
+        final FullHttpRequest request = httpRequest(url + TransportType.XHR.path(), GET);
         ch.writeInbound(request);
         final FullHttpResponse response = ch.readOutbound();
         ch.finish();
@@ -2150,7 +2150,7 @@ public class SockJsProtocolTest {
         final EmbeddedChannel ch = sockJsPipeline("/echo", echoHandler);
         ch.config().setOption(SockJsChannelOption.COOKIES_NEEDED, true);
 
-        ch.writeInbound(httpRequest("/echo" + sessionPart + Transports.Type.XHR.path()));
+        ch.writeInbound(httpRequest("/echo" + sessionPart + TransportType.XHR.path()));
         final FullHttpResponse response = ch.readOutbound();
         assertThat(response.getStatus(), is(HttpResponseStatus.OK));
         assertThat(response.content().toString(UTF_8), equalTo("o\n"));

@@ -18,7 +18,8 @@ package io.netty.handler.codec.sockjs.handler;
 import static org.hamcrest.CoreMatchers.equalTo;
 import static org.hamcrest.Matchers.is;
 import static org.junit.Assert.*;
-import io.netty.handler.codec.sockjs.transport.Transports;
+
+import io.netty.handler.codec.sockjs.transport.TransportType;
 
 import org.junit.Test;
 
@@ -36,7 +37,7 @@ public class SockJsHandlerTest {
         assertThat(sessionPath.matches(), is(true));
         assertThat(sessionPath.serverId(), equalTo("000"));
         assertThat(sessionPath.sessionId(), equalTo("123"));
-        assertThat(sessionPath.transport(), equalTo(Transports.Type.XHR_SEND));
+        assertThat(sessionPath.transport(), equalTo(TransportType.XHR_SEND));
     }
 
 }

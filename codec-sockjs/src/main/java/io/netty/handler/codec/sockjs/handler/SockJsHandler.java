@@ -31,7 +31,7 @@ import io.netty.handler.codec.sockjs.transport.HtmlFileTransport;
 import io.netty.handler.codec.sockjs.transport.JsonpPollingTransport;
 import io.netty.handler.codec.sockjs.transport.JsonpSendTransport;
 import io.netty.handler.codec.sockjs.transport.RawWebSocketTransport;
-import io.netty.handler.codec.sockjs.transport.Transports;
+import io.netty.handler.codec.sockjs.transport.TransportType;
 import io.netty.handler.codec.sockjs.transport.WebSocketTransport;
 import io.netty.handler.codec.sockjs.transport.XhrPollingTransport;
 import io.netty.handler.codec.sockjs.transport.XhrSendTransport;
@@ -48,7 +48,6 @@ import java.util.regex.Pattern;
 import static io.netty.handler.codec.http.HttpHeaders.Names.*;
 import static io.netty.handler.codec.http.HttpHeaders.Values.*;
 import static io.netty.handler.codec.sockjs.transport.HttpResponseBuilder.*;
-import static io.netty.handler.codec.sockjs.transport.Transports.*;
 import static java.util.UUID.*;
 
 /**
@@ -94,7 +93,7 @@ public class SockJsHandler extends SimpleChannelInboundHandler<HttpRequest> {
             writeResponse(ctx.channel(), request, Info.response(config, request, ctx.alloc()));
         } else if (Iframe.matches(path)) {
             writeResponse(ctx.channel(), request, Iframe.response(config, request, ctx.alloc()));
-        } else if (Transports.Type.WEBSOCKET.path().equals(path)) {
+        } else if (TransportType.WEBSOCKET.path().equals(path)) {
             addTransportHandler(new RawWebSocketTransport(config), ctx);
             ctx.fireChannelRead(ReferenceCountUtil.retain(request));
         } else {
@@ -271,20 +270,20 @@ public class SockJsHandler extends SimpleChannelInboundHandler<HttpRequest> {
         /**
          * The type of transport.
          *
-         * @return Transports.Type the type of the transport.
+         * @return TransportType.Type the type of the transport.
          */
-        Type transport();
+        TransportType transport();
     }
 
     public static class MatchingSessionPath implements PathParams {
         private final String serverId;
         private final String sessionId;
-        private final Type transport;
+        private final TransportType transport;
 
         public MatchingSessionPath(final String serverId, final String sessionId, final String transport) {
             this.serverId = serverId;
             this.sessionId = sessionId;
-            this.transport = Transports.Type.valueOf(transport.toUpperCase());
+            this.transport = TransportType.valueOf(transport.toUpperCase());
         }
 
         @Override
@@ -303,7 +302,7 @@ public class SockJsHandler extends SimpleChannelInboundHandler<HttpRequest> {
         }
 
         @Override
-        public Type transport() {
+        public TransportType transport() {
             return transport;
         }
     }
@@ -326,7 +325,7 @@ public class SockJsHandler extends SimpleChannelInboundHandler<HttpRequest> {
         }
 
         @Override
-        public Type transport() {
+        public TransportType transport() {
             throw new UnsupportedOperationException("transport is not available in path");
         }
     }
