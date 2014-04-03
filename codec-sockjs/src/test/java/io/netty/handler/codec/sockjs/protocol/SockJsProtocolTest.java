@@ -1,5 +1,5 @@
 /*
- * Copyright 2013 The Netty Project
+ * Copyright 2014 The Netty Project
  *
  * The Netty Project licenses this file to you under the Apache License, version
  * 2.0 (the "License"); you may not use this file except in compliance with the
@@ -1407,7 +1407,7 @@ public class SockJsProtocolTest {
         final FullHttpResponse response = xhrRequest(sessionUrl, sockJsPipeline("/echo", echoHandler));
         assertOpenFrameResponse(response);
 
-        final String content = Transports.escapeCharacters(serverKillerStringEsc().toCharArray());
+        final String content = escapeCharacters(serverKillerStringEsc().toCharArray());
         final FullHttpResponse xhrSendResponse = xhrSendRequest(sessionUrl, "[\"" + content + "\"]",
                 sockJsPipeline("/echo", echoHandler));
         assertThat(xhrSendResponse.getStatus(), is(HttpResponseStatus.NO_CONTENT));
@@ -2281,6 +2281,35 @@ public class SockJsProtocolTest {
                 + "  <h2>Don't panic!</h2>\n"
                 + "  <p>This is a SockJS hidden iframe. It's used for cross domain magic.</p>\n" + "</body>\n"
                 + "</html>";
+    }
+
+    /**
+     * Escapes unicode characters in the passed in char array to a Java string with
+     * Java style escaped charaters.
+     *
+     * @param value the char[] for which unicode characters should be escaped
+     * @return {@code String} Java style escaped unicode characters.
+     */
+    public static String escapeCharacters(final char[] value) {
+        final StringBuilder buffer = new StringBuilder();
+        for (char ch : value) {
+            if (ch >= '\u0000' && ch <= '\u001F' ||
+                    ch >= '\uD800' && ch <= '\uDFFF' ||
+                    ch >= '\u200C' && ch <= '\u200F' ||
+                    ch >= '\u2028' && ch <= '\u202F' ||
+                    ch >= '\u2060' && ch <= '\u206F' ||
+                    ch >= '\uFFF0' && ch <= '\uFFFF') {
+                final String ss = Integer.toHexString(ch);
+                buffer.append('\\').append('u');
+                for (int k = 0; k < 4 - ss.length(); k++) {
+                    buffer.append('0');
+                }
+                buffer.append(ss.toLowerCase());
+            } else {
+                buffer.append(ch);
+            }
+        }
+        return buffer.toString();
     }
 
 }

@@ -49,41 +49,14 @@ public final class Transports {
         EVENTSOURCE,
         HTMLFILE;
 
+        private final String path = '/' + name().toLowerCase();
+
         public String path() {
-            return '/' + name().toLowerCase();
+            return path;
         }
     }
 
     private Transports() {
-    }
-
-    /**
-     * Escapes unicode characters in the passed in char array to a Java string with
-     * Java style escaped charaters.
-     *
-     * @param value the char[] for which unicode characters should be escaped
-     * @return {@code String} Java style escaped unicode characters.
-     */
-    public static String escapeCharacters(final char[] value) {
-        final StringBuilder buffer = new StringBuilder();
-        for (char ch : value) {
-            if (ch >= '\u0000' && ch <= '\u001F' ||
-                    ch >= '\uD800' && ch <= '\uDFFF' ||
-                    ch >= '\u200C' && ch <= '\u200F' ||
-                    ch >= '\u2028' && ch <= '\u202F' ||
-                    ch >= '\u2060' && ch <= '\u206F' ||
-                    ch >= '\uFFF0' && ch <= '\uFFFF') {
-                final String ss = Integer.toHexString(ch);
-                buffer.append('\\').append('u');
-                for (int k = 0; k < 4 - ss.length(); k++) {
-                    buffer.append('0');
-                }
-                buffer.append(ss.toLowerCase());
-            } else {
-                buffer.append(ch);
-            }
-        }
-        return buffer.toString();
     }
 
     /**
@@ -105,7 +78,7 @@ public final class Transports {
      *
      * @param request the {@link HttpRequest} for which a buildResponse should be created.
      * @param content the content that will become the buildResponse body.
-     * @param alloc the {@link io.netty.buffer.ByteBufAllocator} to use.
+     * @param alloc the {@link ByteBufAllocator} to use.
      * @return {@link FullHttpResponse} with the {@link HttpResponseStatus#BAD_REQUEST}.
      */
     public static FullHttpResponse badRequestResponse(final HttpRequest request,
@@ -119,7 +92,7 @@ public final class Transports {
      *
      * @param request the {@link HttpRequest} for which a buildResponse should be created.
      * @param content the content that will become the buildResponse body.
-     * @param alloc the {@link io.netty.buffer.ByteBufAllocator} to use.
+     * @param alloc the {@link ByteBufAllocator} to use.
      * @return {@link FullHttpResponse} with the {@link HttpResponseStatus#INTERNAL_SERVER_ERROR}.
      */
     public static FullHttpResponse internalServerErrorResponse(final HttpRequest request,
@@ -135,7 +108,7 @@ public final class Transports {
      * @param status the status of the HTTP buildResponse
      * @param contentType the value for the 'Content-Type' HTTP buildResponse header.
      * @param content the content that will become the body of the HTTP buildResponse.
-     * @param alloc the {@link io.netty.buffer.ByteBufAllocator} to use.
+     * @param alloc the {@link ByteBufAllocator} to use.
      */
     public static FullHttpResponse responseWithContent(final HttpRequest request,
                                                        final HttpResponseStatus status,
