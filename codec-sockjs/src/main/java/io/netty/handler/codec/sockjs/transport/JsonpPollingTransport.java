@@ -22,7 +22,6 @@ import io.netty.channel.ChannelHandlerAdapter;
 import io.netty.channel.ChannelHandlerContext;
 import io.netty.channel.ChannelPromise;
 import io.netty.handler.codec.http.HttpRequest;
-import io.netty.handler.codec.http.HttpResponseStatus;
 import io.netty.handler.codec.http.QueryStringDecoder;
 import io.netty.handler.codec.sockjs.SockJsConfig;
 import io.netty.handler.codec.sockjs.handler.SessionHandler.Event;
@@ -68,7 +67,11 @@ public class JsonpPollingTransport extends ChannelHandlerAdapter {
             final List<String> c = qsd.parameters().get("c");
             if (c == null) {
                 ReferenceCountUtil.release(msg);
-                respond(ctx, request, INTERNAL_SERVER_ERROR, "\"callback\" parameter required");
+                ctx.writeAndFlush(HttpResponseBuilder.responseFor(request)
+                        .status(INTERNAL_SERVER_ERROR)
+                        .content("\"callback\" parameter required")
+                        .contentType(HttpResponseBuilder.CONTENT_TYPE_JAVASCRIPT)
+                        .buildFullResponse(ctx.alloc()));
                 ctx.fireUserEventTriggered(Event.CLOSE_CONTEXT);
                 return;
             } else {
@@ -106,17 +109,6 @@ public class JsonpPollingTransport extends ChannelHandlerAdapter {
         final String function = callback + "(\"" + content.toString(UTF_8) + "\");\r\n";
         content.release();
         return ByteBufUtil.encodeString(alloc, CharBuffer.wrap(function), UTF_8);
-    }
-
-    private static void respond(final ChannelHandlerContext ctx,
-                                final HttpRequest request,
-                                final HttpResponseStatus status,
-                                final String message) throws Exception {
-        ctx.writeAndFlush(HttpResponseBuilder.responseFor(request)
-                .status(status)
-                .content(message)
-                .contentType(HttpResponseBuilder.CONTENT_TYPE_JAVASCRIPT)
-                .buildFullResponse(ctx.alloc()));
     }
 
 }
