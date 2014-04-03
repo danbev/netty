@@ -69,7 +69,6 @@ public final class HttpUtil {
         req.headers().set(Names.SEC_WEBSOCKET_KEY, "dGhlIHNhbXBsZSBub25jZQ==");
         req.headers().set(Names.SEC_WEBSOCKET_ORIGIN, "http://test.com");
         req.headers().set(Names.SEC_WEBSOCKET_VERSION, version.toHttpHeaderValue());
-        //req.retain();
         return req;
     }
 
