@@ -30,7 +30,6 @@ import static io.netty.handler.codec.http.HttpHeaders.Names.*;
 import static io.netty.handler.codec.http.HttpMethod.*;
 import static io.netty.handler.codec.http.HttpResponseStatus.*;
 import static io.netty.handler.codec.http.HttpVersion.*;
-import static io.netty.handler.codec.sockjs.transport.HttpResponseBuilder.*;
 import static io.netty.util.CharsetUtil.*;
 import static org.hamcrest.CoreMatchers.containsString;
 import static org.hamcrest.CoreMatchers.equalTo;
@@ -52,7 +51,7 @@ public class HtmlFileTransportTest {
         ch.writeInbound(new DefaultHttpRequest(HTTP_1_1, GET, url));
         final HttpResponse response = ch.readOutbound();
         assertThat(response.getStatus(), equalTo(INTERNAL_SERVER_ERROR));
-        assertThat(response.headers().get(CONTENT_TYPE), equalTo(CONTENT_TYPE_PLAIN));
+        assertThat(response.headers().get(CONTENT_TYPE), equalTo(HttpResponseBuilder.CONTENT_TYPE_PLAIN));
         verifyNoCacheHeaders(response);
     }
 
@@ -65,7 +64,7 @@ public class HtmlFileTransportTest {
 
         final HttpResponse response = ch.readOutbound();
         assertThat(response.getStatus(), equalTo(OK));
-        assertThat(response.headers().get(CONTENT_TYPE), equalTo(CONTENT_TYPE_HTML));
+        assertThat(response.headers().get(CONTENT_TYPE), equalTo(HttpResponseBuilder.CONTENT_TYPE_HTML));
         verifyNoCacheHeaders(response);
 
         final HttpContent headerChunk = ch.readOutbound();

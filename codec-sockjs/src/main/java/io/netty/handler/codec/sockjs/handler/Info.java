@@ -19,11 +19,11 @@ import io.netty.buffer.ByteBufAllocator;
 import io.netty.handler.codec.http.FullHttpResponse;
 import io.netty.handler.codec.http.HttpRequest;
 import io.netty.handler.codec.sockjs.SockJsConfig;
+import io.netty.handler.codec.sockjs.transport.HttpResponseBuilder;
 
 import java.util.Random;
 
 import static io.netty.handler.codec.http.HttpHeaders.Names.*;
-import static io.netty.handler.codec.sockjs.transport.HttpResponseBuilder.*;
 
 final class Info {
     private static final Random RANDOM = new Random();
@@ -37,10 +37,10 @@ final class Info {
 
     public static FullHttpResponse response(final SockJsConfig config, final HttpRequest request,
                                             final ByteBufAllocator alloc) throws Exception {
-        return responseFor(request).ok()
+        return HttpResponseBuilder.responseFor(request).ok()
                 .content(infoContent(config))
-                .contentType(CONTENT_TYPE_JSON)
-                .header(CACHE_CONTROL, NO_CACHE_HEADER)
+                .contentType(HttpResponseBuilder.CONTENT_TYPE_JSON)
+                .header(CACHE_CONTROL, HttpResponseBuilder.NO_CACHE_HEADER)
                 .buildFullResponse(alloc);
     }
 

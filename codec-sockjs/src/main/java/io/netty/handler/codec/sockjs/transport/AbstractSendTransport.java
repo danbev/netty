@@ -30,7 +30,6 @@ import io.netty.handler.codec.sockjs.util.ArgumentUtil;
 import io.netty.handler.codec.sockjs.util.JsonUtil;
 import java.util.List;
 import static io.netty.handler.codec.http.HttpHeaders.Names.*;
-import static io.netty.handler.codec.sockjs.transport.HttpResponseBuilder.*;
 import static io.netty.util.CharsetUtil.UTF_8;
 
 /**
@@ -49,10 +48,10 @@ public abstract class AbstractSendTransport extends SimpleChannelInboundHandler<
     public void messageReceived(final ChannelHandlerContext ctx, final FullHttpRequest request) throws Exception {
         final String content = getContent(request);
         if (content.isEmpty()) {
-            ctx.writeAndFlush(responseFor(request)
+            ctx.writeAndFlush(HttpResponseBuilder.responseFor(request)
                     .internalServerError()
                     .content("Payload expected.")
-                    .contentType(CONTENT_TYPE_PLAIN)
+                    .contentType(HttpResponseBuilder.CONTENT_TYPE_PLAIN)
                     .buildFullResponse(ctx.alloc())).addListener(ChannelFutureListener.CLOSE);
         } else {
             try {
@@ -62,10 +61,10 @@ public abstract class AbstractSendTransport extends SimpleChannelInboundHandler<
                 }
                 respond(ctx, request);
             } catch (final JsonParseException ignored) {
-                ctx.writeAndFlush(responseFor(request)
+                ctx.writeAndFlush(HttpResponseBuilder.responseFor(request)
                         .internalServerError()
                         .content("Broken JSON encoding.")
-                        .contentType(CONTENT_TYPE_PLAIN)
+                        .contentType(HttpResponseBuilder.CONTENT_TYPE_PLAIN)
                         .buildFullResponse(ctx.alloc()));
             }
         }
@@ -85,7 +84,7 @@ public abstract class AbstractSendTransport extends SimpleChannelInboundHandler<
 
     private static String getContent(final FullHttpRequest request) {
         final String contentType = getContentType(request);
-        if (CONTENT_TYPE_FORM.equals(contentType)) {
+        if (HttpResponseBuilder.CONTENT_TYPE_FORM.equals(contentType)) {
             final List<String> data = getDataFormParameter(request);
             if (data != null) {
                 return data.get(0);
@@ -99,7 +98,7 @@ public abstract class AbstractSendTransport extends SimpleChannelInboundHandler<
     private static String getContentType(final FullHttpRequest request) {
         final String contentType = request.headers().get(CONTENT_TYPE);
         if (contentType == null) {
-            return CONTENT_TYPE_PLAIN;
+            return HttpResponseBuilder.CONTENT_TYPE_PLAIN;
         }
         return contentType;
     }
@@ -113,15 +112,15 @@ public abstract class AbstractSendTransport extends SimpleChannelInboundHandler<
             final HttpRequest request,
             final HttpResponseStatus status,
             final String message) {
-        final FullHttpResponse response = responseFor(request)
+        final FullHttpResponse response = HttpResponseBuilder.responseFor(request)
                 .status(status)
                 .content(message)
-                .contentType(CONTENT_TYPE_PLAIN)
+                .contentType(HttpResponseBuilder.CONTENT_TYPE_PLAIN)
                 .setCookie(config)
                 .header(ACCESS_CONTROL_ALLOW_ORIGIN, "*")
                 .header(ACCESS_CONTROL_ALLOW_CREDENTIALS, "true")
                 .header(CONNECTION, HttpHeaders.Values.CLOSE)
-                .header(CACHE_CONTROL, NO_CACHE_HEADER)
+                .header(CACHE_CONTROL, HttpResponseBuilder.NO_CACHE_HEADER)
                 .buildFullResponse(ctx.alloc());
         if (ctx.channel().isActive() && ctx.channel().isRegistered()) {
             ctx.writeAndFlush(response).addListener(ChannelFutureListener.CLOSE);

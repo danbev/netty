@@ -18,10 +18,10 @@ package io.netty.handler.codec.sockjs.handler;
 import io.netty.buffer.ByteBuf;
 import io.netty.handler.codec.http.FullHttpResponse;
 import io.netty.handler.codec.http.HttpRequest;
+import io.netty.handler.codec.sockjs.transport.HttpResponseBuilder;
 import io.netty.util.CharsetUtil;
 
 import static io.netty.buffer.Unpooled.*;
-import static io.netty.handler.codec.sockjs.transport.HttpResponseBuilder.*;
 
 final class Greeting {
 
@@ -39,10 +39,10 @@ final class Greeting {
     }
 
     public static FullHttpResponse response(final HttpRequest request) {
-        return responseFor(request)
+        return HttpResponseBuilder.responseFor(request)
                 .ok()
                 .content(CONTENT.duplicate())
-                .contentType(CONTENT_TYPE_PLAIN)
+                .contentType(HttpResponseBuilder.CONTENT_TYPE_PLAIN)
                 .buildFullResponse();
     }
 

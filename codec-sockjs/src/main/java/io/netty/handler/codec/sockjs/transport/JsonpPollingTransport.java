@@ -36,7 +36,6 @@ import java.util.List;
 import static io.netty.handler.codec.http.HttpHeaders.Names.*;
 import static io.netty.handler.codec.http.HttpHeaders.Values.*;
 import static io.netty.handler.codec.http.HttpResponseStatus.*;
-import static io.netty.handler.codec.sockjs.transport.HttpResponseBuilder.*;
 import static io.netty.util.CharsetUtil.*;
 
 /**
@@ -86,15 +85,15 @@ public class JsonpPollingTransport extends ChannelHandlerAdapter {
             final Frame frame = (Frame) msg;
             final ByteBuf content = wrapWithFunction(frame.content(), ctx);
             ReferenceCountUtil.release(frame);
-            ctx.writeAndFlush(responseFor(request)
+            ctx.writeAndFlush(HttpResponseBuilder.responseFor(request)
                     .ok()
                     .content(content)
-                    .contentType(CONTENT_TYPE_JAVASCRIPT)
+                    .contentType(HttpResponseBuilder.CONTENT_TYPE_JAVASCRIPT)
                     .setCookie(config)
                     .header(ACCESS_CONTROL_ALLOW_ORIGIN, "*")
                     .header(ACCESS_CONTROL_ALLOW_CREDENTIALS, "true")
                     .header(CONNECTION, CLOSE)
-                    .header(CACHE_CONTROL, NO_CACHE_HEADER)
+                    .header(CACHE_CONTROL, HttpResponseBuilder.NO_CACHE_HEADER)
                     .buildFullResponse(),
                     promise);
         } else {
@@ -115,10 +114,10 @@ public class JsonpPollingTransport extends ChannelHandlerAdapter {
                                 final HttpRequest request,
                                 final HttpResponseStatus status,
                                 final String message) throws Exception {
-        ctx.writeAndFlush(responseFor(request)
+        ctx.writeAndFlush(HttpResponseBuilder.responseFor(request)
                 .status(status)
                 .content(message)
-                .contentType(CONTENT_TYPE_JAVASCRIPT)
+                .contentType(HttpResponseBuilder.CONTENT_TYPE_JAVASCRIPT)
                 .buildFullResponse(ctx.alloc()));
     }
 

@@ -36,7 +36,6 @@ import java.util.concurrent.atomic.AtomicInteger;
 
 import static io.netty.handler.codec.http.HttpHeaders.Names.*;
 import static io.netty.handler.codec.http.HttpHeaders.Values.*;
-import static io.netty.handler.codec.sockjs.transport.HttpResponseBuilder.*;
 
 /**
  * XMLHttpRequest (XHR) streaming transport is a transport where a persistent
@@ -72,23 +71,23 @@ public class XhrStreamingTransport extends ChannelHandlerAdapter {
         if (msg instanceof Frame) {
             final Frame frame = (Frame) msg;
             if (headerSent.compareAndSet(false, true)) {
-                ctx.writeAndFlush(responseFor(request)
+                ctx.writeAndFlush(HttpResponseBuilder.responseFor(request)
                         .ok()
-                        .contentType(CONTENT_TYPE_JAVASCRIPT)
+                        .contentType(HttpResponseBuilder.CONTENT_TYPE_JAVASCRIPT)
                         .chunked()
                         .setCookie(config)
                         .header(ACCESS_CONTROL_ALLOW_ORIGIN, "*")
                         .header(ACCESS_CONTROL_ALLOW_CREDENTIALS, "true")
                         .header(CONNECTION, CLOSE)
-                        .header(CACHE_CONTROL, NO_CACHE_HEADER)
+                        .header(CACHE_CONTROL, HttpResponseBuilder.NO_CACHE_HEADER)
                         .buildResponse());
 
-                final ByteBuf content = wrapWithLN(new PreludeFrame().content());
+                final ByteBuf content = HttpResponseBuilder.wrapWithLN(new PreludeFrame().content());
                 final DefaultHttpContent preludeChunk = new DefaultHttpContent(content);
                 ctx.writeAndFlush(preludeChunk);
             }
 
-            ctx.writeAndFlush(new DefaultHttpContent(wrapWithLN(frame.content())), promise);
+            ctx.writeAndFlush(new DefaultHttpContent(HttpResponseBuilder.wrapWithLN(frame.content())), promise);
             if (frame instanceof CloseFrame) {
                 ctx.writeAndFlush(LastHttpContent.EMPTY_LAST_CONTENT).addListener(ChannelFutureListener.CLOSE);
             }

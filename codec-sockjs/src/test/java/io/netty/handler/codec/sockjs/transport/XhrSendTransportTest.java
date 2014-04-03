@@ -17,7 +17,6 @@ package io.netty.handler.codec.sockjs.transport;
 
 import static io.netty.handler.codec.sockjs.SockJsTestUtil.verifyDefaultResponseHeaders;
 import static io.netty.handler.codec.sockjs.SockJsTestUtil.verifyContentType;
-import static io.netty.handler.codec.sockjs.transport.HttpResponseBuilder.*;
 import static org.hamcrest.CoreMatchers.equalTo;
 import static org.hamcrest.CoreMatchers.is;
 import static org.hamcrest.MatcherAssert.assertThat;
@@ -69,7 +68,7 @@ public class XhrSendTransportTest {
         assertThat(response.getStatus(), equalTo(HttpResponseStatus.NO_CONTENT));
         assertThat(response.getProtocolVersion(), equalTo(HttpVersion.HTTP_1_1));
         assertThat(response.content().capacity(), is(0));
-        verifyDefaultResponseHeaders(response, CONTENT_TYPE_PLAIN);
+        verifyDefaultResponseHeaders(response, HttpResponseBuilder.CONTENT_TYPE_PLAIN);
         response.release();
     }
 
@@ -80,7 +79,7 @@ public class XhrSendTransportTest {
         assertThat(response.getStatus(), equalTo(HttpResponseStatus.NO_CONTENT));
         assertThat(response.getProtocolVersion(), equalTo(HttpVersion.HTTP_1_1));
         assertThat(response.content().capacity(), is(0));
-        verifyDefaultResponseHeaders(response, CONTENT_TYPE_PLAIN);
+        verifyDefaultResponseHeaders(response, HttpResponseBuilder.CONTENT_TYPE_PLAIN);
         response.release();
     }
 
@@ -100,7 +99,7 @@ public class XhrSendTransportTest {
         assertThat(response.getStatus(), equalTo(HttpResponseStatus.NO_CONTENT));
         assertThat(response.getProtocolVersion(), equalTo(HttpVersion.HTTP_1_1));
         assertThat(response.content().capacity(), is(0));
-        verifyDefaultResponseHeaders(response, CONTENT_TYPE_PLAIN);
+        verifyDefaultResponseHeaders(response, HttpResponseBuilder.CONTENT_TYPE_PLAIN);
         response.release();
     }
 
@@ -110,7 +109,7 @@ public class XhrSendTransportTest {
         final FullHttpResponse response = processHttpRequest(requestWithFormData(data));
         assertThat(response.getStatus(), equalTo(HttpResponseStatus.INTERNAL_SERVER_ERROR));
         assertThat(response.getProtocolVersion(), equalTo(HttpVersion.HTTP_1_1));
-        verifyContentType(response, CONTENT_TYPE_PLAIN);
+        verifyContentType(response, HttpResponseBuilder.CONTENT_TYPE_PLAIN);
         assertThat(response.content().toString(UTF_8), equalTo("Broken JSON encoding."));
         response.release();
     }
@@ -141,7 +140,7 @@ public class XhrSendTransportTest {
 
     private static FullHttpRequest requestWithFormData(final String data) {
         final DefaultFullHttpRequest r = new DefaultFullHttpRequest(HttpVersion.HTTP_1_1, HttpMethod.GET, "/test");
-        r.headers().set(HttpHeaders.Names.CONTENT_TYPE, CONTENT_TYPE_FORM);
+        r.headers().set(HttpHeaders.Names.CONTENT_TYPE, HttpResponseBuilder.CONTENT_TYPE_FORM);
         if (data == null) {
             final ByteBuf byteBuf = Unpooled.copiedBuffer("d=", UTF_8);
             r.content().writeBytes(byteBuf);

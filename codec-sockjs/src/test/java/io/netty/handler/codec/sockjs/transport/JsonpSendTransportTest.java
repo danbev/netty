@@ -16,7 +16,6 @@
 package io.netty.handler.codec.sockjs.transport;
 
 import static io.netty.handler.codec.sockjs.SockJsTestUtil.verifyDefaultResponseHeaders;
-import static io.netty.handler.codec.sockjs.transport.HttpResponseBuilder.*;
 import static org.hamcrest.CoreMatchers.equalTo;
 import static org.hamcrest.MatcherAssert.assertThat;
 
@@ -67,7 +66,7 @@ public class JsonpSendTransportTest {
         assertThat(response.getStatus(), equalTo(HttpResponseStatus.OK));
         assertThat(response.getProtocolVersion(), equalTo(HttpVersion.HTTP_1_1));
         assertThat(response.content().toString(CharsetUtil.UTF_8), equalTo("ok"));
-        verifyDefaultResponseHeaders(response, CONTENT_TYPE_PLAIN);
+        verifyDefaultResponseHeaders(response, HttpResponseBuilder.CONTENT_TYPE_PLAIN);
         response.release();
     }
 
@@ -87,7 +86,7 @@ public class JsonpSendTransportTest {
         assertThat(response.getStatus(), equalTo(HttpResponseStatus.OK));
         assertThat(response.getProtocolVersion(), equalTo(HttpVersion.HTTP_1_1));
         assertThat(response.content().toString(CharsetUtil.UTF_8), equalTo("ok"));
-        verifyDefaultResponseHeaders(response, CONTENT_TYPE_PLAIN);
+        verifyDefaultResponseHeaders(response, HttpResponseBuilder.CONTENT_TYPE_PLAIN);
         response.release();
     }
 
@@ -117,7 +116,7 @@ public class JsonpSendTransportTest {
 
     private static FullHttpRequest requestWithFormData(final String data) {
         final DefaultFullHttpRequest r = new DefaultFullHttpRequest(HttpVersion.HTTP_1_1, HttpMethod.GET, "/test");
-        r.headers().set(HttpHeaders.Names.CONTENT_TYPE, CONTENT_TYPE_FORM);
+        r.headers().set(HttpHeaders.Names.CONTENT_TYPE, HttpResponseBuilder.CONTENT_TYPE_FORM);
         if (data == null) {
             final ByteBuf byteBuf = Unpooled.copiedBuffer("d=", CharsetUtil.UTF_8);
             r.content().writeBytes(byteBuf);

@@ -28,6 +28,7 @@ import io.netty.handler.codec.http.QueryStringDecoder;
 import io.netty.handler.codec.sockjs.SockJsChannelConfig;
 import io.netty.handler.codec.sockjs.transport.EventSourceTransport;
 import io.netty.handler.codec.sockjs.transport.HtmlFileTransport;
+import io.netty.handler.codec.sockjs.transport.HttpResponseBuilder;
 import io.netty.handler.codec.sockjs.transport.JsonpPollingTransport;
 import io.netty.handler.codec.sockjs.transport.JsonpSendTransport;
 import io.netty.handler.codec.sockjs.transport.RawWebSocketTransport;
@@ -47,7 +48,6 @@ import java.util.regex.Pattern;
 
 import static io.netty.handler.codec.http.HttpHeaders.Names.*;
 import static io.netty.handler.codec.http.HttpHeaders.Values.*;
-import static io.netty.handler.codec.sockjs.transport.HttpResponseBuilder.*;
 import static java.util.UUID.*;
 
 /**
@@ -180,9 +180,9 @@ public class SockJsHandler extends SimpleChannelInboundHandler<HttpRequest> {
     }
 
     private static void writeNotFoundResponse(final HttpRequest request, final ChannelHandlerContext ctx) {
-        writeResponse(ctx.channel(), request, responseFor(request)
+        writeResponse(ctx.channel(), request, HttpResponseBuilder.responseFor(request)
                 .notFound()
-                .content("Not found").contentType(CONTENT_TYPE_PLAIN)
+                .content("Not found").contentType(HttpResponseBuilder.CONTENT_TYPE_PLAIN)
                 .buildFullResponse(ctx.alloc()));
     }
 

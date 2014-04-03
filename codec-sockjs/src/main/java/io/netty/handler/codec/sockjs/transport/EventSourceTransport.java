@@ -36,7 +36,6 @@ import static io.netty.buffer.Unpooled.*;
 import static io.netty.handler.codec.http.HttpConstants.*;
 import static io.netty.handler.codec.http.HttpHeaders.Names.*;
 import static io.netty.handler.codec.http.HttpHeaders.Values.CLOSE;
-import static io.netty.handler.codec.sockjs.transport.HttpResponseBuilder.*;
 import static io.netty.util.CharsetUtil.*;
 
 /**
@@ -101,7 +100,7 @@ public class EventSourceTransport extends ChannelHandlerAdapter {
     }
 
     protected HttpResponse createResponse(String contentType) {
-        return responseFor(request)
+        return HttpResponseBuilder.responseFor(request)
                 .ok()
                 .contentType(contentType)
                 .chunked()
@@ -109,7 +108,7 @@ public class EventSourceTransport extends ChannelHandlerAdapter {
                 .header(ACCESS_CONTROL_ALLOW_ORIGIN, "*")
                 .header(ACCESS_CONTROL_ALLOW_CREDENTIALS, "true")
                 .header(CONNECTION, CLOSE)
-                .header(CACHE_CONTROL, NO_CACHE_HEADER)
+                .header(CACHE_CONTROL, HttpResponseBuilder.NO_CACHE_HEADER)
                 .buildResponse();
     }
 

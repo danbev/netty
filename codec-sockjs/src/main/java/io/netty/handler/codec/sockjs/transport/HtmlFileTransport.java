@@ -42,7 +42,6 @@ import static io.netty.buffer.Unpooled.*;
 import static io.netty.handler.codec.http.HttpConstants.*;
 import static io.netty.handler.codec.http.HttpHeaders.Names.*;
 import static io.netty.handler.codec.http.HttpHeaders.Values.*;
-import static io.netty.handler.codec.sockjs.transport.HttpResponseBuilder.*;
 import static io.netty.util.CharsetUtil.*;
 
 /**
@@ -118,7 +117,7 @@ public class HtmlFileTransport extends ChannelHandlerAdapter {
         if (msg instanceof Frame) {
             final Frame frame = (Frame) msg;
             if (headerSent.compareAndSet(false, true)) {
-                final HttpResponse response = createResponse(CONTENT_TYPE_HTML);
+                final HttpResponse response = createResponse(HttpResponseBuilder.CONTENT_TYPE_HTML);
                 final ByteBuf header = ctx.alloc().buffer();
                 header.writeBytes(HEADER_PART1.duplicate());
                 final ByteBuf content = copiedBuffer(callback, UTF_8);
@@ -157,11 +156,11 @@ public class HtmlFileTransport extends ChannelHandlerAdapter {
     }
 
     private void respondCallbackRequired(final ChannelHandlerContext ctx) {
-        ctx.writeAndFlush(responseFor(request)
+        ctx.writeAndFlush(HttpResponseBuilder.responseFor(request)
                 .internalServerError()
                 .content("\"callback\" parameter required")
-                .contentType(CONTENT_TYPE_PLAIN)
-                .header(HttpHeaders.Names.CACHE_CONTROL, NO_CACHE_HEADER)
+                .contentType(HttpResponseBuilder.CONTENT_TYPE_PLAIN)
+                .header(HttpHeaders.Names.CACHE_CONTROL, HttpResponseBuilder.NO_CACHE_HEADER)
                 .buildFullResponse(ctx.alloc()));
     }
 
@@ -171,7 +170,7 @@ public class HtmlFileTransport extends ChannelHandlerAdapter {
     }
 
     protected HttpResponse createResponse(final String contentType) {
-        return responseFor(request)
+        return HttpResponseBuilder.responseFor(request)
                 .ok()
                 .chunked()
                 .contentType(contentType)
@@ -179,7 +178,7 @@ public class HtmlFileTransport extends ChannelHandlerAdapter {
                 .header(ACCESS_CONTROL_ALLOW_ORIGIN, "*")
                 .header(ACCESS_CONTROL_ALLOW_CREDENTIALS, "true")
                 .header(CONNECTION, CLOSE)
-                .header(CACHE_CONTROL, NO_CACHE_HEADER)
+                .header(CACHE_CONTROL, HttpResponseBuilder.NO_CACHE_HEADER)
                 .buildResponse();
     }
 

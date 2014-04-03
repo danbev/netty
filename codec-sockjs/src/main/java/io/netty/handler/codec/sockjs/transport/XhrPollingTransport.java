@@ -29,7 +29,6 @@ import io.netty.util.internal.logging.InternalLoggerFactory;
 
 import static io.netty.handler.codec.http.HttpHeaders.Names.*;
 import static io.netty.handler.codec.http.HttpHeaders.Values.*;
-import static io.netty.handler.codec.sockjs.transport.HttpResponseBuilder.*;
 
 /**
  * XMLHttpRequest (XHR) Polling is a transport where there is no open connection between
@@ -66,15 +65,15 @@ public class XhrPollingTransport extends ChannelHandlerAdapter {
             throws Exception {
         if (msg instanceof Frame) {
             final Frame frame = (Frame) msg;
-            ctx.writeAndFlush(responseFor(request)
+            ctx.writeAndFlush(HttpResponseBuilder.responseFor(request)
                     .ok()
                     .contentWrappedWithNL(frame.content())
-                    .contentType(CONTENT_TYPE_JAVASCRIPT)
+                    .contentType(HttpResponseBuilder.CONTENT_TYPE_JAVASCRIPT)
                     .setCookie(config)
                     .header(ACCESS_CONTROL_ALLOW_ORIGIN, "*")
                     .header(ACCESS_CONTROL_ALLOW_CREDENTIALS, "true")
                     .header(CONNECTION, CLOSE)
-                    .header(CACHE_CONTROL, NO_CACHE_HEADER)
+                    .header(CACHE_CONTROL, HttpResponseBuilder.NO_CACHE_HEADER)
                     .buildFullResponse(ctx.alloc()),
                     promise);
         } else {

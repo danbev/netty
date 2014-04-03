@@ -22,6 +22,7 @@ import io.netty.handler.codec.http.HttpRequest;
 import io.netty.handler.codec.http.HttpResponse;
 import io.netty.handler.codec.http.QueryStringDecoder;
 import io.netty.handler.codec.sockjs.SockJsConfig;
+import io.netty.handler.codec.sockjs.transport.HttpResponseBuilder;
 
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
@@ -30,7 +31,6 @@ import java.util.Date;
 import java.util.Formatter;
 import java.util.regex.Pattern;
 
-import static io.netty.handler.codec.sockjs.transport.HttpResponseBuilder.*;
 import static io.netty.util.CharsetUtil.*;
 
 /**
@@ -74,23 +74,23 @@ final class Iframe {
                                         final ByteBufAllocator alloc) throws Exception {
         final QueryStringDecoder qsd = new QueryStringDecoder(request.getUri());
         if (!PATH_PATTERN.matcher(qsd.path()).matches()) {
-            return responseFor(request)
+            return HttpResponseBuilder.responseFor(request)
                     .notFound()
                     .content("Not found")
-                    .contentType(CONTENT_TYPE_PLAIN)
+                    .contentType(HttpResponseBuilder.CONTENT_TYPE_PLAIN)
                     .buildFullResponse(alloc);
         }
 
         if (request.headers().contains(HttpHeaders.Names.IF_NONE_MATCH)) {
-            final HttpResponse response = responseFor(request).notModified().buildResponse();
+            final HttpResponse response = HttpResponseBuilder.responseFor(request).notModified().buildResponse();
             response.headers().set(HttpHeaders.Names.SET_COOKIE, "JSESSIONID=dummy; path=/");
             return response;
         } else {
             final String content = createContent(config.sockJsUrl());
-            final FullHttpResponse response = responseFor(request)
+            final FullHttpResponse response = HttpResponseBuilder.responseFor(request)
                     .ok()
                     .content(content)
-                    .contentType(CONTENT_TYPE_HTML)
+                    .contentType(HttpResponseBuilder.CONTENT_TYPE_HTML)
                     .buildFullResponse(alloc);
             response.headers().set(HttpHeaders.Names.CACHE_CONTROL, "max-age=31536000, public");
             response.headers().set(HttpHeaders.Names.EXPIRES, generateExpires());

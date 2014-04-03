@@ -46,6 +46,7 @@ import io.netty.handler.codec.sockjs.SockJsChannelOption;
 import io.netty.handler.codec.sockjs.SockJsCloseHandler;
 import io.netty.handler.codec.sockjs.SockJsEchoHandler;
 import io.netty.handler.codec.sockjs.transport.EventSourceTransport;
+import io.netty.handler.codec.sockjs.transport.HttpResponseBuilder;
 import io.netty.handler.codec.sockjs.transport.TransportType;
 import io.netty.handler.codec.sockjs.util.HttpUtil;
 import io.netty.handler.codec.sockjs.util.JsonUtil;
@@ -63,7 +64,6 @@ import static io.netty.handler.codec.http.HttpMethod.*;
 import static io.netty.handler.codec.http.HttpVersion.*;
 import static io.netty.handler.codec.http.websocketx.WebSocketVersion.*;
 import static io.netty.handler.codec.sockjs.SockJsTestUtil.*;
-import static io.netty.handler.codec.sockjs.transport.HttpResponseBuilder.*;
 import static io.netty.handler.codec.sockjs.util.ChannelUtil.*;
 import static io.netty.util.CharsetUtil.*;
 import static org.hamcrest.CoreMatchers.containsString;
@@ -726,14 +726,14 @@ public class SockJsProtocolTest {
 
         final FullHttpResponse response = xhrRequest(sessionUrl, sockJsPipeline("/echo", echoHandler));
         assertOpenFrameResponse(response);
-        assertThat(response.headers().get(CONTENT_TYPE), equalTo(CONTENT_TYPE_JAVASCRIPT));
+        assertThat(response.headers().get(CONTENT_TYPE), equalTo(HttpResponseBuilder.CONTENT_TYPE_JAVASCRIPT));
         assertCORSHeaders(response, "*");
         verifyNotCached(response);
 
         final FullHttpResponse xhrSendResponse = xhrSendRequest(sessionUrl, "[\"x\"]",
                 sockJsPipeline("/echo", echoHandler));
         assertNoContent(xhrSendResponse);
-        assertThat(xhrSendResponse.headers().get(CONTENT_TYPE), equalTo(CONTENT_TYPE_PLAIN));
+        assertThat(xhrSendResponse.headers().get(CONTENT_TYPE), equalTo(HttpResponseBuilder.CONTENT_TYPE_PLAIN));
         assertCORSHeaders(response, "*");
         verifyNotCached(xhrSendResponse);
         xhrSendResponse.release();
@@ -898,7 +898,7 @@ public class SockJsProtocolTest {
 
         final HttpResponse response = ch.readOutbound();
         assertThat(response.getStatus(), equalTo(HttpResponseStatus.OK));
-        assertThat(response.headers().get(CONTENT_TYPE), equalTo(CONTENT_TYPE_JAVASCRIPT));
+        assertThat(response.headers().get(CONTENT_TYPE), equalTo(HttpResponseBuilder.CONTENT_TYPE_JAVASCRIPT));
         assertCORSHeaders(response, "*");
         verifyNoCacheHeaders(response);
 
@@ -937,7 +937,7 @@ public class SockJsProtocolTest {
         ch.writeInbound(request);
         final HttpResponse response = ch.readOutbound();
         assertThat(response.getStatus(), equalTo(HttpResponseStatus.OK));
-        assertThat(response.headers().get(CONTENT_TYPE), equalTo(CONTENT_TYPE_JAVASCRIPT));
+        assertThat(response.headers().get(CONTENT_TYPE), equalTo(HttpResponseBuilder.CONTENT_TYPE_JAVASCRIPT));
         assertCORSHeaders(response, "*");
         verifyNoCacheHeaders(response);
 
@@ -1054,7 +1054,7 @@ public class SockJsProtocolTest {
         ch.writeInbound(request);
         final HttpResponse response =  ch.readOutbound();
         assertThat(response.getStatus(), equalTo(HttpResponseStatus.OK));
-        assertThat(response.headers().get(CONTENT_TYPE), equalTo(CONTENT_TYPE_HTML));
+        assertThat(response.headers().get(CONTENT_TYPE), equalTo(HttpResponseBuilder.CONTENT_TYPE_HTML));
 
         final HttpContent headerChunk = ch.readOutbound();
         assertThat(headerChunk.content().readableBytes(), is(greaterThan(1024)));
@@ -1142,7 +1142,7 @@ public class SockJsProtocolTest {
         final FullHttpResponse response = (FullHttpResponse) jsonpRequest(sessionUrl + "/jsonp?c=%63allback", ch);
         assertThat(response.getStatus(), is(HttpResponseStatus.OK));
         assertThat(response.content().toString(UTF_8), equalTo("callback(\"o\");\r\n"));
-        assertThat(response.headers().get(CONTENT_TYPE), equalTo(CONTENT_TYPE_JAVASCRIPT));
+        assertThat(response.headers().get(CONTENT_TYPE), equalTo(HttpResponseBuilder.CONTENT_TYPE_JAVASCRIPT));
         verifyNotCached(response);
         response.release();
 
@@ -1151,14 +1151,14 @@ public class SockJsProtocolTest {
                 sockJsPipeline("/echo", echoHandler));
         assertThat(sendResponse.getStatus(), is(HttpResponseStatus.OK));
         assertThat(sendResponse.content().toString(UTF_8), equalTo("ok"));
-        assertThat(sendResponse.headers().get(CONTENT_TYPE), equalTo(CONTENT_TYPE_PLAIN));
+        assertThat(sendResponse.headers().get(CONTENT_TYPE), equalTo(HttpResponseBuilder.CONTENT_TYPE_PLAIN));
         verifyNotCached(response);
         sendResponse.release();
 
         final FullHttpResponse pollResponse = (FullHttpResponse) jsonpRequest(sessionUrl + "/jsonp?c=callback",
                 sockJsPipeline("/echo", echoHandler));
         assertThat(pollResponse.getStatus(), is(HttpResponseStatus.OK));
-        assertThat(pollResponse.headers().get(CONTENT_TYPE), equalTo(CONTENT_TYPE_JAVASCRIPT));
+        assertThat(pollResponse.headers().get(CONTENT_TYPE), equalTo(HttpResponseBuilder.CONTENT_TYPE_JAVASCRIPT));
         assertThat(pollResponse.content().toString(UTF_8), equalTo("callback(\"a[\\\"x\\\"]\");\r\n"));
         verifyNotCached(pollResponse);
         pollResponse.release();
@@ -2078,7 +2078,7 @@ public class SockJsProtocolTest {
     private static FullHttpResponse jsonpSend(final String url, final String content,
                                               final EmbeddedChannel ch) {
         final FullHttpRequest request = httpRequest(url, POST);
-        request.headers().set(CONTENT_TYPE, CONTENT_TYPE_FORM);
+        request.headers().set(CONTENT_TYPE, HttpResponseBuilder.CONTENT_TYPE_FORM);
         final ByteBuf buf = Unpooled.copiedBuffer(content, UTF_8);
         request.content().writeBytes(buf);
         buf.release();
