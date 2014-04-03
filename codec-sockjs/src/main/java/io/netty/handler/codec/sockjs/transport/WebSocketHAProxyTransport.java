@@ -93,9 +93,11 @@ public class WebSocketHAProxyTransport extends SimpleChannelInboundHandler<Objec
         } else if (cause instanceof WebSocketHandshakeException) {
             final HttpRequest request = ctx.attr(REQUEST_KEY).get();
             logger.error("Failed with ws handshake for request: " + request, cause);
-            ctx.writeAndFlush(HttpResponseBuilder.internalServerErrorResponse(request,
-                    cause.getMessage(),
-                    ctx.alloc())).addListener(ChannelFutureListener.CLOSE);
+            ctx.writeAndFlush(HttpResponseBuilder.responseFor(request)
+                    .internalServerError()
+                    .content(cause.getMessage())
+                    .contentType(HttpResponseBuilder.CONTENT_TYPE_PLAIN)
+                    .buildFullResponse(ctx.alloc())).addListener(ChannelFutureListener.CLOSE);
         } else {
             ctx.fireExceptionCaught(cause);
         }

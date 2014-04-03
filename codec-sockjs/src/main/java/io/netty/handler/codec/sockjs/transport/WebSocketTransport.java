@@ -16,9 +16,6 @@
 package io.netty.handler.codec.sockjs.transport;
 
 import static io.netty.handler.codec.http.HttpMethod.GET;
-import static io.netty.handler.codec.sockjs.transport.HttpResponseBuilder.badRequestResponse;
-import static io.netty.handler.codec.sockjs.transport.HttpResponseBuilder.internalServerErrorResponse;
-import static io.netty.handler.codec.sockjs.transport.HttpResponseBuilder.methodNotAllowedResponse;
 
 import com.fasterxml.jackson.core.JsonParseException;
 import io.netty.channel.ChannelFuture;
@@ -73,7 +70,11 @@ public class WebSocketTransport extends SimpleChannelInboundHandler<Object> {
     private static boolean checkRequestHeaders(final ChannelHandlerContext ctx, final HttpRequest req) {
         if (req.getMethod() != GET) {
             logger.debug("Request was not of type GET, was {}", req.getMethod());
-            ctx.writeAndFlush(methodNotAllowedResponse(req))
+            ctx.writeAndFlush(HttpResponseBuilder.responseFor(req)
+                    .methodNotAllowed()
+                    .header(HttpHeaders.Names.CONTENT_LENGTH, 0)
+                    .header(HttpHeaders.Names.ALLOW, GET)
+                    .buildResponse())
             .addListener(ChannelFutureListener.CLOSE);
             return false;
         }
@@ -81,8 +82,11 @@ public class WebSocketTransport extends SimpleChannelInboundHandler<Object> {
         final String upgradeHeader = req.headers().get(HttpHeaders.Names.UPGRADE);
         if (upgradeHeader == null || !"websocket".equals(upgradeHeader.toLowerCase())) {
             logger.debug("Upgrade header was not 'websocket' was: {}", upgradeHeader);
-            ctx.writeAndFlush(badRequestResponse(req, "Can \"Upgrade\" only to \"WebSocket\".",
-                    ctx.alloc())).addListener(ChannelFutureListener.CLOSE);
+            ctx.writeAndFlush(HttpResponseBuilder.responseFor(req)
+                    .badRequest()
+                    .content("Can \"Upgrade\" only to \"WebSocket\".")
+                    .contentType(HttpResponseBuilder.CONTENT_TYPE_PLAIN)
+                    .buildFullResponse(ctx.alloc())).addListener(ChannelFutureListener.CLOSE);
             return false;
         }
 
@@ -94,8 +98,11 @@ public class WebSocketTransport extends SimpleChannelInboundHandler<Object> {
         }
         if (connectHeader == null || !"upgrade".equals(connectHeader.toLowerCase())) {
             logger.debug("Connection header was not 'upgrade' was: {}", connectHeader);
-            ctx.writeAndFlush(badRequestResponse(req, "\"Connection\" must be \"Upgrade\".",
-                    ctx.alloc())).addListener(ChannelFutureListener.CLOSE);
+            ctx.writeAndFlush(HttpResponseBuilder.responseFor(req)
+                    .badRequest()
+                    .content("\"Connection\" must be \"Upgrade\".")
+                    .contentType(HttpResponseBuilder.CONTENT_TYPE_PLAIN)
+                    .buildFullResponse(ctx.alloc())).addListener(ChannelFutureListener.CLOSE);
             return false;
         }
         return true;
@@ -192,8 +199,11 @@ public class WebSocketTransport extends SimpleChannelInboundHandler<Object> {
         } else if (cause instanceof WebSocketHandshakeException) {
             final HttpRequest request = ctx.attr(REQUEST_KEY).get();
             logger.error("Failed with ws handshake for request: " + request, cause);
-            ctx.writeAndFlush(internalServerErrorResponse(request, cause.getMessage(),
-                    ctx.alloc())).addListener(ChannelFutureListener.CLOSE);
+            ctx.writeAndFlush(HttpResponseBuilder.responseFor(request)
+                    .internalServerError()
+                    .content(cause.getMessage())
+                    .contentType(HttpResponseBuilder.CONTENT_TYPE_PLAIN)
+                    .buildFullResponse(ctx.alloc())).addListener(ChannelFutureListener.CLOSE);
         } else {
             ctx.fireExceptionCaught(cause);
         }

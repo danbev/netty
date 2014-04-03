@@ -25,7 +25,6 @@ import io.netty.handler.codec.http.DefaultHttpResponse;
 import io.netty.handler.codec.http.FullHttpResponse;
 import io.netty.handler.codec.http.HttpHeaders;
 import io.netty.handler.codec.http.HttpMessage;
-import io.netty.handler.codec.http.HttpMethod;
 import io.netty.handler.codec.http.HttpRequest;
 import io.netty.handler.codec.http.HttpResponse;
 import io.netty.handler.codec.http.HttpResponseStatus;
@@ -305,56 +304,6 @@ public final class HttpResponseBuilder {
      */
     public static ByteBuf wrapWithLN(final ByteBuf buf) {
         return copiedBuffer(buf, NL.duplicate());
-    }
-
-    /**
-     * Creates a {@code FullHttpResponse} with the {@code METHOD_NOT_ALLOWED} status.
-     *
-     * @param request the {@link HttpRequest} for which the buildResponse should be generated.
-     * @return {@link FullHttpResponse} with the {@link HttpResponseStatus#METHOD_NOT_ALLOWED}.
-     */
-    public static HttpResponse methodNotAllowedResponse(final HttpRequest request) {
-        return responseFor(request)
-                .methodNotAllowed()
-                .header(HttpHeaders.Names.CONTENT_LENGTH, 0)
-                .header(HttpHeaders.Names.ALLOW, HttpMethod.GET)
-                .buildResponse();
-    }
-
-    /**
-     * Creates a {@code FullHttpResponse} with the {@code BAD_REQUEST} status and a body.
-     *
-     * @param request the {@link HttpRequest} for which a buildResponse should be created.
-     * @param content the content that will become the buildResponse body.
-     * @param alloc the {@link ByteBufAllocator} to use.
-     * @return {@link FullHttpResponse} with the {@link HttpResponseStatus#BAD_REQUEST}.
-     */
-    public static FullHttpResponse badRequestResponse(final HttpRequest request,
-                                                      final String content,
-                                                      final ByteBufAllocator alloc) {
-        return responseFor(request)
-                .badRequest()
-                .content(content)
-                .contentType(CONTENT_TYPE_PLAIN)
-                .buildFullResponse(alloc);
-    }
-
-    /**
-     * Creates a {@code FullHttpResponse} with the {@code INTERNAL_SERVER_ERROR} status and a body.
-     *
-     * @param request the {@link HttpRequest} for which a buildResponse should be created.
-     * @param content the content that will become the buildResponse body.
-     * @param alloc the {@link ByteBufAllocator} to use.
-     * @return {@link FullHttpResponse} with the {@link HttpResponseStatus#INTERNAL_SERVER_ERROR}.
-     */
-    public static FullHttpResponse internalServerErrorResponse(final HttpRequest request,
-                                                               final String content,
-                                                               final ByteBufAllocator alloc) {
-        return responseFor(request)
-                .internalServerError()
-                .content(content)
-                .contentType(CONTENT_TYPE_PLAIN)
-                .buildFullResponse(alloc);
     }
 
 }
