@@ -161,6 +161,19 @@ public final class HttpResponseBuilder {
     }
 
     /**
+     * Configures the content and wraps it with a new line character.
+     * Note that this method will release the passed in content.
+     *
+     * @param content the {@link ByteBuf} content what will be wrapped for this response.
+     * @return {@link HttpResponseBuilder} to support method chaining.
+     */
+    public HttpResponseBuilder contentWrappedWithNL(final ByteBuf content) {
+        byteBuf = wrapWithLN(content);
+        content.release();
+        return this;
+    }
+
+    /**
      * Configures the content type for this HTTP response
      *
      * @param contentType the content type.

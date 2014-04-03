@@ -15,7 +15,6 @@
  */
 package io.netty.handler.codec.sockjs.transport;
 
-import io.netty.buffer.ByteBuf;
 import io.netty.channel.ChannelHandlerAdapter;
 import io.netty.channel.ChannelHandlerContext;
 import io.netty.channel.ChannelPromise;
@@ -67,11 +66,9 @@ public class XhrPollingTransport extends ChannelHandlerAdapter {
             throws Exception {
         if (msg instanceof Frame) {
             final Frame frame = (Frame) msg;
-            final ByteBuf content = wrapWithLN(frame.content());
-            frame.release();
             ctx.writeAndFlush(responseFor(request)
                     .ok()
-                    .content(content)
+                    .contentWrappedWithNL(frame.content())
                     .contentType(CONTENT_TYPE_JAVASCRIPT)
                     .setCookie(config)
                     .header(ACCESS_CONTROL_ALLOW_ORIGIN, "*")
