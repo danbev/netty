@@ -48,8 +48,11 @@ public class EventSourceTransportTest {
 
         final DefaultHttpContent newLinePrelude = ch.readOutbound();
         assertThat(newLinePrelude.content().toString(UTF_8), equalTo("\r\n"));
+        newLinePrelude.release();
+
         final DefaultHttpContent data = ch.readOutbound();
         assertThat(data.content().toString(UTF_8), equalTo("data: o\r\n\r\n"));
+        data.release();
     }
 
     private static EmbeddedChannel newEventSourceChannel() {

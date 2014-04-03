@@ -18,7 +18,7 @@ package io.netty.handler.codec.sockjs.transport;
 import static io.netty.handler.codec.http.HttpMethod.GET;
 import static io.netty.handler.codec.http.HttpVersion.HTTP_1_1;
 import static io.netty.handler.codec.sockjs.SockJsTestUtil.verifyNoCacheHeaders;
-import static org.hamcrest.CoreMatchers.equalTo;
+import static org.hamcrest.CoreMatchers.*;
 import static org.hamcrest.MatcherAssert.assertThat;
 import io.netty.channel.embedded.EmbeddedChannel;
 import io.netty.handler.codec.http.DefaultFullHttpRequest;
@@ -43,6 +43,7 @@ public class JsonpPollingTransportTest {
         assertThat(response.getStatus(), equalTo(HttpResponseStatus.OK));
         verifyNoCacheHeaders(response);
         assertThat(response.content().toString(CharsetUtil.UTF_8), equalTo("callback(\"a[\\\"a\\\"]\");\r\n"));
+        response.release();
     }
 
     @Test
@@ -51,6 +52,7 @@ public class JsonpPollingTransportTest {
         assertThat(response.getStatus(), equalTo(HttpResponseStatus.OK));
         verifyNoCacheHeaders(response);
         assertThat(response.content().toString(CharsetUtil.UTF_8), equalTo("callback(\"o\");\r\n"));
+        response.release();
     }
 
     @Test
@@ -59,6 +61,7 @@ public class JsonpPollingTransportTest {
         assertThat(response.getStatus(), equalTo(HttpResponseStatus.OK));
         verifyNoCacheHeaders(response);
         assertThat(response.content().toString(CharsetUtil.UTF_8), equalTo("callback(\"c[2000,\\\"Oh no\\\"]\");\r\n"));
+        response.release();
     }
 
     @Test
@@ -67,6 +70,7 @@ public class JsonpPollingTransportTest {
         assertThat(response.getStatus(), equalTo(HttpResponseStatus.OK));
         verifyNoCacheHeaders(response);
         assertThat(response.content().toString(CharsetUtil.UTF_8), equalTo("callback(\"h\");\r\n"));
+        response.release();
     }
 
     @Test
@@ -74,6 +78,7 @@ public class JsonpPollingTransportTest {
         final FullHttpResponse response = writeFrame(new HeartbeatFrame(), false);
         assertThat(response.getStatus(), equalTo(HttpResponseStatus.INTERNAL_SERVER_ERROR));
         assertThat(response.content().toString(CharsetUtil.UTF_8), equalTo("\"callback\" parameter required"));
+        response.release();
     }
 
     private static FullHttpResponse writeFrame(final Frame frame) {
@@ -87,8 +92,11 @@ public class JsonpPollingTransportTest {
         final JsonpPollingTransport jsonpPollingOutbound = new JsonpPollingTransport(config, request);
         final EmbeddedChannel ch = new EmbeddedChannel(jsonpPollingOutbound);
         ch.writeInbound(request);
-        ch.writeOutbound(frame);
-        final FullHttpResponse response =  ch.readOutbound();
+        FullHttpResponse response = ch.readOutbound();
+        if (response == null) {
+            ch.writeOutbound(frame);
+            response = ch.readOutbound();
+        }
         ch.finish();
         return response;
     }

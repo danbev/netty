@@ -21,6 +21,7 @@ import static io.netty.handler.codec.sockjs.SockJsTestUtil.assertCORSHeaders;
 import static io.netty.handler.codec.sockjs.SockJsTestUtil.verifyNoCacheHeaders;
 import static io.netty.handler.codec.http.HttpHeaders.Names.*;
 import static io.netty.handler.codec.http.HttpHeaders.Values.*;
+import static io.netty.handler.codec.sockjs.transport.HttpResponseBuilder.CONTENT_TYPE_JAVASCRIPT;
 import static org.hamcrest.CoreMatchers.equalTo;
 import static org.hamcrest.CoreMatchers.is;
 import static org.hamcrest.MatcherAssert.assertThat;
@@ -49,7 +50,7 @@ public class XhrStreamingTransportTest {
 
         final HttpResponse response = ch.readOutbound();
         assertThat(response.getStatus(), equalTo(HttpResponseStatus.OK));
-        assertThat(response.headers().get(CONTENT_TYPE), equalTo(Transports.CONTENT_TYPE_JAVASCRIPT));
+        assertThat(response.headers().get(CONTENT_TYPE), equalTo(CONTENT_TYPE_JAVASCRIPT));
         assertThat(response.headers().get(TRANSFER_ENCODING), equalTo(CHUNKED.toString()));
         assertCORSHeaders(response, "*");
         verifyNoCacheHeaders(response);
@@ -57,9 +58,11 @@ public class XhrStreamingTransportTest {
         final DefaultHttpContent prelude = ch.readOutbound();
         assertThat(prelude.content().readableBytes(), is(PRELUDE_SIZE));
         prelude.content().readBytes(Unpooled.buffer(PRELUDE_SIZE));
+        prelude.release();
 
         final DefaultHttpContent openResponse = ch.readOutbound();
         assertThat(openResponse.content().toString(CharsetUtil.UTF_8), equalTo("o\n"));
+        openResponse.release();
         ch.finish();
     }
 

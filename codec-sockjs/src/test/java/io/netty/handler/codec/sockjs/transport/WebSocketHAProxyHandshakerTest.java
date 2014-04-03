@@ -61,6 +61,7 @@ public class WebSocketHAProxyHandshakerTest {
         assertThat(response.headers().get(SEC_WEBSOCKET_LOCATION), equalTo("ws://localhost/websocket"));
         assertThat(response.headers().get(SEC_WEBSOCKET_ORIGIN), equalTo("http://example.com"));
         assertThat(response.headers().get(CONTENT_LENGTH), is(nullValue()));
+        response.release();
 
         final ByteBuf content = Unpooled.copiedBuffer("^n:ds[4U", CharsetUtil.US_ASCII);
         final ByteBuf key = handshaker.calculateLastKey(content);

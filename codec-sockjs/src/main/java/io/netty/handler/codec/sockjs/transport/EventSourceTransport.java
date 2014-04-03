@@ -15,25 +15,14 @@
  */
 package io.netty.handler.codec.sockjs.transport;
 
-import static io.netty.handler.codec.http.HttpHeaders.Names.CONTENT_TYPE;
-import static io.netty.handler.codec.http.HttpHeaders.Names.TRANSFER_ENCODING;
-import static io.netty.util.CharsetUtil.UTF_8;
-import static io.netty.handler.codec.http.HttpConstants.CR;
-import static io.netty.handler.codec.http.HttpConstants.LF;
-import static io.netty.buffer.Unpooled.unreleasableBuffer;
-import static io.netty.buffer.Unpooled.copiedBuffer;
 import io.netty.buffer.ByteBuf;
 import io.netty.channel.ChannelFutureListener;
 import io.netty.channel.ChannelHandlerAdapter;
 import io.netty.channel.ChannelHandlerContext;
 import io.netty.channel.ChannelPromise;
 import io.netty.handler.codec.http.DefaultHttpContent;
-import io.netty.handler.codec.http.DefaultHttpResponse;
-import io.netty.handler.codec.http.HttpHeaders;
 import io.netty.handler.codec.http.HttpRequest;
 import io.netty.handler.codec.http.HttpResponse;
-import io.netty.handler.codec.http.HttpResponseStatus;
-import io.netty.handler.codec.http.HttpVersion;
 import io.netty.handler.codec.http.LastHttpContent;
 import io.netty.handler.codec.sockjs.SockJsConfig;
 import io.netty.handler.codec.sockjs.protocol.Frame;
@@ -43,13 +32,20 @@ import io.netty.util.internal.logging.InternalLoggerFactory;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
 
+import static io.netty.buffer.Unpooled.*;
+import static io.netty.handler.codec.http.HttpConstants.*;
+import static io.netty.handler.codec.http.HttpHeaders.Names.*;
+import static io.netty.handler.codec.http.HttpHeaders.Values.CLOSE;
+import static io.netty.handler.codec.sockjs.transport.HttpResponseBuilder.*;
+import static io.netty.util.CharsetUtil.*;
+
 /**
  * EventSource transport is an streaming transport in that is maintains a persistent
  * connection from the server to the client over which the server can send messages.
  * This is often refered to a Server Side Event (SSE) and the client side.
  *
- * The response for opening such a unidirection channel is done with a simple
- * plain response with a 'Content-Type' of 'text/event-stream'. Subsequent
+ * The buildResponse for opening such a unidirection channel is done with a simple
+ * plain buildResponse with a 'Content-Type' of 'text/event-stream'. Subsequent
  * http chunks will contain data that the server whishes to send to the client.
  *
  */
@@ -105,14 +101,16 @@ public class EventSourceTransport extends ChannelHandlerAdapter {
     }
 
     protected HttpResponse createResponse(String contentType) {
-        final HttpVersion version = request.getProtocolVersion();
-        HttpResponse response = new DefaultHttpResponse(version, HttpResponseStatus.OK);
-        if (request.getProtocolVersion().equals(HttpVersion.HTTP_1_1)) {
-            response.headers().set(TRANSFER_ENCODING, HttpHeaders.Values.CHUNKED);
-        }
-        response.headers().set(CONTENT_TYPE, contentType);
-        Transports.setDefaultHeaders(response, config);
-        return response;
+        return responseFor(request)
+                .ok()
+                .contentType(contentType)
+                .chunked()
+                .setCookie(config)
+                .header(ACCESS_CONTROL_ALLOW_ORIGIN, "*")
+                .header(ACCESS_CONTROL_ALLOW_CREDENTIALS, "true")
+                .header(CONNECTION, CLOSE)
+                .header(CACHE_CONTROL, NO_CACHE_HEADER)
+                .buildResponse();
     }
 
 }

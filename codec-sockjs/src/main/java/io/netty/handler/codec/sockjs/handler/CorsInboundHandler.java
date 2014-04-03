@@ -27,6 +27,8 @@ import static io.netty.handler.codec.http.HttpHeaders.Names.EXPIRES;
 import static io.netty.handler.codec.http.HttpHeaders.Names.ORIGIN;
 import static io.netty.handler.codec.http.HttpHeaders.Names.SET_COOKIE;
 import static io.netty.handler.codec.http.HttpResponseStatus.NO_CONTENT;
+import static io.netty.handler.codec.sockjs.transport.HttpResponseBuilder.*;
+
 import io.netty.channel.ChannelHandlerContext;
 import io.netty.channel.SimpleChannelInboundHandler;
 import io.netty.handler.codec.http.DefaultHttpResponse;
@@ -61,7 +63,7 @@ public class CorsInboundHandler extends SimpleChannelInboundHandler<HttpRequest>
                                         final HttpRequest request) {
         final HttpResponse response = new DefaultHttpResponse(request.getProtocolVersion(), NO_CONTENT);
         final HttpHeaders headers = response.headers();
-        headers.set(CONTENT_TYPE, Transports.CONTENT_TYPE_PLAIN);
+        headers.set(CONTENT_TYPE, CONTENT_TYPE_PLAIN);
         headers.set(CACHE_CONTROL, "max-age=31536000, public");
         headers.set(ACCESS_CONTROL_ALLOW_ORIGIN, md.origin());
         headers.set(ACCESS_CONTROL_ALLOW_CREDENTIALS, "true");
@@ -74,7 +76,7 @@ public class CorsInboundHandler extends SimpleChannelInboundHandler<HttpRequest>
         headers.set(ACCESS_CONTROL_ALLOW_HEADERS, "Content-Type");
         headers.set(ACCESS_CONTROL_ALLOW_CREDENTIALS, "true");
         headers.set(EXPIRES, "dummy");
-        headers.set(SET_COOKIE, Transports.DEFAULT_COOKIE);
+        headers.set(SET_COOKIE, DEFAULT_COOKIE);
         ctx.writeAndFlush(response);
     }
 

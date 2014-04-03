@@ -15,21 +15,13 @@
  */
 package io.netty.handler.codec.sockjs.transport;
 
-import static io.netty.handler.codec.http.HttpHeaders.Names.CONTENT_TYPE;
-import static io.netty.handler.codec.http.HttpHeaders.Names.TRANSFER_ENCODING;
-import static io.netty.handler.codec.sockjs.transport.Transports.wrapWithLN;
 import io.netty.buffer.ByteBuf;
 import io.netty.channel.ChannelFutureListener;
 import io.netty.channel.ChannelHandlerAdapter;
 import io.netty.channel.ChannelHandlerContext;
 import io.netty.channel.ChannelPromise;
 import io.netty.handler.codec.http.DefaultHttpContent;
-import io.netty.handler.codec.http.DefaultHttpResponse;
-import io.netty.handler.codec.http.HttpHeaders;
 import io.netty.handler.codec.http.HttpRequest;
-import io.netty.handler.codec.http.HttpResponse;
-import io.netty.handler.codec.http.HttpResponseStatus;
-import io.netty.handler.codec.http.HttpVersion;
 import io.netty.handler.codec.http.LastHttpContent;
 import io.netty.handler.codec.sockjs.SockJsConfig;
 import io.netty.handler.codec.sockjs.protocol.CloseFrame;
@@ -41,6 +33,10 @@ import io.netty.util.internal.logging.InternalLoggerFactory;
 
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
+
+import static io.netty.handler.codec.http.HttpHeaders.Names.*;
+import static io.netty.handler.codec.http.HttpHeaders.Values.*;
+import static io.netty.handler.codec.sockjs.transport.HttpResponseBuilder.*;
 
 /**
  * XMLHttpRequest (XHR) streaming transport is a transport where a persistent
@@ -76,8 +72,16 @@ public class XhrStreamingTransport extends ChannelHandlerAdapter {
         if (msg instanceof Frame) {
             final Frame frame = (Frame) msg;
             if (headerSent.compareAndSet(false, true)) {
-                final HttpResponse response = createResponse(Transports.CONTENT_TYPE_JAVASCRIPT);
-                ctx.writeAndFlush(response);
+                ctx.writeAndFlush(responseFor(request)
+                        .ok()
+                        .contentType(CONTENT_TYPE_JAVASCRIPT)
+                        .chunked()
+                        .setCookie(config)
+                        .header(ACCESS_CONTROL_ALLOW_ORIGIN, "*")
+                        .header(ACCESS_CONTROL_ALLOW_CREDENTIALS, "true")
+                        .header(CONNECTION, CLOSE)
+                        .header(CACHE_CONTROL, NO_CACHE_HEADER)
+                        .buildResponse());
 
                 final ByteBuf content = wrapWithLN(new PreludeFrame().content());
                 final DefaultHttpContent preludeChunk = new DefaultHttpContent(content);
@@ -102,17 +106,6 @@ public class XhrStreamingTransport extends ChannelHandlerAdapter {
     private boolean maxBytesLimit(final int bytesWritten) {
         bytesSent.addAndGet(bytesWritten);
         return bytesSent.get() >= config.maxStreamingBytesSize();
-    }
-
-    protected HttpResponse createResponse(String contentType) {
-        final HttpVersion version = request.getProtocolVersion();
-        HttpResponse response = new DefaultHttpResponse(version, HttpResponseStatus.OK);
-        if (request.getProtocolVersion().equals(HttpVersion.HTTP_1_1)) {
-            response.headers().set(TRANSFER_ENCODING, HttpHeaders.Values.CHUNKED);
-        }
-        response.headers().set(CONTENT_TYPE, contentType);
-        Transports.setDefaultHeaders(response, config);
-        return response;
     }
 
 }

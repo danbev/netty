@@ -15,32 +15,21 @@
  */
 package io.netty.handler.codec.sockjs.transport;
 
-import static io.netty.buffer.Unpooled.copiedBuffer;
-import static io.netty.buffer.Unpooled.unreleasableBuffer;
-import static io.netty.handler.codec.http.HttpConstants.CR;
-import static io.netty.handler.codec.http.HttpConstants.LF;
-import static io.netty.handler.codec.http.HttpHeaders.Names.CONTENT_TYPE;
-import static io.netty.handler.codec.http.HttpHeaders.Names.TRANSFER_ENCODING;
-import static io.netty.handler.codec.http.HttpResponseStatus.INTERNAL_SERVER_ERROR;
-import static io.netty.util.CharsetUtil.UTF_8;
 import io.netty.buffer.ByteBuf;
 import io.netty.channel.ChannelFutureListener;
 import io.netty.channel.ChannelHandlerAdapter;
 import io.netty.channel.ChannelHandlerContext;
 import io.netty.channel.ChannelPromise;
 import io.netty.handler.codec.http.DefaultHttpContent;
-import io.netty.handler.codec.http.DefaultHttpResponse;
-import io.netty.handler.codec.http.FullHttpResponse;
 import io.netty.handler.codec.http.HttpHeaders;
 import io.netty.handler.codec.http.HttpRequest;
 import io.netty.handler.codec.http.HttpResponse;
-import io.netty.handler.codec.http.HttpResponseStatus;
-import io.netty.handler.codec.http.HttpVersion;
 import io.netty.handler.codec.http.LastHttpContent;
 import io.netty.handler.codec.http.QueryStringDecoder;
 import io.netty.handler.codec.sockjs.SockJsConfig;
 import io.netty.handler.codec.sockjs.handler.SessionHandler.Event;
 import io.netty.handler.codec.sockjs.protocol.Frame;
+import io.netty.handler.codec.sockjs.util.JsonUtil;
 import io.netty.util.ReferenceCountUtil;
 import io.netty.util.internal.logging.InternalLogger;
 import io.netty.util.internal.logging.InternalLoggerFactory;
@@ -48,6 +37,14 @@ import io.netty.util.internal.logging.InternalLoggerFactory;
 import java.util.List;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
+
+import static io.netty.buffer.Unpooled.*;
+import static io.netty.handler.codec.http.HttpConstants.*;
+import static io.netty.handler.codec.http.HttpHeaders.Names.*;
+import static io.netty.handler.codec.http.HttpHeaders.Values.*;
+import static io.netty.handler.codec.sockjs.transport.HttpResponseBuilder.*;
+import static io.netty.handler.codec.sockjs.transport.Transports.*;
+import static io.netty.util.CharsetUtil.*;
 
 /**
  * A streaming transport for SockJS.
@@ -122,7 +119,7 @@ public class HtmlFileTransport extends ChannelHandlerAdapter {
         if (msg instanceof Frame) {
             final Frame frame = (Frame) msg;
             if (headerSent.compareAndSet(false, true)) {
-                final HttpResponse response = createResponse(Transports.CONTENT_TYPE_HTML);
+                final HttpResponse response = createResponse(CONTENT_TYPE_HTML);
                 final ByteBuf header = ctx.alloc().buffer();
                 header.writeBytes(HEADER_PART1.duplicate());
                 final ByteBuf content = copiedBuffer(callback, UTF_8);
@@ -143,7 +140,7 @@ public class HtmlFileTransport extends ChannelHandlerAdapter {
 
             final ByteBuf data = ctx.alloc().buffer();
             data.writeBytes(PREFIX.duplicate());
-            data.writeBytes(Transports.escapeJson(frame.content(), data));
+            data.writeBytes(JsonUtil.escapeJson(frame.content(), data));
             frame.content().release();
             data.writeBytes(POSTFIX.duplicate());
             final int dataSize = data.readableBytes();
@@ -161,12 +158,12 @@ public class HtmlFileTransport extends ChannelHandlerAdapter {
     }
 
     private void respondCallbackRequired(final ChannelHandlerContext ctx) {
-        final FullHttpResponse response = Transports.responseWithContent(request.getProtocolVersion(),
-                INTERNAL_SERVER_ERROR,
-                Transports.CONTENT_TYPE_PLAIN,
-                "\"callback\" parameter required");
-        Transports.setNoCacheHeaders(response);
-        Transports.writeResponse(ctx, response);
+        writeResponse(ctx, responseFor(request)
+                .internalServerError()
+                .content("\"callback\" parameter required")
+                .contentType(CONTENT_TYPE_PLAIN)
+                .header(HttpHeaders.Names.CACHE_CONTROL, NO_CACHE_HEADER)
+                .buildFullResponse(ctx.alloc()));
     }
 
     private boolean maxBytesLimit(final int bytesWritten) {
@@ -175,14 +172,16 @@ public class HtmlFileTransport extends ChannelHandlerAdapter {
     }
 
     protected HttpResponse createResponse(final String contentType) {
-        final HttpVersion version = request.getProtocolVersion();
-        final HttpResponse response = new DefaultHttpResponse(version, HttpResponseStatus.OK);
-        if (request.getProtocolVersion().equals(HttpVersion.HTTP_1_1)) {
-            response.headers().set(TRANSFER_ENCODING, HttpHeaders.Values.CHUNKED);
-        }
-        response.headers().set(CONTENT_TYPE, contentType);
-        Transports.setDefaultHeaders(response, config);
-        return response;
+        return responseFor(request)
+                .ok()
+                .chunked()
+                .contentType(contentType)
+                .setCookie(config)
+                .header(ACCESS_CONTROL_ALLOW_ORIGIN, "*")
+                .header(ACCESS_CONTROL_ALLOW_CREDENTIALS, "true")
+                .header(CONNECTION, CLOSE)
+                .header(CACHE_CONTROL, NO_CACHE_HEADER)
+                .buildResponse();
     }
 
 }

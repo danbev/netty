@@ -39,7 +39,7 @@ public class XhrSendTransport extends AbstractSendTransport {
 
     @Override
     public void respond(final ChannelHandlerContext ctx, final FullHttpRequest request) throws Exception {
-        respond(ctx, request.getProtocolVersion(), NO_CONTENT, "");
+        respond(ctx, request, NO_CONTENT, "");
     }
 
     @Override

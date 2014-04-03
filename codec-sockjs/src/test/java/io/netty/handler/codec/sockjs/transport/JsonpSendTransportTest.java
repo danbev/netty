@@ -16,6 +16,7 @@
 package io.netty.handler.codec.sockjs.transport;
 
 import static io.netty.handler.codec.sockjs.SockJsTestUtil.verifyDefaultResponseHeaders;
+import static io.netty.handler.codec.sockjs.transport.HttpResponseBuilder.*;
 import static org.hamcrest.CoreMatchers.equalTo;
 import static org.hamcrest.MatcherAssert.assertThat;
 
@@ -47,6 +48,7 @@ public class JsonpSendTransportTest {
         assertThat(response.getStatus(), equalTo(HttpResponseStatus.INTERNAL_SERVER_ERROR));
         assertThat(response.getProtocolVersion(), equalTo(HttpVersion.HTTP_1_1));
         assertThat(response.content().toString(CharsetUtil.UTF_8), equalTo("Payload expected."));
+        response.release();
     }
 
     @Test
@@ -55,6 +57,7 @@ public class JsonpSendTransportTest {
         assertThat(response.getStatus(), equalTo(HttpResponseStatus.INTERNAL_SERVER_ERROR));
         assertThat(response.getProtocolVersion(), equalTo(HttpVersion.HTTP_1_0));
         assertThat(response.content().toString(CharsetUtil.UTF_8), equalTo("Payload expected."));
+        response.release();
     }
 
     @Test
@@ -64,7 +67,8 @@ public class JsonpSendTransportTest {
         assertThat(response.getStatus(), equalTo(HttpResponseStatus.OK));
         assertThat(response.getProtocolVersion(), equalTo(HttpVersion.HTTP_1_1));
         assertThat(response.content().toString(CharsetUtil.UTF_8), equalTo("ok"));
-        verifyDefaultResponseHeaders(response, Transports.CONTENT_TYPE_PLAIN);
+        verifyDefaultResponseHeaders(response, CONTENT_TYPE_PLAIN);
+        response.release();
     }
 
     @Test
@@ -73,6 +77,7 @@ public class JsonpSendTransportTest {
         assertThat(response.getStatus(), equalTo(HttpResponseStatus.INTERNAL_SERVER_ERROR));
         assertThat(response.getProtocolVersion(), equalTo(HttpVersion.HTTP_1_1));
         assertThat(response.content().toString(CharsetUtil.UTF_8), equalTo("Payload expected."));
+        response.release();
     }
 
     @Test
@@ -82,7 +87,8 @@ public class JsonpSendTransportTest {
         assertThat(response.getStatus(), equalTo(HttpResponseStatus.OK));
         assertThat(response.getProtocolVersion(), equalTo(HttpVersion.HTTP_1_1));
         assertThat(response.content().toString(CharsetUtil.UTF_8), equalTo("ok"));
-        verifyDefaultResponseHeaders(response, Transports.CONTENT_TYPE_PLAIN);
+        verifyDefaultResponseHeaders(response, CONTENT_TYPE_PLAIN);
+        response.release();
     }
 
     private static FullHttpResponse processHttpRequest(final FullHttpRequest request) {
@@ -111,7 +117,7 @@ public class JsonpSendTransportTest {
 
     private static FullHttpRequest requestWithFormData(final String data) {
         final DefaultFullHttpRequest r = new DefaultFullHttpRequest(HttpVersion.HTTP_1_1, HttpMethod.GET, "/test");
-        r.headers().set(HttpHeaders.Names.CONTENT_TYPE, Transports.CONTENT_TYPE_FORM);
+        r.headers().set(HttpHeaders.Names.CONTENT_TYPE, CONTENT_TYPE_FORM);
         if (data == null) {
             final ByteBuf byteBuf = Unpooled.copiedBuffer("d=", CharsetUtil.UTF_8);
             r.content().writeBytes(byteBuf);

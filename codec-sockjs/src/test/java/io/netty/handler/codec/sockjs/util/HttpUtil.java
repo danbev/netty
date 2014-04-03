@@ -36,7 +36,9 @@ public final class HttpUtil {
     public static HttpResponse decode(final EmbeddedChannel channel) throws Exception {
         final EmbeddedChannel ch = new EmbeddedChannel(new HttpObjectAggregator(8192), new HttpResponseDecoder());
         ch.writeInbound(channel.readOutbound());
-        return (HttpResponse) ch.readInbound();
+        final HttpResponse response = ch.readInbound();
+        ch.finish();
+        return response;
     }
 
     public static FullHttpResponse decodeFullResponse(final EmbeddedChannel channel) throws Exception {
@@ -67,7 +69,7 @@ public final class HttpUtil {
         req.headers().set(Names.SEC_WEBSOCKET_KEY, "dGhlIHNhbXBsZSBub25jZQ==");
         req.headers().set(Names.SEC_WEBSOCKET_ORIGIN, "http://test.com");
         req.headers().set(Names.SEC_WEBSOCKET_VERSION, version.toHttpHeaderValue());
-        req.retain();
+        //req.retain();
         return req;
     }
 

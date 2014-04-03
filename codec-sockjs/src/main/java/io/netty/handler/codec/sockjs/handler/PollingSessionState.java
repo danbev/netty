@@ -38,7 +38,7 @@ import java.util.concurrent.ConcurrentMap;
  * out to the current channel. It cannot use the original channel for the session as it
  * most likely will have been closed. Instead it will use current channel effectively
  * writing out the queued up messages to the pipeline to be handled, and eventually returned
- * in the response.
+ * in the buildResponse.
  *
  */
 class PollingSessionState extends AbstractTimersSessionState {

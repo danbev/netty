@@ -16,6 +16,7 @@
 package io.netty.handler.codec.sockjs.transport;
 
 import static io.netty.handler.codec.sockjs.SockJsTestUtil.verifyDefaultResponseHeaders;
+import static io.netty.handler.codec.sockjs.transport.HttpResponseBuilder.CONTENT_TYPE_JAVASCRIPT;
 import static org.hamcrest.CoreMatchers.equalTo;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.mockito.Mockito.mock;
@@ -54,11 +55,13 @@ public class XhrPollingTransportTest {
         final XhrPollingTransport transport = new XhrPollingTransport(config, request("", HttpVersion.HTTP_1_1));
         final EmbeddedChannel channel = new EmbeddedChannel(transport);
         channel.writeOutbound(new OpenFrame());
+
         final FullHttpResponse response = channel.readOutbound();
         assertThat(response.getStatus(), equalTo(HttpResponseStatus.OK));
         assertThat(response.content().toString(CharsetUtil.UTF_8), equalTo("o" + '\n'));
         assertThat(response.getProtocolVersion(), equalTo(HttpVersion.HTTP_1_1));
-        verifyDefaultResponseHeaders(response, Transports.CONTENT_TYPE_JAVASCRIPT);
+        verifyDefaultResponseHeaders(response, CONTENT_TYPE_JAVASCRIPT);
+        response.release();
         channel.finish();
     }
 

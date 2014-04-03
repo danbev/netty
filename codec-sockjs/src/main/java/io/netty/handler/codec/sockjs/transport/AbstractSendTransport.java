@@ -15,26 +15,23 @@
  */
 package io.netty.handler.codec.sockjs.transport;
 
-import static io.netty.handler.codec.http.HttpHeaders.Names.CONTENT_TYPE;
-import static io.netty.handler.codec.sockjs.transport.Transports.CONTENT_TYPE_PLAIN;
-import static io.netty.handler.codec.sockjs.transport.Transports.internalServerErrorResponse;
-import static io.netty.handler.codec.sockjs.transport.Transports.responseWithContent;
-
 import com.fasterxml.jackson.core.JsonParseException;
 import io.netty.channel.ChannelFutureListener;
 import io.netty.channel.ChannelHandlerContext;
 import io.netty.channel.SimpleChannelInboundHandler;
 import io.netty.handler.codec.http.FullHttpRequest;
 import io.netty.handler.codec.http.FullHttpResponse;
+import io.netty.handler.codec.http.HttpHeaders;
+import io.netty.handler.codec.http.HttpRequest;
 import io.netty.handler.codec.http.HttpResponseStatus;
-import io.netty.handler.codec.http.HttpVersion;
 import io.netty.handler.codec.http.QueryStringDecoder;
 import io.netty.handler.codec.sockjs.SockJsConfig;
 import io.netty.handler.codec.sockjs.util.ArgumentUtil;
 import io.netty.handler.codec.sockjs.util.JsonUtil;
-import io.netty.util.CharsetUtil;
-
 import java.util.List;
+import static io.netty.handler.codec.http.HttpHeaders.Names.*;
+import static io.netty.handler.codec.sockjs.transport.HttpResponseBuilder.*;
+import static io.netty.util.CharsetUtil.UTF_8;
 
 /**
  * A common base class for SockJS transports that send messages to a SockJS service.
@@ -52,8 +49,11 @@ public abstract class AbstractSendTransport extends SimpleChannelInboundHandler<
     public void messageReceived(final ChannelHandlerContext ctx, final FullHttpRequest request) throws Exception {
         final String content = getContent(request);
         if (content.isEmpty()) {
-            ctx.writeAndFlush(internalServerErrorResponse(request.getProtocolVersion(), "Payload expected."))
-            .addListener(ChannelFutureListener.CLOSE);
+            ctx.writeAndFlush(responseFor(request)
+                    .internalServerError()
+                    .content("Payload expected.")
+                    .contentType(CONTENT_TYPE_PLAIN)
+                    .buildFullResponse(ctx.alloc())).addListener(ChannelFutureListener.CLOSE);
         } else {
             try {
                 final String[] messages = JsonUtil.decode(content);
@@ -61,8 +61,12 @@ public abstract class AbstractSendTransport extends SimpleChannelInboundHandler<
                     ctx.fireChannelRead(message);
                 }
                 respond(ctx, request);
-            } catch (final JsonParseException e) {
-                ctx.writeAndFlush(internalServerErrorResponse(request.getProtocolVersion(), "Broken JSON encoding."));
+            } catch (final JsonParseException ignored) {
+                ctx.writeAndFlush(responseFor(request)
+                        .internalServerError()
+                        .content("Broken JSON encoding.")
+                        .contentType(CONTENT_TYPE_PLAIN)
+                        .buildFullResponse(ctx.alloc()));
             }
         }
     }
@@ -81,7 +85,7 @@ public abstract class AbstractSendTransport extends SimpleChannelInboundHandler<
 
     private static String getContent(final FullHttpRequest request) {
         final String contentType = getContentType(request);
-        if (Transports.CONTENT_TYPE_FORM.equals(contentType)) {
+        if (CONTENT_TYPE_FORM.equals(contentType)) {
             final List<String> data = getDataFormParameter(request);
             if (data != null) {
                 return data.get(0);
@@ -89,7 +93,7 @@ public abstract class AbstractSendTransport extends SimpleChannelInboundHandler<
                 return "";
             }
         }
-        return request.content().toString(CharsetUtil.UTF_8);
+        return request.content().toString(UTF_8);
     }
 
     private static String getContentType(final FullHttpRequest request) {
@@ -101,16 +105,24 @@ public abstract class AbstractSendTransport extends SimpleChannelInboundHandler<
     }
 
     private static List<String> getDataFormParameter(final FullHttpRequest request) {
-        final QueryStringDecoder decoder = new QueryStringDecoder('?' + request.content().toString(CharsetUtil.UTF_8));
+        final QueryStringDecoder decoder = new QueryStringDecoder('?' + request.content().toString(UTF_8));
         return decoder.parameters().get("d");
     }
 
     protected void respond(final ChannelHandlerContext ctx,
-            final HttpVersion httpVersion,
+            final HttpRequest request,
             final HttpResponseStatus status,
             final String message) {
-        final FullHttpResponse response = responseWithContent(httpVersion, status, CONTENT_TYPE_PLAIN, message);
-        Transports.setDefaultHeaders(response, config);
+        final FullHttpResponse response = responseFor(request)
+                .status(status)
+                .content(message)
+                .contentType(CONTENT_TYPE_PLAIN)
+                .setCookie(config)
+                .header(ACCESS_CONTROL_ALLOW_ORIGIN, "*")
+                .header(ACCESS_CONTROL_ALLOW_CREDENTIALS, "true")
+                .header(CONNECTION, HttpHeaders.Values.CLOSE)
+                .header(CACHE_CONTROL, NO_CACHE_HEADER)
+                .buildFullResponse(ctx.alloc());
         if (ctx.channel().isActive() && ctx.channel().isRegistered()) {
             ctx.writeAndFlush(response).addListener(ChannelFutureListener.CLOSE);
         }

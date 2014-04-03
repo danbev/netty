@@ -155,4 +155,49 @@ public final class JsonUtil {
         }
     }
 
+    /**
+     * Processes the input ByteBuf and escapes the any control characters, quotes, slashes,
+     * and unicode characters.
+     *
+     * @param input the bytes of characters to process.
+     * @param buffer the {@link ByteBuf} into which the result of processing will be added.
+     * @return {@code ByteBuf} which is the same ByteBuf as passed in as the buffer param. This is done to
+     *                         simplify method invocation where possible which might require a return value.
+     */
+    public static ByteBuf escapeJson(final ByteBuf input, final ByteBuf buffer) {
+        final int count = input.readableBytes();
+        for (int i = 0; i < count; i++) {
+            final byte ch = input.getByte(i);
+            switch(ch) {
+                case '"': buffer.writeByte('\\').writeByte('\"'); break;
+                case '/': buffer.writeByte('\\').writeByte('/'); break;
+                case '\\': buffer.writeByte('\\').writeByte('\\'); break;
+                case '\b': buffer.writeByte('\\').writeByte('b'); break;
+                case '\f': buffer.writeByte('\\').writeByte('f'); break;
+                case '\n': buffer.writeByte('\\').writeByte('n'); break;
+                case '\r': buffer.writeByte('\\').writeByte('r'); break;
+                case '\t': buffer.writeByte('\\').writeByte('t'); break;
+
+                default:
+                    // Reference: http://www.unicode.org/versions/Unicode5.1.0/
+                    if (ch >= '\u0000' && ch <= '\u001F' ||
+                            ch >= '\uD800' && ch <= '\uDFFF' ||
+                            ch >= '\u200C' && ch <= '\u200F' ||
+                            ch >= '\u2028' && ch <= '\u202F' ||
+                            ch >= '\u2060' && ch <= '\u206F' ||
+                            ch >= '\uFFF0' && ch <= '\uFFFF') {
+                        final String ss = Integer.toHexString(ch);
+                        buffer.writeByte('\\').writeByte('u');
+                        for (int k = 0; k < 4 - ss.length(); k++) {
+                            buffer.writeByte('0');
+                        }
+                        buffer.writeBytes(ss.toLowerCase().getBytes());
+                    } else {
+                        buffer.writeByte(ch);
+                    }
+            }
+        }
+        return buffer;
+    }
+
 }

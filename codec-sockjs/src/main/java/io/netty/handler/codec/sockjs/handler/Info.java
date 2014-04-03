@@ -15,14 +15,15 @@
  */
 package io.netty.handler.codec.sockjs.handler;
 
-import io.netty.handler.codec.http.DefaultFullHttpResponse;
+import io.netty.buffer.ByteBufAllocator;
 import io.netty.handler.codec.http.FullHttpResponse;
 import io.netty.handler.codec.http.HttpRequest;
-import io.netty.handler.codec.http.HttpResponseStatus;
 import io.netty.handler.codec.sockjs.SockJsConfig;
-import io.netty.handler.codec.sockjs.transport.Transports;
 
 import java.util.Random;
+
+import static io.netty.handler.codec.http.HttpHeaders.Names.*;
+import static io.netty.handler.codec.sockjs.transport.HttpResponseBuilder.*;
 
 final class Info {
     private static final Random RANDOM = new Random();
@@ -34,15 +35,13 @@ final class Info {
         return path.startsWith("/info");
     }
 
-    public static FullHttpResponse response(final SockJsConfig config, final HttpRequest request) throws Exception {
-        final FullHttpResponse response = createResponse(request);
-        Transports.setNoCacheHeaders(response);
-        Transports.writeContent(response, infoContent(config), "application/json; charset=UTF-8");
-        return response;
-    }
-
-    private static FullHttpResponse createResponse(final HttpRequest request) {
-        return new DefaultFullHttpResponse(request.getProtocolVersion(), HttpResponseStatus.OK);
+    public static FullHttpResponse response(final SockJsConfig config, final HttpRequest request,
+                                            final ByteBufAllocator alloc) throws Exception {
+        return responseFor(request).ok()
+                .content(infoContent(config))
+                .contentType(CONTENT_TYPE_JSON)
+                .header(CACHE_CONTROL, NO_CACHE_HEADER)
+                .buildFullResponse(alloc);
     }
 
     private static String infoContent(final SockJsConfig config) {

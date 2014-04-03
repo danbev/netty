@@ -49,6 +49,7 @@ import io.netty.handler.codec.http.HttpResponseStatus;
 import io.netty.handler.codec.http.HttpServerCodec;
 import io.netty.handler.codec.http.websocketx.WebSocketHandshakeException;
 import io.netty.handler.codec.http.websocketx.WebSocketServerHandshaker00;
+import io.netty.handler.codec.sockjs.handler.SessionHandler.Event;
 import io.netty.util.internal.logging.InternalLogger;
 import io.netty.util.internal.logging.InternalLoggerFactory;
 
@@ -108,7 +109,7 @@ public class WebSocketHAProxyHandshaker extends WebSocketServerHandshaker00 {
         // Hixie 75 does not contain these headers while Hixie 76 does
         boolean isHixie76 = req.headers().contains(SEC_WEBSOCKET_KEY1) && req.headers().contains(SEC_WEBSOCKET_KEY2);
 
-        // Create the WebSocket handshake response.
+        // Create the WebSocket handshake buildResponse.
         FullHttpResponse res = new DefaultFullHttpResponse(HTTP_1_1, new HttpResponseStatus(101,
                 isHixie76 ? "WebSocket Protocol Handshake" : "Web Socket Protocol Handshake"));
         if (headers != null) {
@@ -194,7 +195,7 @@ public class WebSocketHAProxyHandshaker extends WebSocketServerHandshaker00 {
         });
     }
 
-    public void addWsCodec(final ChannelFuture future) {
+    public void addWsCodec(final ChannelFuture future, final ChannelHandlerContext ctx) {
         future.addListener(new ChannelFutureListener() {
             @Override
             public void operationComplete(ChannelFuture future) throws Exception {
@@ -202,6 +203,7 @@ public class WebSocketHAProxyHandshaker extends WebSocketServerHandshaker00 {
                     ChannelPipeline p = future.channel().pipeline();
                     p.addFirst(newWebsocketDecoder());
                     p.addFirst(newWebSocketEncoder());
+                    ctx.fireUserEventTriggered(Event.HANDLE_SESSION);
                 } else {
                     logger.info("Write failed: ", future.cause());
                 }

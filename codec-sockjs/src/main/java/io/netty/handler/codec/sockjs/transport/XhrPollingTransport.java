@@ -19,9 +19,7 @@ import io.netty.buffer.ByteBuf;
 import io.netty.channel.ChannelHandlerAdapter;
 import io.netty.channel.ChannelHandlerContext;
 import io.netty.channel.ChannelPromise;
-import io.netty.handler.codec.http.DefaultFullHttpResponse;
 import io.netty.handler.codec.http.FullHttpRequest;
-import io.netty.handler.codec.http.FullHttpResponse;
 import io.netty.handler.codec.http.HttpRequest;
 import io.netty.handler.codec.sockjs.SockJsConfig;
 import io.netty.handler.codec.sockjs.protocol.Frame;
@@ -32,7 +30,7 @@ import io.netty.util.internal.logging.InternalLoggerFactory;
 
 import static io.netty.handler.codec.http.HttpHeaders.Names.*;
 import static io.netty.handler.codec.http.HttpHeaders.Values.*;
-import static io.netty.handler.codec.http.HttpResponseStatus.*;
+import static io.netty.handler.codec.sockjs.transport.HttpResponseBuilder.*;
 import static io.netty.handler.codec.sockjs.transport.Transports.*;
 
 /**
@@ -70,14 +68,18 @@ public class XhrPollingTransport extends ChannelHandlerAdapter {
             throws Exception {
         if (msg instanceof Frame) {
             final Frame frame = (Frame) msg;
-            final ByteBuf content = Transports.wrapWithLN(frame.content());
+            final ByteBuf content = wrapWithLN(frame.content());
             frame.release();
-            final FullHttpResponse response = new DefaultFullHttpResponse(request.getProtocolVersion(), OK, content);
-            response.headers().set(CONTENT_TYPE, CONTENT_TYPE_JAVASCRIPT);
-            response.headers().set(CONTENT_LENGTH, content.readableBytes());
-            response.headers().set(CONNECTION, CLOSE);
-            Transports.setDefaultHeaders(response, config, request);
-            Transports.writeResponse(ctx, promise, response);
+            writeResponse(ctx, promise, responseFor(request)
+                    .ok()
+                    .content(content)
+                    .contentType(CONTENT_TYPE_JAVASCRIPT)
+                    .setCookie(config)
+                    .header(ACCESS_CONTROL_ALLOW_ORIGIN, "*")
+                    .header(ACCESS_CONTROL_ALLOW_CREDENTIALS, "true")
+                    .header(CONNECTION, CLOSE)
+                    .header(CACHE_CONTROL, NO_CACHE_HEADER)
+                    .buildFullResponse(ctx.alloc()));
         } else {
             ctx.writeAndFlush(ReferenceCountUtil.retain(msg), promise);
         }

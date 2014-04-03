@@ -247,7 +247,7 @@ public interface SockJsConfig {
     /**
      * Returns the {@link ChannelInitializer} for a SockJS service.
      *
-     * @return
+     * @return {@link ChannelInitializer} to override the default SockJS handlers.
      */
     ChannelInitializer<SockJsChannel> channelInitializer();
 

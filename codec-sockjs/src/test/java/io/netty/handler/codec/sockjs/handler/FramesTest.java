@@ -58,8 +58,10 @@ public class FramesTest {
     }
 
     private static void assertCopy(final Frame frame) {
-        assertThat(asString(frame.copy()), equalTo(asString(frame)));
-        assertThat(frame.copy() == frame, is(false));
+        final Frame copy = frame.copy();
+        assertThat(asString(copy), equalTo(asString(frame)));
+        assertThat(copy == frame, is(false));
+        copy.release();
         frame.release();
     }
 
@@ -68,20 +70,23 @@ public class FramesTest {
     }
 
     private static void assertDuplicate(final Frame frame) {
-        assertThat(asString(frame.duplicate()), equalTo(asString(frame)));
-        assertThat(frame.duplicate() == frame, is(false));
+        final Frame duplicate = frame.duplicate();
+        assertThat(asString(duplicate), equalTo(asString(frame)));
+        assertThat(duplicate == frame, is(false));
+        duplicate.release();
         frame.release();
     }
 
     private static void assertRetain(final Frame frame) {
         assertThat(frame.refCnt(), is(1));
         assertThat(frame.retain().refCnt(), is(2));
-        frame.release();
+        assertThat(frame.release(), is(false));
+        assertThat(frame.release(), is(true));
     }
 
     private static void assertRetainImmutable(final Frame frame) {
         assertThat(frame.refCnt(), is(1));
         assertThat(frame.retain().refCnt(), is(1));
-        frame.release();
+        assertThat(frame.release(), is(false));
     }
 }

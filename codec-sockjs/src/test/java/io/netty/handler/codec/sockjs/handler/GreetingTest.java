@@ -15,19 +15,16 @@
  */
 package io.netty.handler.codec.sockjs.handler;
 
-import static org.hamcrest.CoreMatchers.equalTo;
-import static org.hamcrest.MatcherAssert.assertThat;
-
-import io.netty.channel.embedded.EmbeddedChannel;
 import io.netty.handler.codec.http.DefaultFullHttpRequest;
 import io.netty.handler.codec.http.FullHttpResponse;
 import io.netty.handler.codec.http.HttpMethod;
 import io.netty.handler.codec.http.HttpRequest;
-import io.netty.handler.codec.http.HttpResponseEncoder;
 import io.netty.handler.codec.http.HttpVersion;
 import io.netty.util.CharsetUtil;
-
 import org.junit.Test;
+
+import static org.hamcrest.CoreMatchers.*;
+import static org.hamcrest.MatcherAssert.*;
 
 public class GreetingTest {
 
@@ -35,17 +32,6 @@ public class GreetingTest {
     public void greeting() throws Exception {
         final FullHttpResponse response = sendGreetingRequest();
         assertWelcomeMessage(response);
-    }
-
-    @Test
-    public void greetingThroughDecoder() throws Exception {
-        final EmbeddedChannel ch = new EmbeddedChannel(new HttpResponseEncoder());
-        final FullHttpResponse response = sendGreetingRequest();
-        assertWelcomeMessage(response);
-        // send response through HttpResponseEncoder
-        ch.writeOutbound(response);
-        final FullHttpResponse response2 = sendGreetingRequest();
-        assertWelcomeMessage(response2);
     }
 
     private static FullHttpResponse sendGreetingRequest() {

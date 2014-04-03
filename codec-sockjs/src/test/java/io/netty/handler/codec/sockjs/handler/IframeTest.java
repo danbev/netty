@@ -20,11 +20,14 @@ import static org.hamcrest.CoreMatchers.is;
 import static org.hamcrest.CoreMatchers.notNullValue;
 import static org.hamcrest.CoreMatchers.nullValue;
 import static org.hamcrest.MatcherAssert.assertThat;
+
+import io.netty.buffer.ByteBufAllocator;
 import io.netty.handler.codec.http.DefaultFullHttpRequest;
 import io.netty.handler.codec.http.FullHttpResponse;
 import io.netty.handler.codec.http.HttpHeaders;
 import io.netty.handler.codec.http.HttpMethod;
 import io.netty.handler.codec.http.HttpRequest;
+import io.netty.handler.codec.http.HttpResponse;
 import io.netty.handler.codec.http.HttpResponseStatus;
 import io.netty.handler.codec.http.HttpVersion;
 import io.netty.handler.codec.sockjs.DefaultSockJsConfig;
@@ -38,7 +41,8 @@ public class IframeTest {
     public void iframeHtm() throws Exception {
         final SockJsConfig config = config();
         final String path = config.getPrefix() + "/iframe.htm";
-        final FullHttpResponse response = Iframe.response(config, createHttpRequest(path));
+        final FullHttpResponse response = (FullHttpResponse) Iframe.response(config, createHttpRequest(path),
+                ByteBufAllocator.DEFAULT);
         assertThat(response.getStatus().code(), is(HttpResponseStatus.NOT_FOUND.code()));
         response.release();
     }
@@ -47,7 +51,8 @@ public class IframeTest {
     public void iframeHTML() throws Exception {
         final SockJsConfig config = config();
         final String path = config.getPrefix() + "/iframe.HTML";
-        final FullHttpResponse response = Iframe.response(config, createHttpRequest(path));
+        final FullHttpResponse response = (FullHttpResponse) Iframe.response(config, createHttpRequest(path),
+                ByteBufAllocator.DEFAULT);
         assertThat(response.getStatus().code(), is(HttpResponseStatus.NOT_FOUND.code()));
         response.release();
     }
@@ -56,7 +61,8 @@ public class IframeTest {
     public void iframeHtmlUppercase() throws Exception {
         final SockJsConfig config = config();
         final String path = config.getPrefix() + "/IFRAME.HTML";
-        final FullHttpResponse response = Iframe.response(config, createHttpRequest(path));
+        final FullHttpResponse response = (FullHttpResponse) Iframe.response(config, createHttpRequest(path),
+                ByteBufAllocator.DEFAULT);
         assertThat(response.getStatus().code(), is(HttpResponseStatus.NOT_FOUND.code()));
         response.release();
     }
@@ -65,7 +71,8 @@ public class IframeTest {
     public void iframeXml() throws Exception {
         final SockJsConfig config = config();
         final String path = config.getPrefix() + "/iframe.xml";
-        final FullHttpResponse response = Iframe.response(config, createHttpRequest(path));
+        final FullHttpResponse response = (FullHttpResponse) Iframe.response(config, createHttpRequest(path),
+                ByteBufAllocator.DEFAULT);
         assertThat(response.getStatus().code(), is(HttpResponseStatus.NOT_FOUND.code()));
         response.release();
     }
@@ -74,7 +81,8 @@ public class IframeTest {
     public void iframeUppercase() throws Exception {
         final SockJsConfig config = config();
         final String path = config.getPrefix() + "/IFRAME";
-        final FullHttpResponse response = Iframe.response(config, createHttpRequest(path));
+        final FullHttpResponse response = (FullHttpResponse) Iframe.response(config, createHttpRequest(path),
+                ByteBufAllocator.DEFAULT);
         assertThat(response.getStatus().code(), is(HttpResponseStatus.NOT_FOUND.code()));
         response.release();
     }
@@ -85,17 +93,17 @@ public class IframeTest {
         final String path = config.getPrefix() + "/iframe.html";
         final HttpRequest httpRequest = createHttpRequest(path);
         httpRequest.headers().set(HttpHeaders.Names.IF_NONE_MATCH, "*");
-        final FullHttpResponse response = Iframe.response(config, httpRequest);
+        final HttpResponse response = Iframe.response(config, httpRequest, ByteBufAllocator.DEFAULT);
         assertThat(response.headers().get(HttpHeaders.Names.SET_COOKIE), equalTo("JSESSIONID=dummy; path=/"));
         assertThat(response.getStatus().code(), is(HttpResponseStatus.NOT_MODIFIED.code()));
-        response.release();
     }
 
     @Test
     public void iframeHtml() throws Exception {
         final SockJsConfig config = config();
         final String path = config.getPrefix() + "/iframe.html";
-        final FullHttpResponse response = Iframe.response(config, createHttpRequest(path));
+        final FullHttpResponse response = (FullHttpResponse) Iframe.response(config, createHttpRequest(path),
+                ByteBufAllocator.DEFAULT);
         assertThat(response.getStatus().code(), is(HttpResponseStatus.OK.code()));
         assertThat(response.headers().get(HttpHeaders.Names.CONTENT_TYPE), equalTo("text/html; charset=UTF-8"));
         assertThat(response.headers().get(HttpHeaders.Names.CACHE_CONTROL), equalTo("max-age=31536000, public"));

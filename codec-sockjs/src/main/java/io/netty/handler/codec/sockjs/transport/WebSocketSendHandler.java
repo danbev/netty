@@ -34,7 +34,8 @@ class WebSocketSendHandler extends ChannelHandlerAdapter {
             throws Exception {
         if (msg instanceof Frame) {
             final Frame sockJsFrame = (Frame) msg;
-            ctx.writeAndFlush(new TextWebSocketFrame(sockJsFrame.content().copy()))
+            final TextWebSocketFrame webSocketFrame = new TextWebSocketFrame(sockJsFrame.content());
+            ctx.writeAndFlush(webSocketFrame)
                     .addListener(new ChannelFutureListener() {
                 @Override
                 public void operationComplete(final ChannelFuture future) throws Exception {
@@ -43,7 +44,6 @@ class WebSocketSendHandler extends ChannelHandlerAdapter {
                     }
                 }
             });
-            sockJsFrame.release();
         } else {
             ctx.write(ReferenceCountUtil.retain(msg), promise);
         }

@@ -25,6 +25,7 @@ import static io.netty.handler.codec.http.HttpMethod.POST;
 import static io.netty.handler.codec.http.HttpResponseStatus.BAD_REQUEST;
 import static io.netty.handler.codec.http.HttpResponseStatus.METHOD_NOT_ALLOWED;
 import static io.netty.handler.codec.http.HttpVersion.HTTP_1_1;
+import static io.netty.handler.codec.sockjs.transport.HttpResponseBuilder.CONTENT_TYPE_PLAIN;
 import static io.netty.handler.codec.sockjs.util.ChannelUtil.*;
 import static io.netty.handler.codec.sockjs.util.HttpUtil.decode;
 import static io.netty.handler.codec.sockjs.util.HttpUtil.decodeFullHttpResponse;
@@ -77,10 +78,12 @@ public class WebSocketTransportTest {
         final FullHttpRequest request = new DefaultFullHttpRequest(HTTP_1_1, GET, "/echo/123/123/websocket");
         request.retain();
         ch.writeInbound(request);
+
         final FullHttpResponse response = decodeFullHttpResponse(ch);
         assertThat(response.getStatus(), is(BAD_REQUEST));
-        assertThat(response.headers().get(CONTENT_TYPE), is(Transports.CONTENT_TYPE_PLAIN));
+        assertThat(response.headers().get(CONTENT_TYPE), is(CONTENT_TYPE_PLAIN));
         assertThat(response.content().toString(CharsetUtil.UTF_8), equalTo("Can \"Upgrade\" only to \"WebSocket\"."));
+        response.release();
     }
 
     @Test
@@ -91,9 +94,11 @@ public class WebSocketTransportTest {
         request.headers().set(UPGRADE, "WebSocket");
         request.headers().set(CONNECTION, "close");
         ch.writeInbound(request);
+
         final FullHttpResponse response = decodeFullHttpResponse(ch);
         assertThat(response.getStatus(), is(BAD_REQUEST));
         assertThat(response.content().toString(CharsetUtil.UTF_8), equalTo("\"Connection\" must be \"Upgrade\"."));
+        response.release();
     }
 
     @Test
@@ -116,10 +121,15 @@ public class WebSocketTransportTest {
         // Discard of the HttpResponse
         final TextWebSocketFrame open = ch.readOutbound();
         assertThat(open.text(), equalTo("o"));
+        open.release();
+
         final TextWebSocketFrame x = ch.readOutbound();
         assertThat(x.text(), equalTo("a[\"x\"]"));
+        x.release();
+
         final TextWebSocketFrame y = ch.readOutbound();
         assertThat(y.text(), equalTo("a[\"y\"]"));
+        y.release();
     }
 
     @Test
@@ -130,9 +140,13 @@ public class WebSocketTransportTest {
 
         final TextWebSocketFrame open = ch.readOutbound();
         assertThat(open.text(), equalTo("o"));
+        open.release();
+
         ch.writeInbound(new TextWebSocketFrame("\"x\""));
         final TextWebSocketFrame x = ch.readOutbound();
         assertThat(x.text(), equalTo("a[\"x\"]"));
+        x.release();
+        ch.finish();
     }
 
     @Test
@@ -142,10 +156,11 @@ public class WebSocketTransportTest {
         final FullHttpRequest request = webSocketUpgradeRequest("/echo/123/123/websocket", WebSocketVersion.V08);
         request.headers().set(CONNECTION, "keep-alive, Upgrade");
         ch.writeInbound(request);
+
         final HttpResponse response = decode(ch);
         assertThat(response.getStatus(), is(HttpResponseStatus.SWITCHING_PROTOCOLS));
         assertThat(response.headers().get(CONNECTION), equalTo("Upgrade"));
-        request.release();
+        ch.finish();
     }
 
     @Test
@@ -165,7 +180,6 @@ public class WebSocketTransportTest {
         assertThat(response.headers().get(CONNECTION), equalTo("Upgrade"));
         assertThat(response.headers().get(UPGRADE), equalTo("websocket"));
         assertThat(response.headers().get(CONTENT_LENGTH), is(nullValue()));
-        request.release();
     }
 
     private static void assertUpgradeRequest(final EmbeddedChannel ch) throws Exception {
@@ -175,7 +189,6 @@ public class WebSocketTransportTest {
         final HttpResponse response = decode(ch);
         assertThat(response.getStatus(), is(HttpResponseStatus.SWITCHING_PROTOCOLS));
         assertThat(response.headers().get(UPGRADE), equalTo("websocket"));
-        request.release();
     }
 
 }

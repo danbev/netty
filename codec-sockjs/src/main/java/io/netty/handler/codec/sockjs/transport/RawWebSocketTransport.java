@@ -71,15 +71,15 @@ public class RawWebSocketTransport extends SimpleChannelInboundHandler<Object> {
 
     private static boolean checkRequestHeaders(final ChannelHandlerContext ctx, final HttpRequest req) {
         if (req.getMethod() != GET) {
-            ctx.writeAndFlush(methodNotAllowedResponse(req.getProtocolVersion()))
+            ctx.writeAndFlush(methodNotAllowedResponse(req))
             .addListener(ChannelFutureListener.CLOSE);
             return false;
         }
 
         final String upgradeHeader = req.headers().get(HttpHeaders.Names.UPGRADE);
         if (upgradeHeader == null || !"websocket".equals(upgradeHeader.toLowerCase())) {
-            ctx.writeAndFlush(badRequestResponse(req.getProtocolVersion(), "Can \"Upgrade\" only to \"WebSocket\"."))
-            .addListener(ChannelFutureListener.CLOSE);
+            ctx.writeAndFlush(badRequestResponse(req, "Can \"Upgrade\" only to \"WebSocket\".",
+                    ctx.alloc())).addListener(ChannelFutureListener.CLOSE);
             return false;
         }
 
@@ -89,8 +89,8 @@ public class RawWebSocketTransport extends SimpleChannelInboundHandler<Object> {
             connectHeader = HttpHeaders.Values.UPGRADE.toString();
         }
         if (connectHeader == null || !"upgrade".equals(connectHeader.toLowerCase())) {
-            ctx.writeAndFlush(badRequestResponse(req.getProtocolVersion(), "\"Connection\" must be \"Upgrade\"."))
-            .addListener(ChannelFutureListener.CLOSE);
+            ctx.writeAndFlush(badRequestResponse(req, "\"Connection\" must be \"Upgrade\".",
+                    ctx.alloc())).addListener(ChannelFutureListener.CLOSE);
             return false;
         }
         return true;
@@ -160,8 +160,8 @@ public class RawWebSocketTransport extends SimpleChannelInboundHandler<Object> {
         if (cause instanceof WebSocketHandshakeException) {
             final HttpRequest request = ctx.attr(REQUEST_KEY).get();
             logger.error("Failed with ws handshake for request: " + request, cause);
-            ctx.writeAndFlush(internalServerErrorResponse(request.getProtocolVersion(), cause.getMessage()))
-            .addListener(ChannelFutureListener.CLOSE);
+            ctx.writeAndFlush(internalServerErrorResponse(request, cause.getMessage(),
+                    ctx.alloc())).addListener(ChannelFutureListener.CLOSE);
         } else {
             ctx.fireExceptionCaught(cause);
         }

@@ -15,31 +15,30 @@
  */
 package io.netty.handler.codec.sockjs.transport;
 
-import static io.netty.handler.codec.http.HttpHeaders.Names.CONNECTION;
-import static io.netty.handler.codec.http.HttpHeaders.Names.CONTENT_LENGTH;
-import static io.netty.handler.codec.http.HttpHeaders.Names.CONTENT_TYPE;
-import static io.netty.handler.codec.http.HttpResponseStatus.INTERNAL_SERVER_ERROR;
-import static io.netty.handler.codec.http.HttpResponseStatus.OK;
-import static io.netty.util.CharsetUtil.UTF_8;
 import io.netty.buffer.ByteBuf;
-import io.netty.buffer.Unpooled;
+import io.netty.buffer.ByteBufAllocator;
+import io.netty.buffer.ByteBufUtil;
 import io.netty.channel.ChannelHandlerAdapter;
 import io.netty.channel.ChannelHandlerContext;
 import io.netty.channel.ChannelPromise;
-import io.netty.handler.codec.http.DefaultFullHttpResponse;
-import io.netty.handler.codec.http.FullHttpRequest;
-import io.netty.handler.codec.http.FullHttpResponse;
-import io.netty.handler.codec.http.HttpHeaders;
 import io.netty.handler.codec.http.HttpRequest;
 import io.netty.handler.codec.http.HttpResponseStatus;
-import io.netty.handler.codec.http.HttpVersion;
 import io.netty.handler.codec.http.QueryStringDecoder;
 import io.netty.handler.codec.sockjs.SockJsConfig;
 import io.netty.handler.codec.sockjs.handler.SessionHandler.Event;
 import io.netty.handler.codec.sockjs.protocol.Frame;
+import io.netty.handler.codec.sockjs.util.JsonUtil;
 import io.netty.util.ReferenceCountUtil;
 
+import java.nio.CharBuffer;
 import java.util.List;
+
+import static io.netty.handler.codec.http.HttpHeaders.Names.*;
+import static io.netty.handler.codec.http.HttpHeaders.Values.*;
+import static io.netty.handler.codec.http.HttpResponseStatus.*;
+import static io.netty.handler.codec.sockjs.transport.HttpResponseBuilder.*;
+import static io.netty.handler.codec.sockjs.transport.Transports.*;
+import static io.netty.util.CharsetUtil.*;
 
 /**
  * JSON Padding (JSONP) Polling is a transport where there is no open connection between
@@ -71,7 +70,7 @@ public class JsonpPollingTransport extends ChannelHandlerAdapter {
             final List<String> c = qsd.parameters().get("c");
             if (c == null) {
                 ReferenceCountUtil.release(msg);
-                respond(ctx, request.getProtocolVersion(), INTERNAL_SERVER_ERROR, "\"callback\" parameter required");
+                respond(ctx, request, INTERNAL_SERVER_ERROR, "\"callback\" parameter required");
                 ctx.fireUserEventTriggered(Event.CLOSE_CONTEXT);
                 return;
             } else {
@@ -87,34 +86,41 @@ public class JsonpPollingTransport extends ChannelHandlerAdapter {
         if (msg instanceof Frame) {
             final Frame frame = (Frame) msg;
             final ByteBuf content = wrapWithFunction(frame.content(), ctx);
-            frame.release();
-            final FullHttpResponse response = new DefaultFullHttpResponse(request.getProtocolVersion(), OK, content);
-            response.headers().set(CONTENT_TYPE, Transports.CONTENT_TYPE_JAVASCRIPT);
-            response.headers().set(CONTENT_LENGTH, content.readableBytes());
-            response.headers().set(CONNECTION, HttpHeaders.Values.CLOSE);
-            Transports.setNoCacheHeaders(response);
-            Transports.setSessionIdCookie(response, config, request);
-            ctx.writeAndFlush(response, promise);
+            ReferenceCountUtil.release(frame);
+            ctx.writeAndFlush(responseFor(request)
+                    .ok()
+                    .content(content)
+                    .contentType(CONTENT_TYPE_JAVASCRIPT)
+                    .setCookie(config)
+                    .header(ACCESS_CONTROL_ALLOW_ORIGIN, "*")
+                    .header(ACCESS_CONTROL_ALLOW_CREDENTIALS, "true")
+                    .header(CONNECTION, CLOSE)
+                    .header(CACHE_CONTROL, NO_CACHE_HEADER)
+                    .buildFullResponse(),
+                    promise);
         } else {
             ctx.write(ReferenceCountUtil.retain(msg), promise);
         }
     }
 
     private ByteBuf wrapWithFunction(final ByteBuf data, final ChannelHandlerContext ctx) {
-        final ByteBuf content = ctx.alloc().buffer();
-        Transports.escapeJson(data, content);
+        final ByteBufAllocator alloc = ctx.alloc();
+        final ByteBuf content = alloc.buffer();
+        JsonUtil.escapeJson(data, content);
         final String function = callback + "(\"" + content.toString(UTF_8) + "\");\r\n";
         content.release();
-        return Unpooled.copiedBuffer(function, UTF_8);
+        return ByteBufUtil.encodeString(alloc, CharBuffer.wrap(function), UTF_8);
     }
 
     private static void respond(final ChannelHandlerContext ctx,
-                                final HttpVersion httpVersion,
+                                final HttpRequest request,
                                 final HttpResponseStatus status,
                                 final String message) throws Exception {
-        final FullHttpResponse response = new DefaultFullHttpResponse(httpVersion, status);
-        Transports.writeContent(response, message, Transports.CONTENT_TYPE_JAVASCRIPT);
-        Transports.writeResponse(ctx, response);
+        writeResponse(ctx, responseFor(request)
+                .status(status)
+                .content(message)
+                .contentType(CONTENT_TYPE_JAVASCRIPT)
+                .buildFullResponse(ctx.alloc()));
     }
 
 }

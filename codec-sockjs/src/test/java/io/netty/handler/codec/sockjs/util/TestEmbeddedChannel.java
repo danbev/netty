@@ -131,5 +131,6 @@ public class TestEmbeddedChannel extends EmbeddedChannel {
             return delegate.outboundBuffer();
         }
     }
+
 }
 

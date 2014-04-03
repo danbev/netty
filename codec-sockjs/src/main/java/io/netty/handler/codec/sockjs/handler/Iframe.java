@@ -15,17 +15,11 @@
  */
 package io.netty.handler.codec.sockjs.handler;
 
-import static io.netty.buffer.Unpooled.copiedBuffer;
-import static io.netty.handler.codec.http.HttpResponseStatus.NOT_FOUND;
-import static io.netty.handler.codec.http.HttpResponseStatus.NOT_MODIFIED;
-import static io.netty.handler.codec.http.HttpResponseStatus.OK;
-import static io.netty.util.CharsetUtil.UTF_8;
-import io.netty.buffer.ByteBuf;
-import io.netty.handler.codec.http.DefaultFullHttpResponse;
+import io.netty.buffer.ByteBufAllocator;
 import io.netty.handler.codec.http.FullHttpResponse;
 import io.netty.handler.codec.http.HttpHeaders;
 import io.netty.handler.codec.http.HttpRequest;
-import io.netty.handler.codec.http.HttpResponseStatus;
+import io.netty.handler.codec.http.HttpResponse;
 import io.netty.handler.codec.http.QueryStringDecoder;
 import io.netty.handler.codec.sockjs.SockJsConfig;
 
@@ -35,6 +29,9 @@ import java.text.SimpleDateFormat;
 import java.util.Date;
 import java.util.Formatter;
 import java.util.regex.Pattern;
+
+import static io.netty.handler.codec.sockjs.transport.HttpResponseBuilder.*;
+import static io.netty.util.CharsetUtil.*;
 
 /**
  * IFrame is a way to get around problems in browsers where the streaming protocols do not support
@@ -72,22 +69,29 @@ final class Iframe {
         return path.startsWith("/iframe");
     }
 
-    public static FullHttpResponse response(final SockJsConfig config, final HttpRequest request) throws Exception {
+    public static HttpResponse response(final SockJsConfig config,
+                                        final HttpRequest request,
+                                        final ByteBufAllocator alloc) throws Exception {
         final QueryStringDecoder qsd = new QueryStringDecoder(request.getUri());
-        final String path = qsd.path();
-
-        if (!PATH_PATTERN.matcher(path).matches()) {
-            return createResponse(request, NOT_FOUND, copiedBuffer("Not found", UTF_8));
+        if (!PATH_PATTERN.matcher(qsd.path()).matches()) {
+            return responseFor(request)
+                    .notFound()
+                    .content("Not found")
+                    .contentType(CONTENT_TYPE_PLAIN)
+                    .buildFullResponse(alloc);
         }
 
         if (request.headers().contains(HttpHeaders.Names.IF_NONE_MATCH)) {
-            final FullHttpResponse response = createResponse(request, NOT_MODIFIED);
+            final HttpResponse response = responseFor(request).notModified().buildResponse();
             response.headers().set(HttpHeaders.Names.SET_COOKIE, "JSESSIONID=dummy; path=/");
             return response;
         } else {
             final String content = createContent(config.sockJsUrl());
-            final FullHttpResponse response = createResponse(request, OK, copiedBuffer(content, UTF_8));
-            response.headers().set(HttpHeaders.Names.CONTENT_TYPE, "text/html; charset=UTF-8");
+            final FullHttpResponse response = responseFor(request)
+                    .ok()
+                    .content(content)
+                    .contentType(CONTENT_TYPE_HTML)
+                    .buildFullResponse(alloc);
             response.headers().set(HttpHeaders.Names.CACHE_CONTROL, "max-age=31536000, public");
             response.headers().set(HttpHeaders.Names.EXPIRES, generateExpires());
             final String etag = '\"' + generateMd5(content) + '\"';
@@ -98,15 +102,6 @@ final class Iframe {
 
     private static String generateExpires() {
         return DATE_FORMAT.get().format(new Date(System.currentTimeMillis() + ONE_YEAR));
-    }
-
-    private static FullHttpResponse createResponse(final HttpRequest request, final HttpResponseStatus status) {
-        return new DefaultFullHttpResponse(request.getProtocolVersion(), status);
-    }
-
-    private static FullHttpResponse createResponse(final HttpRequest request, final HttpResponseStatus status,
-            final ByteBuf content) {
-        return new DefaultFullHttpResponse(request.getProtocolVersion(), status, content);
     }
 
     private static String createContent(final String url) {

@@ -21,16 +21,14 @@ import io.netty.channel.ChannelHandlerAdapter;
 import io.netty.channel.ChannelHandlerContext;
 import io.netty.channel.ChannelPromise;
 import io.netty.handler.codec.http.HttpRequest;
-import io.netty.util.ReferenceCountUtil;
-import io.netty.util.concurrent.Future;
-import io.netty.util.concurrent.GenericFutureListener;
-import io.netty.util.internal.logging.InternalLogger;
-import io.netty.util.internal.logging.InternalLoggerFactory;
 import io.netty.handler.codec.sockjs.handler.SessionState.State;
 import io.netty.handler.codec.sockjs.protocol.CloseFrame;
 import io.netty.handler.codec.sockjs.protocol.MessageFrame;
 import io.netty.handler.codec.sockjs.protocol.OpenFrame;
 import io.netty.handler.codec.sockjs.util.ArgumentUtil;
+import io.netty.util.ReferenceCountUtil;
+import io.netty.util.internal.logging.InternalLogger;
+import io.netty.util.internal.logging.InternalLoggerFactory;
 
 /**
  * A ChannelHandler that manages SockJS sessions.

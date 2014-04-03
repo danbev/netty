@@ -38,7 +38,7 @@ public class JsonpSendTransport extends AbstractSendTransport {
 
     @Override
     public void respond(final ChannelHandlerContext ctx, final FullHttpRequest request) throws Exception {
-        respond(ctx, request.getProtocolVersion(), OK, "ok");
+        respond(ctx, request, OK, "ok");
     }
 
     @Override

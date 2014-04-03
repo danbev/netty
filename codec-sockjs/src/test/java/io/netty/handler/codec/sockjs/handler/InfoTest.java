@@ -23,6 +23,7 @@ import static org.hamcrest.MatcherAssert.assertThat;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import io.netty.buffer.ByteBufAllocator;
 import io.netty.handler.codec.http.DefaultFullHttpRequest;
 import io.netty.handler.codec.http.FullHttpResponse;
 import io.netty.handler.codec.http.HttpHeaders;
@@ -37,10 +38,13 @@ import org.junit.Test;
 
 public class InfoTest {
 
+    private static final ObjectMapper OM = new ObjectMapper();
+
     @Test
     public void webSocketSupported() throws Exception {
         final SockJsConfig config = new DefaultSockJsConfig("/simplepush");
-        final FullHttpResponse response = Info.response(config, createHttpRequest("/simplepush"));
+        final FullHttpResponse response = Info.response(config, createHttpRequest("/simplepush"),
+                ByteBufAllocator.DEFAULT);
         assertThat(infoAsJson(response).get("websocket").asBoolean(), is(true));
         response.release();
     }
@@ -48,7 +52,8 @@ public class InfoTest {
     @Test
     public void webSocketNotSupported() throws Exception {
         final SockJsConfig config = new DefaultSockJsConfig("/simplepush").setWebSocketEnabled(false);
-        final FullHttpResponse response = Info.response(config, createHttpRequest("/simplepush"));
+        final FullHttpResponse response = Info.response(config, createHttpRequest("/simplepush"),
+                ByteBufAllocator.DEFAULT);
         assertThat(infoAsJson(response).get("websocket").asBoolean(), is(false));
         response.release();
     }
@@ -58,7 +63,8 @@ public class InfoTest {
         final SockJsConfig config = new DefaultSockJsConfig("/simplepush")
                 .setWebSocketEnabled(false)
                 .setCookiesNeeded(true);
-        final FullHttpResponse response = Info.response(config, createHttpRequest("/simplepush"));
+        final FullHttpResponse response = Info.response(config, createHttpRequest("/simplepush"),
+                ByteBufAllocator.DEFAULT);
         assertThat(infoAsJson(response).get("cookie_needed").asBoolean(), is(true));
         response.release();
     }
@@ -66,7 +72,8 @@ public class InfoTest {
     @Test
     public void cookiesNotNeeded() throws Exception {
         final SockJsConfig config = new DefaultSockJsConfig("/simplepush").setWebSocketEnabled(false);
-        final FullHttpResponse response = Info.response(config, createHttpRequest("/simplepush"));
+        final FullHttpResponse response = Info.response(config, createHttpRequest("/simplepush"),
+                ByteBufAllocator.DEFAULT);
         assertThat(infoAsJson(response).get("cookie_needed").asBoolean(), is(false));
         response.release();
     }
@@ -74,7 +81,8 @@ public class InfoTest {
     @Test
     public void origins() throws Exception {
         final SockJsConfig config = new DefaultSockJsConfig("/simplepush").setWebSocketEnabled(false);
-        final FullHttpResponse response = Info.response(config, createHttpRequest("/simplepush"));
+        final FullHttpResponse response = Info.response(config, createHttpRequest("/simplepush"),
+                ByteBufAllocator.DEFAULT);
         assertThat(infoAsJson(response).get("origins").get(0).asText(), is("*:*"));
         response.release();
     }
@@ -82,7 +90,8 @@ public class InfoTest {
     @Test
     public void entropy() throws Exception {
         final SockJsConfig config = new DefaultSockJsConfig("/simplepush").setWebSocketEnabled(true);
-        final FullHttpResponse response = Info.response(config, createHttpRequest("/simplepush"));
+        final FullHttpResponse response = Info.response(config, createHttpRequest("/simplepush"),
+                ByteBufAllocator.DEFAULT);
         assertThat(infoAsJson(response).get("entropy").asLong(), is(notNullValue()));
         response.release();
     }
@@ -123,15 +132,15 @@ public class InfoTest {
 
     private static HttpHeaders headersFromInfo() throws Exception {
         final SockJsConfig config = new DefaultSockJsConfig("/simplepush").setWebSocketEnabled(false);
-        final FullHttpResponse response = Info.response(config, createHttpRequest("/simplepush"));
+        final FullHttpResponse response = Info.response(config, createHttpRequest("/simplepush"),
+                ByteBufAllocator.DEFAULT);
         final HttpHeaders headers = response.headers();
         response.release();
         return headers;
     }
 
     private static JsonNode infoAsJson(final FullHttpResponse response) throws Exception {
-        final ObjectMapper om = new ObjectMapper();
-        return om.readTree(response.content().toString(CharsetUtil.UTF_8));
+        return OM.readTree(response.content().toString(CharsetUtil.UTF_8));
     }
 
     private static HttpRequest createHttpRequest(final String prefix) {

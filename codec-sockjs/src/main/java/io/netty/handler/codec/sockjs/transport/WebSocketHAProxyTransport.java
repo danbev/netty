@@ -15,8 +15,6 @@
  */
 package io.netty.handler.codec.sockjs.transport;
 
-import static io.netty.handler.codec.sockjs.transport.Transports.internalServerErrorResponse;
-
 import com.fasterxml.jackson.core.JsonParseException;
 import io.netty.buffer.ByteBuf;
 import io.netty.channel.ChannelFuture;
@@ -31,11 +29,12 @@ import io.netty.handler.codec.http.websocketx.TextWebSocketFrame;
 import io.netty.handler.codec.http.websocketx.WebSocketFrame;
 import io.netty.handler.codec.http.websocketx.WebSocketHandshakeException;
 import io.netty.handler.codec.http.websocketx.WebSocketServerHandshaker;
-import io.netty.handler.codec.sockjs.handler.SessionHandler.Event;
 import io.netty.handler.codec.sockjs.util.JsonUtil;
 import io.netty.util.AttributeKey;
 import io.netty.util.internal.logging.InternalLogger;
 import io.netty.util.internal.logging.InternalLoggerFactory;
+
+import static io.netty.handler.codec.sockjs.transport.Transports.*;
 
 /**
  * WebSocketTransport is responsible for the WebSocket handshake and
@@ -58,13 +57,12 @@ public class WebSocketHAProxyTransport extends SimpleChannelInboundHandler<Objec
         } else if (msg instanceof WebSocketFrame) {
             handleWebSocketFrame(ctx, (WebSocketFrame) msg);
         }
-        ctx.fireUserEventTriggered(Event.HANDLE_SESSION);
     }
 
     private void handleContent(final ChannelHandlerContext ctx, final ByteBuf nounce) {
         final ByteBuf key = haHandshaker.calculateLastKey(nounce);
-        final ChannelFuture channelFuture = ctx.write(key);
-        haHandshaker.addWsCodec(channelFuture);
+        final ChannelFuture channelFuture = ctx.writeAndFlush(key);
+        haHandshaker.addWsCodec(channelFuture, ctx);
     }
 
     private void handleWebSocketFrame(final ChannelHandlerContext ctx, final WebSocketFrame wsFrame) throws Exception {
@@ -97,8 +95,9 @@ public class WebSocketHAProxyTransport extends SimpleChannelInboundHandler<Objec
         } else if (cause instanceof WebSocketHandshakeException) {
             final HttpRequest request = ctx.attr(REQUEST_KEY).get();
             logger.error("Failed with ws handshake for request: " + request, cause);
-            ctx.writeAndFlush(internalServerErrorResponse(request.getProtocolVersion(), cause.getMessage()))
-            .addListener(ChannelFutureListener.CLOSE);
+            ctx.writeAndFlush(internalServerErrorResponse(request,
+                    cause.getMessage(),
+                    ctx.alloc())).addListener(ChannelFutureListener.CLOSE);
         } else {
             ctx.fireExceptionCaught(cause);
         }

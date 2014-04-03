@@ -15,17 +15,15 @@
  */
 package io.netty.handler.codec.sockjs.handler;
 
-import io.netty.buffer.Unpooled;
 import io.netty.channel.Channel;
 import io.netty.channel.ChannelFuture;
 import io.netty.channel.ChannelFutureListener;
 import io.netty.channel.ChannelHandler;
 import io.netty.channel.ChannelHandlerContext;
 import io.netty.channel.SimpleChannelInboundHandler;
-import io.netty.handler.codec.http.DefaultFullHttpResponse;
-import io.netty.handler.codec.http.FullHttpResponse;
 import io.netty.handler.codec.http.HttpHeaders;
 import io.netty.handler.codec.http.HttpRequest;
+import io.netty.handler.codec.http.HttpResponse;
 import io.netty.handler.codec.http.QueryStringDecoder;
 import io.netty.handler.codec.sockjs.SockJsChannelConfig;
 import io.netty.handler.codec.sockjs.transport.EventSourceTransport;
@@ -38,7 +36,6 @@ import io.netty.handler.codec.sockjs.transport.WebSocketTransport;
 import io.netty.handler.codec.sockjs.transport.XhrPollingTransport;
 import io.netty.handler.codec.sockjs.transport.XhrSendTransport;
 import io.netty.handler.codec.sockjs.transport.XhrStreamingTransport;
-import io.netty.util.CharsetUtil;
 import io.netty.util.ReferenceCountUtil;
 import io.netty.util.internal.logging.InternalLogger;
 import io.netty.util.internal.logging.InternalLoggerFactory;
@@ -50,7 +47,8 @@ import java.util.regex.Pattern;
 
 import static io.netty.handler.codec.http.HttpHeaders.Names.*;
 import static io.netty.handler.codec.http.HttpHeaders.Values.*;
-import static io.netty.handler.codec.http.HttpResponseStatus.*;
+import static io.netty.handler.codec.sockjs.transport.HttpResponseBuilder.*;
+import static io.netty.handler.codec.sockjs.transport.Transports.*;
 import static java.util.UUID.*;
 
 /**
@@ -93,9 +91,9 @@ public class SockJsHandler extends SimpleChannelInboundHandler<HttpRequest> {
         if (Greeting.matches(path)) {
             writeResponse(ctx.channel(), request, Greeting.response(request));
         } else if (Info.matches(path)) {
-            writeResponse(ctx.channel(), request, Info.response(config, request));
+            writeResponse(ctx.channel(), request, Info.response(config, request, ctx.alloc()));
         } else if (Iframe.matches(path)) {
-            writeResponse(ctx.channel(), request, Iframe.response(config, request));
+            writeResponse(ctx.channel(), request, Iframe.response(config, request, ctx.alloc()));
         } else if (Transports.Type.WEBSOCKET.path().equals(path)) {
             addTransportHandler(new RawWebSocketTransport(config), ctx);
             ctx.fireChannelRead(ReferenceCountUtil.retain(request));
@@ -183,14 +181,15 @@ public class SockJsHandler extends SimpleChannelInboundHandler<HttpRequest> {
     }
 
     private static void writeNotFoundResponse(final HttpRequest request, final ChannelHandlerContext ctx) {
-        final FullHttpResponse response = new DefaultFullHttpResponse(request.getProtocolVersion(), NOT_FOUND,
-                Unpooled.copiedBuffer("Not found", CharsetUtil.UTF_8));
-        writeResponse(ctx.channel(), request, response);
+        writeResponse(ctx.channel(), request, responseFor(request)
+                .notFound()
+                .content("Not found").contentType(CONTENT_TYPE_PLAIN)
+                .buildFullResponse(ctx.alloc()));
     }
 
-    private static void writeResponse(final Channel channel, final HttpRequest request,
-                                      final FullHttpResponse response) {
-        response.headers().set(CONTENT_LENGTH, response.content().readableBytes());
+    private static void writeResponse(final Channel channel,
+                                      final HttpRequest request,
+                                      final HttpResponse response) {
         boolean hasKeepAliveHeader = HttpHeaders.equalsIgnoreCase(KEEP_ALIVE, request.headers().get(CONNECTION));
         if (!request.getProtocolVersion().isKeepAliveDefault() && hasKeepAliveHeader) {
             response.headers().set(CONNECTION, KEEP_ALIVE);
@@ -274,13 +273,13 @@ public class SockJsHandler extends SimpleChannelInboundHandler<HttpRequest> {
          *
          * @return Transports.Type the type of the transport.
          */
-        Transports.Type transport();
+        Type transport();
     }
 
     public static class MatchingSessionPath implements PathParams {
         private final String serverId;
         private final String sessionId;
-        private final Transports.Type transport;
+        private final Type transport;
 
         public MatchingSessionPath(final String serverId, final String sessionId, final String transport) {
             this.serverId = serverId;
@@ -304,7 +303,7 @@ public class SockJsHandler extends SimpleChannelInboundHandler<HttpRequest> {
         }
 
         @Override
-        public Transports.Type transport() {
+        public Type transport() {
             return transport;
         }
     }
@@ -327,7 +326,7 @@ public class SockJsHandler extends SimpleChannelInboundHandler<HttpRequest> {
         }
 
         @Override
-        public Transports.Type transport() {
+        public Type transport() {
             throw new UnsupportedOperationException("transport is not available in path");
         }
     }

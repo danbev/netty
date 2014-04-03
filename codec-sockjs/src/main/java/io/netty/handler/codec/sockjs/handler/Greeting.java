@@ -15,16 +15,13 @@
  */
 package io.netty.handler.codec.sockjs.handler;
 
-import static io.netty.buffer.Unpooled.copiedBuffer;
-import static io.netty.buffer.Unpooled.unreleasableBuffer;
-import static io.netty.handler.codec.http.HttpHeaders.Names.CONTENT_TYPE;
-import static io.netty.handler.codec.http.HttpResponseStatus.OK;
 import io.netty.buffer.ByteBuf;
-import io.netty.handler.codec.http.DefaultFullHttpResponse;
 import io.netty.handler.codec.http.FullHttpResponse;
 import io.netty.handler.codec.http.HttpRequest;
-import io.netty.handler.codec.sockjs.transport.Transports;
 import io.netty.util.CharsetUtil;
+
+import static io.netty.buffer.Unpooled.*;
+import static io.netty.handler.codec.sockjs.transport.HttpResponseBuilder.*;
 
 final class Greeting {
 
@@ -42,12 +39,11 @@ final class Greeting {
     }
 
     public static FullHttpResponse response(final HttpRequest request) {
-        final FullHttpResponse response = new DefaultFullHttpResponse(
-                request.getProtocolVersion(),
-                OK,
-                CONTENT.duplicate());
-        response.headers().set(CONTENT_TYPE, Transports.CONTENT_TYPE_PLAIN);
-        return response;
+        return responseFor(request)
+                .ok()
+                .content(CONTENT.duplicate())
+                .contentType(CONTENT_TYPE_PLAIN)
+                .buildFullResponse();
     }
 
 }
