@@ -187,4 +187,8 @@ public class RawWebSocketTransport extends SimpleChannelInboundHandler<Object> {
         ctx.fireChannelRead(event);
     }
 
+    public static boolean matches(final String path) {
+        return TransportType.WEBSOCKET.path().equals(path);
+    }
+
 }

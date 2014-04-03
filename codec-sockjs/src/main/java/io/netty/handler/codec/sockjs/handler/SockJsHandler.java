@@ -26,6 +26,7 @@ import io.netty.handler.codec.http.HttpRequest;
 import io.netty.handler.codec.http.HttpResponse;
 import io.netty.handler.codec.http.QueryStringDecoder;
 import io.netty.handler.codec.sockjs.SockJsChannelConfig;
+import io.netty.handler.codec.sockjs.SockJsConfig;
 import io.netty.handler.codec.sockjs.transport.EventSourceTransport;
 import io.netty.handler.codec.sockjs.transport.HtmlFileTransport;
 import io.netty.handler.codec.sockjs.transport.HttpResponseBuilder;
@@ -66,44 +67,46 @@ public class SockJsHandler extends SimpleChannelInboundHandler<HttpRequest> {
 
     @Override
     public void messageReceived(final ChannelHandlerContext ctx, final HttpRequest request) throws Exception {
+        if (logger.isDebugEnabled()) {
+            logger.debug("RequestUri : [{}]", request.getUri());
+        }
         final SockJsChannelConfig config = (SockJsChannelConfig) ctx.channel().config();
         if (requestPathMatchesPrefix(request, config)) {
-            handleService(request, ctx, config);
-        } else {
-            writeNotFoundResponse(request, ctx);
+            final String path = extractPath(request, config);
+            if (Greeting.matches(path)) {
+                writeResponse(ctx.channel(), request, Greeting.response(request));
+                return;
+            }
+            if (Info.matches(path)) {
+                writeResponse(ctx.channel(), request, Info.response(config, request, ctx.alloc()));
+                return;
+            }
+            if (Iframe.matches(path)) {
+                writeResponse(ctx.channel(), request, Iframe.response(config, request, ctx.alloc()));
+                return;
+            }
+            if (RawWebSocketTransport.matches(path)) {
+                addTransportHandler(new RawWebSocketTransport(config), ctx);
+                ctx.fireChannelRead(ReferenceCountUtil.retain(request));
+                return;
+            }
+            final PathParams sessionPath = matches(path);
+            if (sessionPath.matches()) {
+                handleSession(config, request, ctx, sessionPath);
+                return;
+            }
         }
+        writeNotFoundResponse(request, ctx);
+    }
+
+    private static String extractPath(final HttpRequest request, final SockJsConfig config) {
+        final String pathWithoutPrefix = request.getUri().replaceFirst(config.getPrefix(), "");
+        return new QueryStringDecoder(pathWithoutPrefix).path();
     }
 
     private static boolean requestPathMatchesPrefix(final HttpRequest request, SockJsChannelConfig config) {
         final String path = new QueryStringDecoder(request.getUri()).path();
         return path.startsWith(config.getPrefix());
-    }
-
-    private static void handleService(final HttpRequest request,
-                                      final ChannelHandlerContext ctx,
-                                      final SockJsChannelConfig config) throws Exception {
-        if (logger.isDebugEnabled()) {
-            logger.debug("RequestUri : [{}]", request.getUri());
-        }
-        final String pathWithoutPrefix = request.getUri().replaceFirst(config.getPrefix(), "");
-        final String path = new QueryStringDecoder(pathWithoutPrefix).path();
-        if (Greeting.matches(path)) {
-            writeResponse(ctx.channel(), request, Greeting.response(request));
-        } else if (Info.matches(path)) {
-            writeResponse(ctx.channel(), request, Info.response(config, request, ctx.alloc()));
-        } else if (Iframe.matches(path)) {
-            writeResponse(ctx.channel(), request, Iframe.response(config, request, ctx.alloc()));
-        } else if (TransportType.WEBSOCKET.path().equals(path)) {
-            addTransportHandler(new RawWebSocketTransport(config), ctx);
-            ctx.fireChannelRead(ReferenceCountUtil.retain(request));
-        } else {
-            final PathParams sessionPath = matches(path);
-            if (sessionPath.matches()) {
-                handleSession(config, request, ctx, sessionPath);
-            } else {
-                writeNotFoundResponse(request, ctx);
-            }
-        }
     }
 
     private static void handleSession(final SockJsChannelConfig config,
