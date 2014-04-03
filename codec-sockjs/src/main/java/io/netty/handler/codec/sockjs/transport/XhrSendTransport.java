@@ -15,9 +15,14 @@
  */
 package io.netty.handler.codec.sockjs.transport;
 
+import static io.netty.handler.codec.http.HttpHeaders.Names.*;
 import static io.netty.handler.codec.http.HttpResponseStatus.NO_CONTENT;
+
+import io.netty.channel.ChannelFutureListener;
 import io.netty.channel.ChannelHandlerContext;
 import io.netty.handler.codec.http.FullHttpRequest;
+import io.netty.handler.codec.http.FullHttpResponse;
+import io.netty.handler.codec.http.HttpHeaders;
 import io.netty.handler.codec.sockjs.SockJsConfig;
 import io.netty.util.internal.StringUtil;
 
@@ -39,7 +44,17 @@ public class XhrSendTransport extends AbstractSendTransport {
 
     @Override
     public void respond(final ChannelHandlerContext ctx, final FullHttpRequest request) throws Exception {
-        respond(ctx, request, NO_CONTENT, "");
+        final FullHttpResponse response = HttpResponseBuilder.responseFor(request)
+                .status(NO_CONTENT)
+                .content("")
+                .contentType(HttpResponseBuilder.CONTENT_TYPE_PLAIN)
+                .setCookie(config)
+                .header(CONNECTION, HttpHeaders.Values.CLOSE)
+                .header(CACHE_CONTROL, HttpResponseBuilder.NO_CACHE_HEADER)
+                .buildFullResponse(ctx.alloc());
+        if (ctx.channel().isActive() && ctx.channel().isRegistered()) {
+            ctx.writeAndFlush(response).addListener(ChannelFutureListener.CLOSE);
+        }
     }
 
     @Override

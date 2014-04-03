@@ -20,10 +20,6 @@ import io.netty.channel.ChannelFutureListener;
 import io.netty.channel.ChannelHandlerContext;
 import io.netty.channel.SimpleChannelInboundHandler;
 import io.netty.handler.codec.http.FullHttpRequest;
-import io.netty.handler.codec.http.FullHttpResponse;
-import io.netty.handler.codec.http.HttpHeaders;
-import io.netty.handler.codec.http.HttpRequest;
-import io.netty.handler.codec.http.HttpResponseStatus;
 import io.netty.handler.codec.http.QueryStringDecoder;
 import io.netty.handler.codec.sockjs.SockJsConfig;
 import io.netty.handler.codec.sockjs.util.ArgumentUtil;
@@ -106,23 +102,6 @@ public abstract class AbstractSendTransport extends SimpleChannelInboundHandler<
     private static List<String> getDataFormParameter(final FullHttpRequest request) {
         final QueryStringDecoder decoder = new QueryStringDecoder('?' + request.content().toString(UTF_8));
         return decoder.parameters().get("d");
-    }
-
-    protected void respond(final ChannelHandlerContext ctx,
-            final HttpRequest request,
-            final HttpResponseStatus status,
-            final String message) {
-        final FullHttpResponse response = HttpResponseBuilder.responseFor(request)
-                .status(status)
-                .content(message)
-                .contentType(HttpResponseBuilder.CONTENT_TYPE_PLAIN)
-                .setCookie(config)
-                .header(CONNECTION, HttpHeaders.Values.CLOSE)
-                .header(CACHE_CONTROL, HttpResponseBuilder.NO_CACHE_HEADER)
-                .buildFullResponse(ctx.alloc());
-        if (ctx.channel().isActive() && ctx.channel().isRegistered()) {
-            ctx.writeAndFlush(response).addListener(ChannelFutureListener.CLOSE);
-        }
     }
 
 }

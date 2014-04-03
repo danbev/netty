@@ -15,9 +15,14 @@
  */
 package io.netty.handler.codec.sockjs.transport;
 
+import static io.netty.handler.codec.http.HttpHeaders.Names.*;
 import static io.netty.handler.codec.http.HttpResponseStatus.OK;
+
+import io.netty.channel.ChannelFutureListener;
 import io.netty.channel.ChannelHandlerContext;
 import io.netty.handler.codec.http.FullHttpRequest;
+import io.netty.handler.codec.http.FullHttpResponse;
+import io.netty.handler.codec.http.HttpHeaders;
 import io.netty.handler.codec.sockjs.SockJsConfig;
 import io.netty.util.internal.StringUtil;
 
@@ -38,7 +43,17 @@ public class JsonpSendTransport extends AbstractSendTransport {
 
     @Override
     public void respond(final ChannelHandlerContext ctx, final FullHttpRequest request) throws Exception {
-        respond(ctx, request, OK, "ok");
+        final FullHttpResponse response = HttpResponseBuilder.responseFor(request)
+                .status(OK)
+                .content("ok")
+                .contentType(HttpResponseBuilder.CONTENT_TYPE_PLAIN)
+                .setCookie(config)
+                .header(CONNECTION, HttpHeaders.Values.CLOSE)
+                .header(CACHE_CONTROL, HttpResponseBuilder.NO_CACHE_HEADER)
+                .buildFullResponse(ctx.alloc());
+        if (ctx.channel().isActive() && ctx.channel().isRegistered()) {
+            ctx.writeAndFlush(response).addListener(ChannelFutureListener.CLOSE);
+        }
     }
 
     @Override
