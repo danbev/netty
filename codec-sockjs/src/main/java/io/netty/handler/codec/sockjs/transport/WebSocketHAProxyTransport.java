@@ -34,8 +34,6 @@ import io.netty.util.AttributeKey;
 import io.netty.util.internal.logging.InternalLogger;
 import io.netty.util.internal.logging.InternalLoggerFactory;
 
-import static io.netty.handler.codec.sockjs.transport.Transports.*;
-
 /**
  * WebSocketTransport is responsible for the WebSocket handshake and
  * also for receiving WebSocket frames.
@@ -95,7 +93,7 @@ public class WebSocketHAProxyTransport extends SimpleChannelInboundHandler<Objec
         } else if (cause instanceof WebSocketHandshakeException) {
             final HttpRequest request = ctx.attr(REQUEST_KEY).get();
             logger.error("Failed with ws handshake for request: " + request, cause);
-            ctx.writeAndFlush(internalServerErrorResponse(request,
+            ctx.writeAndFlush(HttpResponseBuilder.internalServerErrorResponse(request,
                     cause.getMessage(),
                     ctx.alloc())).addListener(ChannelFutureListener.CLOSE);
         } else {

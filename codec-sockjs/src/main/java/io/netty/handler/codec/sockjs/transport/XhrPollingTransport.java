@@ -31,7 +31,6 @@ import io.netty.util.internal.logging.InternalLoggerFactory;
 import static io.netty.handler.codec.http.HttpHeaders.Names.*;
 import static io.netty.handler.codec.http.HttpHeaders.Values.*;
 import static io.netty.handler.codec.sockjs.transport.HttpResponseBuilder.*;
-import static io.netty.handler.codec.sockjs.transport.Transports.*;
 
 /**
  * XMLHttpRequest (XHR) Polling is a transport where there is no open connection between
@@ -70,7 +69,7 @@ public class XhrPollingTransport extends ChannelHandlerAdapter {
             final Frame frame = (Frame) msg;
             final ByteBuf content = wrapWithLN(frame.content());
             frame.release();
-            writeResponse(ctx, promise, responseFor(request)
+            ctx.writeAndFlush(responseFor(request)
                     .ok()
                     .content(content)
                     .contentType(CONTENT_TYPE_JAVASCRIPT)
@@ -79,7 +78,8 @@ public class XhrPollingTransport extends ChannelHandlerAdapter {
                     .header(ACCESS_CONTROL_ALLOW_CREDENTIALS, "true")
                     .header(CONNECTION, CLOSE)
                     .header(CACHE_CONTROL, NO_CACHE_HEADER)
-                    .buildFullResponse(ctx.alloc()));
+                    .buildFullResponse(ctx.alloc()),
+                    promise);
         } else {
             ctx.writeAndFlush(ReferenceCountUtil.retain(msg), promise);
         }

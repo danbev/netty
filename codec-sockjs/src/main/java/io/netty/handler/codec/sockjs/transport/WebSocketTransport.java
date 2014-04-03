@@ -16,9 +16,9 @@
 package io.netty.handler.codec.sockjs.transport;
 
 import static io.netty.handler.codec.http.HttpMethod.GET;
-import static io.netty.handler.codec.sockjs.transport.Transports.badRequestResponse;
-import static io.netty.handler.codec.sockjs.transport.Transports.internalServerErrorResponse;
-import static io.netty.handler.codec.sockjs.transport.Transports.methodNotAllowedResponse;
+import static io.netty.handler.codec.sockjs.transport.HttpResponseBuilder.badRequestResponse;
+import static io.netty.handler.codec.sockjs.transport.HttpResponseBuilder.internalServerErrorResponse;
+import static io.netty.handler.codec.sockjs.transport.HttpResponseBuilder.methodNotAllowedResponse;
 
 import com.fasterxml.jackson.core.JsonParseException;
 import io.netty.channel.ChannelFuture;

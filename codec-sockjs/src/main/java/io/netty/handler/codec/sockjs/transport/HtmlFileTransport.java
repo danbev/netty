@@ -43,7 +43,6 @@ import static io.netty.handler.codec.http.HttpConstants.*;
 import static io.netty.handler.codec.http.HttpHeaders.Names.*;
 import static io.netty.handler.codec.http.HttpHeaders.Values.*;
 import static io.netty.handler.codec.sockjs.transport.HttpResponseBuilder.*;
-import static io.netty.handler.codec.sockjs.transport.Transports.*;
 import static io.netty.util.CharsetUtil.*;
 
 /**
@@ -158,7 +157,7 @@ public class HtmlFileTransport extends ChannelHandlerAdapter {
     }
 
     private void respondCallbackRequired(final ChannelHandlerContext ctx) {
-        writeResponse(ctx, responseFor(request)
+        ctx.writeAndFlush(responseFor(request)
                 .internalServerError()
                 .content("\"callback\" parameter required")
                 .contentType(CONTENT_TYPE_PLAIN)

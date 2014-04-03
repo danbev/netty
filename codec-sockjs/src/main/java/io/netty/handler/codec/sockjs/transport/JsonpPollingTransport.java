@@ -37,7 +37,6 @@ import static io.netty.handler.codec.http.HttpHeaders.Names.*;
 import static io.netty.handler.codec.http.HttpHeaders.Values.*;
 import static io.netty.handler.codec.http.HttpResponseStatus.*;
 import static io.netty.handler.codec.sockjs.transport.HttpResponseBuilder.*;
-import static io.netty.handler.codec.sockjs.transport.Transports.*;
 import static io.netty.util.CharsetUtil.*;
 
 /**
@@ -116,7 +115,7 @@ public class JsonpPollingTransport extends ChannelHandlerAdapter {
                                 final HttpRequest request,
                                 final HttpResponseStatus status,
                                 final String message) throws Exception {
-        writeResponse(ctx, responseFor(request)
+        ctx.writeAndFlush(responseFor(request)
                 .status(status)
                 .content(message)
                 .contentType(CONTENT_TYPE_JAVASCRIPT)
