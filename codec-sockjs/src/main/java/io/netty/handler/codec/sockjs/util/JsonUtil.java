@@ -1,5 +1,5 @@
 /*
- * Copyright 2013 The Netty Project
+ * Copyright 2014 The Netty Project
  *
  * The Netty Project licenses this file to you under the Apache License, version
  * 2.0 (the "License"); you may not use this file except in compliance with the
@@ -17,7 +17,6 @@ package io.netty.handler.codec.sockjs.util;
 
 import com.fasterxml.jackson.core.JsonGenerationException;
 import com.fasterxml.jackson.core.JsonGenerator;
-import com.fasterxml.jackson.core.Version;
 import com.fasterxml.jackson.core.io.CharTypes;
 import com.fasterxml.jackson.core.json.JsonWriteContext;
 import com.fasterxml.jackson.databind.JsonMappingException;
@@ -25,6 +24,7 @@ import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.JsonSerializer;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.SerializerProvider;
+import com.fasterxml.jackson.databind.deser.std.StringDeserializer;
 import com.fasterxml.jackson.databind.module.SimpleModule;
 import io.netty.buffer.ByteBuf;
 import io.netty.buffer.ByteBufInputStream;
@@ -38,67 +38,15 @@ import java.util.List;
 
 public final class JsonUtil {
 
-    private static final ObjectMapper MAPPER;
+    private static final ObjectMapper MAPPER = createObjectMapper();
     private static final String[] EMPTY_STRING_ARRAY = {};
-    private static final char[] HEX_CHARS = "0123456789abcdef".toCharArray();
+    private static final char[] HEX_CHARS = CharTypes.copyHexChars();
     private static final int[] ESCAPE_CODES = CharTypes.get7BitOutputEscapes();
 
-    static {
-        MAPPER = new ObjectMapper();
-
-        // This code adapted from Vert.x JsonCode.
-        SimpleModule simpleModule = new SimpleModule("simplepush", new Version(0, 0, 8, null, "io.netty",
-                "netty-codec-sockjs"));
-        simpleModule.addSerializer(String.class, new JsonSerializer<String>() {
-
-            private void writeUnicodeEscape(final JsonGenerator gen, final char c) throws IOException {
-                gen.writeRaw('\\');
-                gen.writeRaw('u');
-                gen.writeRaw(HEX_CHARS[c >> 12 & 0xF]);
-                gen.writeRaw(HEX_CHARS[c >> 8 & 0xF]);
-                gen.writeRaw(HEX_CHARS[c >> 4 & 0xF]);
-                gen.writeRaw(HEX_CHARS[c & 0xF]);
-            }
-
-            private void writeShortEscape(final JsonGenerator gen, final char c) throws IOException {
-                gen.writeRaw('\\');
-                gen.writeRaw(c);
-            }
-
-            @Override
-            public void serialize(final String str, final JsonGenerator gen, final SerializerProvider provider)
-                    throws IOException {
-                final int status = ((JsonWriteContext) gen.getOutputContext()).writeValue();
-                switch (status) {
-                case JsonWriteContext.STATUS_OK_AFTER_COLON:
-                    gen.writeRaw(':');
-                    break;
-                case JsonWriteContext.STATUS_OK_AFTER_COMMA:
-                    gen.writeRaw(',');
-                    break;
-                case JsonWriteContext.STATUS_EXPECT_NAME:
-                    throw new JsonGenerationException("Can not write string value here");
-                }
-                gen.writeRaw('"');
-                for (char c : str.toCharArray()) {
-                    if (c >= 0x80) {
-                        writeUnicodeEscape(gen, c);
-                    } else {
-                        // use escape table for first 128 characters
-                        int code = c < ESCAPE_CODES.length ? ESCAPE_CODES[c] : 0;
-                        if (code == 0) {
-                            gen.writeRaw(c); // no escaping
-                        } else if (code == -1) {
-                            writeUnicodeEscape(gen, c);
-                        } else {
-                            writeShortEscape(gen, (char) code);
-                        }
-                    }
-                }
-                gen.writeRaw('"');
-            }
-        });
-        MAPPER.registerModule(simpleModule);
+    private static ObjectMapper createObjectMapper() {
+        return new ObjectMapper()
+                .registerModule(new SimpleModule("netty-codec-sockjs")
+                .addDeserializer(String.class, new StringDeserializer()));
     }
 
     private JsonUtil() {
@@ -179,19 +127,13 @@ public final class JsonUtil {
                 case '\t': buffer.writeByte('\\').writeByte('t'); break;
 
                 default:
-                    // Reference: http://www.unicode.org/versions/Unicode5.1.0/
-                    if (ch >= '\u0000' && ch <= '\u001F' ||
-                            ch >= '\uD800' && ch <= '\uDFFF' ||
-                            ch >= '\u200C' && ch <= '\u200F' ||
-                            ch >= '\u2028' && ch <= '\u202F' ||
-                            ch >= '\u2060' && ch <= '\u206F' ||
-                            ch >= '\uFFF0' && ch <= '\uFFFF') {
-                        final String ss = Integer.toHexString(ch);
+                    if (shouldEscape((char) ch)) {
+                        final String hex = Integer.toHexString(ch);
                         buffer.writeByte('\\').writeByte('u');
-                        for (int k = 0; k < 4 - ss.length(); k++) {
+                        for (int k = 0; k < 4 - hex.length(); k++) {
                             buffer.writeByte('0');
                         }
-                        buffer.writeBytes(ss.toLowerCase().getBytes());
+                        buffer.writeBytes(hex.toLowerCase().getBytes());
                     } else {
                         buffer.writeByte(ch);
                     }
@@ -200,4 +142,114 @@ public final class JsonUtil {
         return buffer;
     }
 
+    public static boolean isControlCharacter(final char c) {
+        return c >= '\u0000' && c <= '\u001F';
+    }
+
+    public static boolean isSurrogateCharacter(final char c) {
+        return c >= Character.MIN_HIGH_SURROGATE && c <= Character.MAX_LOW_SURROGATE;
+    }
+
+    public static boolean isFormatControlCharacter(final char c) {
+        return c == '\u200C' || c == '\u200D';
+    }
+
+    public static boolean isSeparatorCharacter(final char c) {
+        return c >= '\u2028' && c <= '\u202F';
+    }
+
+    public static boolean isFormatOtherCharacter(final char c) {
+        return c >= '\u2060' && c <= '\u206F';
+    }
+
+    public static boolean isSpecials(final char c) {
+        return c >= '\uFFF0' && c <= '\uFFFF';
+    }
+
+    /**
+     * Processes the input char[] array and escapes the any control characters, quotes, slashes,
+     * and unicode characters.
+     *
+     * @param value the char[] for which unicode characters should be escaped
+     * @return {@code String} Java style escaped unicode characters.
+     */
+    public static String escapeCharacters(final char[] value) {
+        final StringBuilder buffer = new StringBuilder();
+        for (char ch : value) {
+            if (shouldEscape(ch)) {
+                final String hex = Integer.toHexString(ch);
+                buffer.append('\\').append('u');
+                for (int k = 0; k < 4 - hex.length(); k++) {
+                    buffer.append('0');
+                }
+                buffer.append(hex.toLowerCase());
+            } else {
+                buffer.append(ch);
+            }
+        }
+        return buffer.toString();
+    }
+
+    private static boolean shouldEscape(final char c) {
+        return isControlCharacter(c) ||
+                isSurrogateCharacter(c) ||
+                isFormatControlCharacter(c) ||
+                isSeparatorCharacter(c) ||
+                isSpecials(c);
+    }
+
+    /**
+     * Taken from https://github.com/FasterXML/jackson-docs/wiki/JacksonSampleQuoteChars with a few
+     * minor modifictions.
+     */
+    private static class StringSerializer extends JsonSerializer<String> {
+
+        @Override
+        public void serialize(final String str, final JsonGenerator gen, final SerializerProvider provider)
+        throws IOException {
+            final int status = ((JsonWriteContext) gen.getOutputContext()).writeValue();
+            switch (status) {
+                case JsonWriteContext.STATUS_OK_AFTER_COLON:
+                    gen.writeRaw(':');
+                    break;
+                case JsonWriteContext.STATUS_OK_AFTER_COMMA:
+                    gen.writeRaw(',');
+                    break;
+                case JsonWriteContext.STATUS_EXPECT_NAME:
+                    throw new JsonGenerationException("Can not write string value here");
+            }
+            gen.writeRaw('"');
+            for (char c : str.toCharArray()) {
+                if (c >= 0x80) {
+                    writeUnicodeEscape(gen, c);
+                } else {
+                    // use escape table for first 128 characters
+                    int code = c < ESCAPE_CODES.length ? ESCAPE_CODES[c] : 0;
+                    if (code == 0) {
+                        gen.writeRaw(c); // no escaping
+                    } else if (code == -1) {
+                        writeUnicodeEscape(gen, c);
+                    } else {
+                        writeShortEscape(gen, (char) code);
+                    }
+                }
+            }
+            gen.writeRaw('"');
+        }
+
+        private static void writeUnicodeEscape(final JsonGenerator gen, final char c) throws IOException {
+            gen.writeRaw('\\');
+            gen.writeRaw('u');
+            gen.writeRaw(HEX_CHARS[c >> 12 & 0xF]);
+            gen.writeRaw(HEX_CHARS[c >> 8 & 0xF]);
+            gen.writeRaw(HEX_CHARS[c >> 4 & 0xF]);
+            gen.writeRaw(HEX_CHARS[c & 0xF]);
+        }
+
+        private static void writeShortEscape(final JsonGenerator gen, final char c) throws IOException {
+            gen.writeRaw('\\');
+            gen.writeRaw(c);
+        }
+    }
 }
+

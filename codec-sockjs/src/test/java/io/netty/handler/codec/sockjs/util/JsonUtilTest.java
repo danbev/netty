@@ -18,9 +18,12 @@ package io.netty.handler.codec.sockjs.util;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.equalTo;
 import static org.hamcrest.Matchers.is;
+
+import com.fasterxml.jackson.databind.JsonMappingException;
 import io.netty.handler.codec.http.websocketx.TextWebSocketFrame;
 
 import org.junit.Test;
+
 
 public class JsonUtilTest {
 
@@ -94,6 +97,43 @@ public class JsonUtilTest {
         assertThat(decode.length, is(1));
         assertThat(decode[0], equalTo("{\"firstName\":\"Fletch\"}"));
         frame.release();
+    }
+
+    @Test
+    public void controlCharacters() {
+        assertThat(JsonUtil.isControlCharacter('\u0000'), is(true));
+        assertThat(JsonUtil.isControlCharacter('\u0001'), is(true));
+        assertThat(JsonUtil.isControlCharacter('\u001F'), is(true));
+        assertThat(JsonUtil.isControlCharacter('\u002F'), is(false));
+    }
+
+    @Test
+    public void isFormatControlCharacter() {
+        assertThat(JsonUtil.isFormatControlCharacter('\u200C'), is(true));
+        assertThat(JsonUtil.isFormatControlCharacter('\u200D'), is(true));
+        assertThat(JsonUtil.isFormatControlCharacter('\u200B'), is(false));
+        assertThat(JsonUtil.isFormatControlCharacter('\u200E'), is(false));
+    }
+
+    @Test
+    public void isSeparatorCharacters() {
+        assertThat(JsonUtil.isSeparatorCharacter('\u2028'), is(true));
+        assertThat(JsonUtil.isSeparatorCharacter('\u2029'), is(true));
+        assertThat(JsonUtil.isSeparatorCharacter('\u202A'), is(true));
+        assertThat(JsonUtil.isSeparatorCharacter('\u202B'), is(true));
+        assertThat(JsonUtil.isSeparatorCharacter('\u202C'), is(true));
+        assertThat(JsonUtil.isSeparatorCharacter('\u202D'), is(true));
+        assertThat(JsonUtil.isSeparatorCharacter('\u202E'), is(true));
+        assertThat(JsonUtil.isSeparatorCharacter('\u202F'), is(true));
+        assertThat(JsonUtil.isSeparatorCharacter('\u2027'), is(false));
+        assertThat(JsonUtil.isSeparatorCharacter('\u2030'), is(false));
+    }
+
+    @Test
+    public void escapeSpecialCharacters() throws JsonMappingException {
+        final String chars = "\u0061bcd\uFFFF";
+        final String escaped = JsonUtil.escapeCharacters(chars.toCharArray());
+        assertThat(escaped, equalTo("abcd\\uffff"));
     }
 
 }
