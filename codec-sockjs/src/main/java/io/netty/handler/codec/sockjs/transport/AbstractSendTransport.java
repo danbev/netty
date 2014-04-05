@@ -24,6 +24,9 @@ import io.netty.handler.codec.http.QueryStringDecoder;
 import io.netty.handler.codec.sockjs.SockJsConfig;
 import io.netty.handler.codec.sockjs.util.ArgumentUtil;
 import io.netty.handler.codec.sockjs.util.JsonUtil;
+import io.netty.util.internal.logging.InternalLogger;
+import io.netty.util.internal.logging.InternalLoggerFactory;
+
 import java.util.List;
 import static io.netty.handler.codec.http.HttpHeaders.Names.*;
 import static io.netty.util.CharsetUtil.UTF_8;
@@ -32,6 +35,8 @@ import static io.netty.util.CharsetUtil.UTF_8;
  * A common base class for SockJS transports that send messages to a SockJS service.
  */
 public abstract class AbstractSendTransport extends SimpleChannelInboundHandler<FullHttpRequest> {
+
+    private static final InternalLogger logger = InternalLoggerFactory.getInstance(AbstractSendTransport.class);
 
     protected final SockJsConfig config;
 
@@ -56,7 +61,8 @@ public abstract class AbstractSendTransport extends SimpleChannelInboundHandler<
                     ctx.fireChannelRead(message);
                 }
                 respond(ctx, request);
-            } catch (final JsonParseException ignored) {
+            } catch (final JsonParseException e) {
+                logger.debug("Error while parsing payload", e);
                 ctx.writeAndFlush(HttpResponseBuilder.responseFor(request)
                         .internalServerError()
                         .content("Broken JSON encoding.")
