@@ -1421,7 +1421,7 @@ public class SockJsProtocolTest {
         final FullHttpResponse response = xhrRequest(sessionUrl, sockJsPipeline("/echo", echoHandler));
         assertOpenFrameResponse(response);
 
-        final String content = escapeCharacters(serverKillerStringEsc().toCharArray());
+        final String content = serverKillerStringEsc();
         final FullHttpResponse xhrSendResponse = xhrSendRequest(sessionUrl, "[\"" + content + "\"]",
                 sockJsPipeline("/echo", echoHandler));
         assertThat(xhrSendResponse.getStatus(), is(HttpResponseStatus.NO_CONTENT));
@@ -1446,7 +1446,7 @@ public class SockJsProtocolTest {
         assertThat(response.content().toString(UTF_8), equalTo("o\n"));
         response.release();
 
-        final String content = "[\"" + clientKillerStringEsc() + "\"]";
+        final String content = "[\"" + generateUnicodeValues(0x0000, 0xFFFF) + "\"]";
         final FullHttpResponse xhrSendResponse = xhrSendRequest(sessionUrl, content,
                 sockJsPipeline("/echo", echoHandler));
         assertThat(xhrSendResponse.getStatus(), is(HttpResponseStatus.NO_CONTENT));
@@ -1806,93 +1806,35 @@ public class SockJsProtocolTest {
         return content;
     }
 
-    private static String clientKillerStringEsc() {
-        return "\\u0000\\u0001\\u0002\\u0003\\u0004\\u0005\\u0006\\u0007\\u0008\\u0009\\u000a\\u000b\\u000c\\u000d" +
-               "\\u000e\\u000f\\u0010\\u0011\\u0012\\u0013\\u0014\\u0015\\u0016\\u0017\\u0018\\u0019\\u001a\\u001b" +
-               "\\u001c\\u001d\\u001e\\u001f\\u0022\\u007f\\u0080\\u0081\\u0082\\u0083\\u0084\\u0085\\u0086\\u0087" +
-               "\\u0088\\u0089\\u008a\\u008b\\u008c\\u008d\\u008e\\u008f\\u0090\\u0091\\u0092\\u0093\\u0094\\u0095" +
-               "\\u0096\\u0097\\u0098\\u0099\\u009a\\u009b\\u009c\\u009d\\u009e\\u009f\\u00ad\\u0300\\u0301\\u0302" +
-               "\\u0303\\u0304\\u0305\\u0306\\u0307\\u0308\\u0309\\u030a\\u030b\\u030c\\u030d\\u030e\\u030f\\u0310" +
-               "\\u0311\\u0312\\u0313\\u0314\\u0315\\u0316\\u0317\\u0318\\u0319\\u031a\\u031b\\u031c\\u031d\\u031e" +
-               "\\u031f\\u0320\\u0321\\u0322\\u0323\\u0324\\u0325\\u0326\\u0327\\u0328\\u0329\\u032a\\u032b\\u032c" +
-               "\\u032d\\u032e\\u032f\\u0330\\u0331\\u0332\\u0333\\u033d\\u033e\\u033f\\u0340\\u0341\\u0342\\u0343" +
-               "\\u0344\\u0345\\u0346\\u034a\\u034b\\u034c\\u0350\\u0351\\u0352\\u0357\\u0358\\u035c\\u035d\\u035e" +
-               "\\u035f\\u0360\\u0361\\u0362\\u0374\\u037e\\u0387\\u0591\\u0592\\u0593\\u0594\\u0595\\u0596\\u0597" +
-               "\\u0598\\u0599\\u059a\\u059b\\u059c\\u059d\\u059e\\u059f\\u05a0\\u05a1\\u05a2\\u05a3\\u05a4\\u05a5" +
-               "\\u05a6\\u05a7\\u05a8\\u05a9\\u05aa\\u05ab\\u05ac\\u05ad\\u05ae\\u05af\\u05c4\\u0600\\u0601\\u0602" +
-               "\\u0603\\u0604\\u0610\\u0611\\u0612\\u0613\\u0614\\u0615\\u0616\\u0617\\u0653\\u0654\\u0657\\u0658" +
-               "\\u0659\\u065a\\u065b\\u065d\\u065e\\u06df\\u06e0\\u06e1\\u06e2\\u06eb\\u06ec\\u070f\\u0730\\u0732" +
-               "\\u0733\\u0735\\u0736\\u073a\\u073d\\u073f\\u0740\\u0741\\u0743\\u0745\\u0747\\u07eb\\u07ec\\u07ed" +
-               "\\u07ee\\u07ef\\u07f0\\u07f1\\u0951\\u0958\\u0959\\u095a\\u095b\\u095c\\u095d\\u095e\\u095f\\u09dc" +
-               "\\u09dd\\u09df\\u0a33\\u0a36\\u0a59\\u0a5a\\u0a5b\\u0a5e\\u0b5c\\u0b5d\\u0e38\\u0e39\\u0f43\\u0f4d" +
-               "\\u0f52\\u0f57\\u0f5c\\u0f69\\u0f72\\u0f73\\u0f74\\u0f75\\u0f76\\u0f78\\u0f80\\u0f81\\u0f82\\u0f83" +
-               "\\u0f93\\u0f9d\\u0fa2\\u0fa7\\u0fac\\u0fb9\\u17b4\\u17b5\\u1939\\u193a\\u1a17\\u1b6b\\u1cda\\u1cdb" +
-               "\\u1dc0\\u1dc1\\u1dc2\\u1dc3\\u1dc4\\u1dc5\\u1dc6\\u1dc7\\u1dc8\\u1dc9\\u1dca\\u1dcb\\u1dcc\\u1dcd" +
-               "\\u1dce\\u1dcf\\u1dfc\\u1dfe\\u1f71\\u1f73\\u1f75\\u1f77\\u1f79\\u1f7b\\u1f7d\\u1fbb\\u1fbe\\u1fc9" +
-               "\\u1fcb\\u1fd3\\u1fdb\\u1fe3\\u1feb\\u1fee\\u1fef\\u1ff9\\u1ffb\\u1ffd\\u2000\\u2001\\u2002\\u2003" +
-               "\\u2004\\u2005\\u2006\\u2007\\u2008\\u2009\\u200a\\u200b\\u200c\\u200d\\u200e\\u200f\\u2010\\u2011" +
-               "\\u2012\\u2013\\u2014\\u2015\\u2016\\u2017\\u2018\\u2019\\u201a\\u201b\\u201c\\u201d\\u201e\\u201f" +
-               "\\u2020\\u2021\\u2022\\u2023\\u2024\\u2025\\u2026\\u2027\\u2028\\u2029\\u202a\\u202b\\u202c\\u202d" +
-               "\\u202e\\u202f\\u2030\\u2031\\u2032\\u2033\\u2034\\u2035\\u2036\\u2037\\u2038\\u2039\\u203a\\u203b" +
-               "\\u203c\\u203d\\u203e\\u203f\\u2040\\u2041\\u2042\\u2043\\u2044\\u2045\\u2046\\u2047\\u2048\\u2049" +
-               "\\u204a\\u204b\\u204c\\u204d\\u204e\\u204f\\u2050\\u2051\\u2052\\u2053\\u2054\\u2055\\u2056\\u2057" +
-               "\\u2058\\u2059\\u205a\\u205b\\u205c\\u205d\\u205e\\u205f\\u2060\\u2061\\u2062\\u2063\\u2064\\u2065" +
-               "\\u2066\\u2067\\u2068\\u2069\\u206a\\u206b\\u206c\\u206d\\u206e\\u206f\\u2070\\u2071\\u2072\\u2073" +
-               "\\u2074\\u2075\\u2076\\u2077\\u2078\\u2079\\u207a\\u207b\\u207c\\u207d\\u207e\\u207f\\u2080\\u2081" +
-               "\\u2082\\u2083\\u2084\\u2085\\u2086\\u2087\\u2088\\u2089\\u208a\\u208b\\u208c\\u208d\\u208e\\u208f" +
-               "\\u2090\\u2091\\u2092\\u2093\\u2094\\u2095\\u2096\\u2097\\u2098\\u2099\\u209a\\u209b\\u209c\\u209d" +
-               "\\u209e\\u209f\\u20a0\\u20a1\\u20a2\\u20a3\\u20a4\\u20a5\\u20a6\\u20a7\\u20a8\\u20a9\\u20aa\\u20ab" +
-               "\\u20ac\\u20ad\\u20ae\\u20af\\u20b0\\u20b1\\u20b2\\u20b3\\u20b4\\u20b5\\u20b6\\u20b7\\u20b8\\u20b9" +
-               "\\u20ba\\u20bb\\u20bc\\u20bd\\u20be\\u20bf\\u20c0\\u20c1\\u20c2\\u20c3\\u20c4\\u20c5\\u20c6\\u20c7" +
-               "\\u20c8\\u20c9\\u20ca\\u20cb\\u20cc\\u20cd\\u20ce\\u20cf\\u20d0\\u20d1\\u20d2\\u20d3\\u20d4\\u20d5" +
-               "\\u20d6\\u20d7\\u20d8\\u20d9\\u20da\\u20db\\u20dc\\u20dd\\u20de\\u20df\\u20e0\\u20e1\\u20e2\\u20e3" +
-               "\\u20e4\\u20e5\\u20e6\\u20e7\\u20e8\\u20e9\\u20ea\\u20eb\\u20ec\\u20ed\\u20ee\\u20ef\\u20f0\\u20f1" +
-               "\\u20f2\\u20f3\\u20f4\\u20f5\\u20f6\\u20f7\\u20f8\\u20f9\\u20fa\\u20fb\\u20fc\\u20fd\\u20fe\\u20ff" +
-               "\\u2126\\u212a\\u212b\\u2329\\u232a\\u2adc\\u302b\\u302c\\uaab2\\uaab3\\uf900\\uf901\\uf902\\uf903" +
-               "\\uf904\\uf905\\uf906\\uf907\\uf908\\uf909\\uf90a\\uf90b\\uf90c\\uf90d\\uf90e\\uf90f\\uf910\\uf911" +
-               "\\uf912\\uf913\\uf914\\uf915\\uf916\\uf917\\uf918\\uf919\\uf91a\\uf91b\\uf91c\\uf91d\\uf91e\\uf91f" +
-               "\\uf920\\uf921\\uf922\\uf923\\uf924\\uf925\\uf926\\uf927\\uf928\\uf929\\uf92a\\uf92b\\uf92c\\uf92d" +
-               "\\uf92e\\uf92f\\uf930\\uf931\\uf932\\uf933\\uf934\\uf935\\uf936\\uf937\\uf938\\uf939\\uf93a\\uf93b" +
-               "\\uf93c\\uf93d\\uf93e\\uf93f\\uf940\\uf941\\uf942\\uf943\\uf944\\uf945\\uf946\\uf947\\uf948\\uf949" +
-               "\\uf94a\\uf94b\\uf94c\\uf94d\\uf94e\\uf94f\\uf950\\uf951\\uf952\\uf953\\uf954\\uf955\\uf956\\uf957" +
-               "\\uf958\\uf959\\uf95a\\uf95b\\uf95c\\uf95d\\uf95e\\uf95f\\uf960\\uf961\\uf962\\uf963\\uf964\\uf965" +
-               "\\uf966\\uf967\\uf968\\uf969\\uf96a\\uf96b\\uf96c\\uf96d\\uf96e\\uf96f\\uf970\\uf971\\uf972\\uf973" +
-               "\\uf974\\uf975\\uf976\\uf977\\uf978\\uf979\\uf97a\\uf97b\\uf97c\\uf97d\\uf97e\\uf97f\\uf980\\uf981" +
-               "\\uf982\\uf983\\uf984\\uf985\\uf986\\uf987\\uf988\\uf989\\uf98a\\uf98b\\uf98c\\uf98d\\uf98e\\uf98f" +
-               "\\uf990\\uf991\\uf992\\uf993\\uf994\\uf995\\uf996\\uf997\\uf998\\uf999\\uf99a\\uf99b\\uf99c\\uf99d" +
-               "\\uf99e\\uf99f\\uf9a0\\uf9a1\\uf9a2\\uf9a3\\uf9a4\\uf9a5\\uf9a6\\uf9a7\\uf9a8\\uf9a9\\uf9aa\\uf9ab" +
-               "\\uf9ac\\uf9ad\\uf9ae\\uf9af\\uf9b0\\uf9b1\\uf9b2\\uf9b3\\uf9b4\\uf9b5\\uf9b6\\uf9b7\\uf9b8\\uf9b9" +
-               "\\uf9ba\\uf9bb\\uf9bc\\uf9bd\\uf9be\\uf9bf\\uf9c0\\uf9c1\\uf9c2\\uf9c3\\uf9c4\\uf9c5\\uf9c6\\uf9c7" +
-               "\\uf9c8\\uf9c9\\uf9ca\\uf9cb\\uf9cc\\uf9cd\\uf9ce\\uf9cf\\uf9d0\\uf9d1\\uf9d2\\uf9d3\\uf9d4\\uf9d5" +
-               "\\uf9d6\\uf9d7\\uf9d8\\uf9d9\\uf9da\\uf9db\\uf9dc\\uf9dd\\uf9de\\uf9df\\uf9e0\\uf9e1\\uf9e2\\uf9e3" +
-               "\\uf9e4\\uf9e5\\uf9e6\\uf9e7\\uf9e8\\uf9e9\\uf9ea\\uf9eb\\uf9ec\\uf9ed\\uf9ee\\uf9ef\\uf9f0\\uf9f1" +
-               "\\uf9f2\\uf9f3\\uf9f4\\uf9f5\\uf9f6\\uf9f7\\uf9f8\\uf9f9\\uf9fa\\uf9fb\\uf9fc\\uf9fd\\uf9fe\\uf9ff" +
-               "\\ufa00\\ufa01\\ufa02\\ufa03\\ufa04\\ufa05\\ufa06\\ufa07\\ufa08\\ufa09\\ufa0a\\ufa0b\\ufa0c\\ufa0d" +
-               "\\ufa10\\ufa12\\ufa15\\ufa16\\ufa17\\ufa18\\ufa19\\ufa1a\\ufa1b\\ufa1c\\ufa1d\\ufa1e\\ufa20\\ufa22" +
-               "\\ufa25\\ufa26\\ufa2a\\ufa2b\\ufa2c\\ufa2d\\ufa30\\ufa31\\ufa32\\ufa33\\ufa34\\ufa35\\ufa36\\ufa37" +
-               "\\ufa38\\ufa39\\ufa3a\\ufa3b\\ufa3c\\ufa3d\\ufa3e\\ufa3f\\ufa40\\ufa41\\ufa42\\ufa43\\ufa44\\ufa45" +
-               "\\ufa46\\ufa47\\ufa48\\ufa49\\ufa4a\\ufa4b\\ufa4c\\ufa4d\\ufa4e\\ufa4f\\ufa50\\ufa51\\ufa52\\ufa53" +
-               "\\ufa54\\ufa55\\ufa56\\ufa57\\ufa58\\ufa59\\ufa5a\\ufa5b\\ufa5c\\ufa5d\\ufa5e\\ufa5f\\ufa60\\ufa61" +
-               "\\ufa62\\ufa63\\ufa64\\ufa65\\ufa66\\ufa67\\ufa68\\ufa69\\ufa6a\\ufa6b\\ufa6c\\ufa6d\\ufa70\\ufa71" +
-               "\\ufa72\\ufa73\\ufa74\\ufa75\\ufa76\\ufa77\\ufa78\\ufa79\\ufa7a\\ufa7b\\ufa7c\\ufa7d\\ufa7e\\ufa7f" +
-               "\\ufa80\\ufa81\\ufa82\\ufa83\\ufa84\\ufa85\\ufa86\\ufa87\\ufa88\\ufa89\\ufa8a\\ufa8b\\ufa8c\\ufa8d" +
-               "\\ufa8e\\ufa8f\\ufa90\\ufa91\\ufa92\\ufa93\\ufa94\\ufa95\\ufa96\\ufa97\\ufa98\\ufa99\\ufa9a\\ufa9b" +
-               "\\ufa9c\\ufa9d\\ufa9e\\ufa9f\\ufaa0\\ufaa1\\ufaa2\\ufaa3\\ufaa4\\ufaa5\\ufaa6\\ufaa7\\ufaa8\\ufaa9" +
-               "\\ufaaa\\ufaab\\ufaac\\ufaad\\ufaae\\ufaaf\\ufab0\\ufab1\\ufab2\\ufab3\\ufab4\\ufab5\\ufab6\\ufab7" +
-               "\\ufab8\\ufab9\\ufaba\\ufabb\\ufabc\\ufabd\\ufabe\\ufabf\\ufac0\\ufac1\\ufac2\\ufac3\\ufac4\\ufac5" +
-               "\\ufac6\\ufac7\\ufac8\\ufac9\\ufaca\\ufacb\\ufacc\\ufacd\\uface\\ufacf\\ufad0\\ufad1\\ufad2\\ufad3" +
-               "\\ufad4\\ufad5\\ufad6\\ufad7\\ufad8\\ufad9\\ufb1d\\ufb1f\\ufb2a\\ufb2b\\ufb2c\\ufb2d\\ufb2e\\ufb2f" +
-               "\\ufb30\\ufb31\\ufb32\\ufb33\\ufb34\\ufb35\\ufb36\\ufb38\\ufb39\\ufb3a\\ufb3b\\ufb3c\\ufb3e\\ufb40" +
-               "\\ufb41\\ufb43\\ufb44\\ufb46\\ufb47\\ufb48\\ufb49\\ufb4a\\ufb4b\\ufb4c\\ufb4d\\ufb4e\\ufeff\\ufff0" +
-               "\\ufff1\\ufff2\\ufff3\\ufff4\\ufff5\\ufff6\\ufff7\\ufff8\\ufff9\\ufffa\\ufffb\\ufffc\\ufffd\\ufffe" +
-               "\\uffff";
-    }
-
     private static String serverKillerStringEsc() {
         return "\\u200c\\u200d\\u200e\\u200f\\u2028\\u2029\\u202a\\u202b\\u202c\\u202d\\u202e\\u202f\\u2060\\u2061" +
                "\\u2062\\u2063\\u2064\\u2065\\u2066\\u2067\\u2068\\u2069\\u206a\\u206b\\u206c\\u206d\\u206e\\u206f" +
                "\\ufff0\\ufff1\\ufff2\\ufff3\\ufff4\\ufff5\\ufff6\\ufff7\\ufff8\\ufff9\\ufffa\\ufffb\\ufffc\\ufffd" +
                "\\ufffe\\uffff";
+    }
+
+    private static String generateUnicodeValues(final int start, final int end) {
+        final StringBuilder sb = new StringBuilder();
+        for (int i = start ; i <= end; i++) {
+            final String hex = Integer.toHexString(i);
+            sb.append("\\u");
+            switch (hex.length()) {
+                case 1: {
+                    sb.append("000");
+                    break;
+                }
+                case 2: {
+                    sb.append("00");
+                    break;
+                }
+                case 3: {
+                    sb.append('0');
+                    break;
+                }
+            }
+            sb.append(JsonUtil.escapeCharacters(hex.toCharArray()));
+        }
+        return sb.toString();
     }
 
     private static void assertSetCookie(final String transportPath) {

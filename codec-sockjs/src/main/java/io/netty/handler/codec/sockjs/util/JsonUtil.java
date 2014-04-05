@@ -24,7 +24,6 @@ import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.JsonSerializer;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.SerializerProvider;
-import com.fasterxml.jackson.databind.deser.std.StringDeserializer;
 import com.fasterxml.jackson.databind.module.SimpleModule;
 import io.netty.buffer.ByteBuf;
 import io.netty.buffer.ByteBufInputStream;
@@ -46,7 +45,7 @@ public final class JsonUtil {
     private static ObjectMapper createObjectMapper() {
         return new ObjectMapper()
                 .registerModule(new SimpleModule("netty-codec-sockjs")
-                .addDeserializer(String.class, new StringDeserializer()));
+                .addSerializer(String.class, new StringSerializer()));
     }
 
     private JsonUtil() {
