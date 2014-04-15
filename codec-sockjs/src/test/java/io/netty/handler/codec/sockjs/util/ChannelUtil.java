@@ -12,11 +12,16 @@
  */
 package io.netty.handler.codec.sockjs.util;
 
+import io.netty.buffer.ByteBufAllocator;
+import io.netty.channel.Channel;
 import io.netty.channel.ChannelHandler;
 import io.netty.channel.ChannelHandlerAdapter;
 import io.netty.channel.ChannelHandlerContext;
 import io.netty.channel.ChannelPromise;
+import io.netty.channel.DefaultMessageSizeEstimator;
 import io.netty.channel.embedded.EmbeddedChannel;
+import io.netty.channel.socket.ServerSocketChannel;
+import io.netty.channel.socket.ServerSocketChannelConfig;
 import io.netty.handler.codec.http.HttpObjectAggregator;
 import io.netty.handler.codec.http.HttpResponseEncoder;
 import io.netty.handler.codec.http.cors.CorsConfig;
@@ -24,53 +29,129 @@ import io.netty.handler.codec.http.websocketx.WebSocket00FrameEncoder;
 import io.netty.handler.codec.http.websocketx.WebSocket07FrameEncoder;
 import io.netty.handler.codec.http.websocketx.WebSocket08FrameEncoder;
 import io.netty.handler.codec.http.websocketx.WebSocket13FrameEncoder;
+import io.netty.handler.codec.sockjs.DefaultSockJsChannelConfig;
+import io.netty.handler.codec.sockjs.SockJsChannelConfig;
 import io.netty.handler.codec.sockjs.SockJsChannelOption;
+import io.netty.handler.codec.sockjs.SockJsCloseHandler;
+import io.netty.handler.codec.sockjs.SockJsEchoHandler;
+import io.netty.handler.codec.sockjs.SockJsServerChannel;
+import io.netty.handler.codec.sockjs.SockJsServerSocketChannelAdapter;
+import io.netty.handler.codec.sockjs.SockJsService;
 
-import static io.netty.handler.codec.sockjs.SockJsChannelInitializer.*;
+import static io.netty.handler.codec.sockjs.DefaultSockJsChannelConfig.*;
+import static org.mockito.Matchers.any;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.when;
 
 public final class ChannelUtil {
 
     private ChannelUtil() {
     }
 
-    public static EmbeddedChannel wsSockJsPipeline(final String prefix, final ChannelHandler handler) {
-        final TestEmbeddedChannel ch = new TestEmbeddedChannel();
-        addDefaultSockJsHandlers(ch.pipeline(), CorsConfig.withAnyOrigin().build());
+    public static EmbeddedChannel wsSockJsChannel(final String prefix, final ChannelHandler handler) {
+        return wsSockJsChannel(prefix, handler, sockJsChannelConfig());
+    }
+
+    public static EmbeddedChannel wsSockJsChannel(final String prefix,
+                                                  final ChannelHandler handler,
+                                                  final SockJsChannelConfig config) {
+        final TestEmbeddedChannel ch = new TestEmbeddedChannel(sockJsServerChannel(handler, config));
+        addDefaultSockJsHandlers(ch.pipeline());
+
+        // just add a mock to simulate a ServerBootstrap childhandler
+        ch.pipeline().addLast("ServerBootstrap$ServerBootstrapAcceptor#0", mock(ChannelHandler.class));
+
         ch.pipeline().addLast(new WsCodecRemover());
-        ch.pipeline().addLast(handler);
         ch.pipeline().remove(HttpObjectAggregator.class);
         setDefaultSockJsChannelOptions(ch, prefix);
         return ch;
     }
 
-    public static TestEmbeddedChannel sockJsPipeline(final String prefix, final ChannelHandler handler) {
-        final TestEmbeddedChannel ch = new TestEmbeddedChannel();
-        addDefaultSockJsHandlers(ch.pipeline(), defaultCorsConfig().build());
-        ch.pipeline().addLast(handler);
-        setDefaultSockJsChannelOptions(ch, prefix);
+    public static TestEmbeddedChannel sockJsChannel(final String prefix, final ChannelHandler handler) {
+        return sockJsChannel(prefix, handler, sockJsChannelConfig());
+    }
 
+    public static TestEmbeddedChannel sockJsChannel(final String prefix,
+                                                    final ChannelHandler handler,
+                                                    final SockJsChannelConfig config) {
+        final TestEmbeddedChannel ch = new TestEmbeddedChannel(sockJsServerChannel(handler, config));
+        addDefaultSockJsHandlers(ch.pipeline());
+
+        // just add a mock to simulate a ServerBootstrap childhandler
+        ch.pipeline().addLast("ServerBootstrap$ServerBootstrapAcceptor#0", mock(ChannelHandler.class));
         // remove the HttpResponseEncoder so that we can check the plain HttpResponses.
         ch.pipeline().remove(HttpResponseEncoder.class);
         ch.pipeline().remove(HttpObjectAggregator.class);
+        setDefaultSockJsChannelOptions(ch, prefix);
         return ch;
     }
 
-    public static TestEmbeddedChannel sockJsPipeline(final String prefix,
-                                                      final ChannelHandler handler,
-                                                      final CorsConfig corsConfig) {
-        final TestEmbeddedChannel ch = new TestEmbeddedChannel();
-        addDefaultSockJsHandlers(ch.pipeline(), corsConfig);
-        ch.pipeline().addLast(handler);
-        // remove the HttpResponseEncoder so that we can check the plain HttpResponses.
-        ch.pipeline().remove(HttpResponseEncoder.class);
-        ch.pipeline().remove(HttpObjectAggregator.class);
-        setDefaultSockJsChannelOptions(ch, prefix);
-        return ch;
+    public static SockJsChannelConfig sockJsChannelConfig() {
+        return new DefaultSockJsChannelConfig(mock(Channel.class));
+    }
+
+    public static SockJsChannelConfig sockJsChannelConfig(final CorsConfig corsConfig) {
+        final SockJsChannelConfig channelConfig = sockJsChannelConfig();
+        channelConfig.setCorsConfig(corsConfig);
+        return channelConfig;
+    }
+
+    private static SockJsServerSocketChannelAdapter sockJsServerChannel(final ChannelHandler handler,
+                                                           final SockJsChannelConfig config) {
+        final SockJsService sockJsService = new SockJsService(config, handler);
+
+        final SockJsServerChannel sockJsServerChannel = mock(SockJsServerChannel.class);
+        when(sockJsServerChannel.config()).thenReturn(config);
+        when(sockJsServerChannel.serviceFor(any(String.class))).thenReturn(sockJsService);
+
+        final ServerSocketChannel serverSocketChannel = mock(ServerSocketChannel.class);
+        final ServerSocketChannelConfig serverSocketChannelConfig = mock(ServerSocketChannelConfig.class);
+        when(serverSocketChannelConfig.isAutoRead()).thenReturn(Boolean.TRUE);
+        when(serverSocketChannelConfig.getMessageSizeEstimator()).thenReturn(DefaultMessageSizeEstimator.DEFAULT);
+        when(serverSocketChannelConfig.getAllocator()).thenReturn(ByteBufAllocator.DEFAULT);
+        when(serverSocketChannel.config()).thenReturn(serverSocketChannelConfig);
+
+        final SockJsServerSocketChannelAdapter serverSocketChannelAdapter = new SockJsServerSocketChannelAdapter(
+                sockJsServerChannel,
+                serverSocketChannel);
+        return serverSocketChannelAdapter;
     }
 
     public static void setDefaultSockJsChannelOptions(final EmbeddedChannel ch, final String prefix) {
         ch.config().setOption(SockJsChannelOption.PREFIX, prefix);
         ch.config().setOption(SockJsChannelOption.COOKIES_NEEDED, true);
+    }
+
+    public static EmbeddedChannel echoChannel() {
+        return sockJsChannel("/echo", new SockJsEchoHandler());
+    }
+
+    public static EmbeddedChannel webSocketEchoChannel() {
+        return wsSockJsChannel("/echo", new SockJsEchoHandler());
+    }
+
+    public static EmbeddedChannel webSocketEchoChannel(final SockJsChannelConfig config) {
+        return wsSockJsChannel("/echo", new SockJsEchoHandler(), config);
+    }
+
+    public static EmbeddedChannel echoChannel(final SockJsChannelConfig config) {
+        return sockJsChannel("/echo", new SockJsEchoHandler(), config);
+    }
+
+    public static EmbeddedChannel closeChannel() {
+        return sockJsChannel("/close", new SockJsCloseHandler());
+    }
+
+    public static EmbeddedChannel closeChannel(final SockJsChannelConfig config) {
+        return sockJsChannel("/close", new SockJsCloseHandler(), config);
+    }
+
+    public static EmbeddedChannel webSocketCloseChannel() {
+        return wsSockJsChannel("/close", new SockJsCloseHandler());
+    }
+
+    public static EmbeddedChannel webSocketCloseChannel(final SockJsChannelConfig config) {
+        return wsSockJsChannel("/close", new SockJsCloseHandler(), config);
     }
 
     /**

@@ -1,5 +1,5 @@
 /*
- * Copyright 2014 The Netty Project
+ * Copyright 2013 The Netty Project
  *
  * The Netty Project licenses this file to you under the Apache License, version
  * 2.0 (the "License"); you may not use this file except in compliance with the
@@ -13,19 +13,10 @@
  * License for the specific language governing permissions and limitations under
  * the License.
  */
-package io.netty.handler.codec.sockjs.oio;
+package io.netty.handler.codec.sockjs;
 
-import io.netty.channel.Channel;
-import io.netty.channel.EventLoop;
-import io.netty.channel.socket.oio.OioSocketChannel;
+import io.netty.channel.socket.ServerSocketChannelConfig;
 
-import java.net.Socket;
-
-public class OioSockJsSocketChannel extends OioSocketChannel {
-
-    public OioSockJsSocketChannel(Channel parent, EventLoop eventLoop, Socket socket) {
-        super(parent, eventLoop, socket);
-    }
+public interface SockJsServerSocketChannelConfig extends ServerSocketChannelConfig, SockJsConfig {
 
 }
-

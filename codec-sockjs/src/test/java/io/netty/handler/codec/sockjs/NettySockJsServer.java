@@ -20,8 +20,11 @@ import io.netty.channel.Channel;
 import io.netty.channel.ChannelInitializer;
 import io.netty.channel.EventLoopGroup;
 import io.netty.channel.nio.NioEventLoopGroup;
-import io.netty.handler.codec.sockjs.nio.NioSockJsServerSocketChannel;
+import io.netty.channel.socket.SocketChannel;
+import io.netty.handler.codec.http.cors.CorsConfig;
+import io.netty.handler.codec.sockjs.nio.NioSockJsServerChannel;
 
+import static io.netty.handler.codec.http.HttpMethod.*;
 import static io.netty.handler.codec.sockjs.SockJsChannelOption.*;
 
 /**
@@ -42,19 +45,57 @@ public class NettySockJsServer {
         final EventLoopGroup workerGroup = new NioEventLoopGroup();
         try {
             final ServerBootstrap sb = new ServerBootstrap();
-            sb.channel(NioSockJsServerSocketChannel.class);
+            sb.channel(NioSockJsServerChannel.class);
             sb.group(bossGroup, workerGroup);
 
-            sb.childHandler(new ChannelInitializer<SockJsChannel>() {
+            final CorsConfig corsConfig = DefaultSockJsConfig.defaultCorsConfig("test", "*")
+                    .allowedRequestHeaders("a", "b", "c")
+                    .allowNullOrigin()
+                    .allowedRequestMethods(POST, GET, OPTIONS)
+                    .build();
+
+            sb.childHandler(new ChannelInitializer<SocketChannel>() {
                 @Override
-                protected void initChannel(final SockJsChannel ch) throws Exception {
-                    ch.pipeline().addLast("echo", new SockJsEchoHandler());
+                protected void initChannel(final SocketChannel ch) throws Exception {
+                    ch.pipeline().addLast(new SockJsEchoHandler());
                 }
             });
-            sb.childOption(PREFIX, "/echo");
-            sb.childOption(MAX_STREAMING_BYTES_SIZE, 4096);
-            sb.childOption(WEBSOCKET_ENABLED, true);
-            sb.childOption(SESSION_TIMEOUT, Long.MAX_VALUE);
+            sb.option(PREFIX, "/echo");
+            sb.option(MAX_STREAMING_BYTES_SIZE, 4096);
+            sb.option(CORS_CONFIG, corsConfig);
+            sb.register();
+
+            sb.childHandler(new ChannelInitializer<SocketChannel>() {
+                @Override
+                protected void initChannel(final SocketChannel ch) throws Exception {
+                    ch.pipeline().addLast(new SockJsCloseHandler());
+                }
+            });
+            sb.option(PREFIX, "/close");
+            sb.option(CORS_CONFIG, corsConfig);
+            sb.register();
+
+            sb.childHandler(new ChannelInitializer<SocketChannel>() {
+                @Override
+                protected void initChannel(final SocketChannel ch) throws Exception {
+                    ch.pipeline().addLast(new SockJsEchoHandler());
+                }
+            });
+            sb.option(PREFIX, "/cookie_needed_echo");
+            sb.option(COOKIES_NEEDED, true);
+            sb.option(CORS_CONFIG, corsConfig);
+            sb.register();
+
+            sb.childHandler(new ChannelInitializer<SocketChannel>() {
+                @Override
+                protected void initChannel(final SocketChannel ch) throws Exception {
+                    ch.pipeline().addLast(new SockJsWSDisabledHandler());
+                }
+            });
+            sb.option(PREFIX, "/disabled_websocket_echo");
+            sb.option(WEBSOCKET_ENABLED, false);
+            sb.option(CORS_CONFIG, corsConfig);
+            sb.register();
 
             final Channel ch = sb.bind(port).sync().channel();
             System.out.println("Web socket server started on port [" + port + "], ");

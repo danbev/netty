@@ -1,5 +1,5 @@
 /*
- * Copyright 2013 The Netty Project
+ * Copyright 2014 The Netty Project
  *
  * The Netty Project licenses this file to you under the Apache License, version
  * 2.0 (the "License"); you may not use this file except in compliance with the
@@ -15,19 +15,15 @@
  */
 package io.netty.handler.codec.sockjs;
 
-import io.netty.channel.ChannelHandler;
-import io.netty.channel.socket.SocketChannel;
+import io.netty.channel.ServerChannel;
 
-public interface SockJsChannel extends SocketChannel {
+/**
+ *
+ */
+public interface SockJsServerChannel extends ServerChannel {
 
-    @Override
+    SockJsService serviceFor(String prefix);
+
     SockJsChannelConfig config();
-
-    /**
-     * Adds the {@link ChannelHandler} required for SockJS.
-     *
-     * @param handler the channel handler to setup SockJS.
-     */
-    void addSockJsHandler(ChannelHandler handler);
 
 }

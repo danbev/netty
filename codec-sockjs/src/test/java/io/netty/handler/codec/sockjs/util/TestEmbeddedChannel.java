@@ -15,28 +15,24 @@
  */
 package io.netty.handler.codec.sockjs.util;
 
+import io.netty.channel.Channel;
 import io.netty.channel.ChannelConfig;
 import io.netty.channel.ChannelHandlerInvoker;
 import io.netty.channel.ChannelOutboundBuffer;
 import io.netty.channel.ChannelPromise;
 import io.netty.channel.embedded.EmbeddedChannel;
-import io.netty.channel.socket.SocketChannel;
-import io.netty.handler.codec.sockjs.DefaultSockJsChannelConfig;
-import io.netty.handler.codec.sockjs.SockJsChannelConfig;
 
-import java.net.Socket;
 import java.net.SocketAddress;
 
-import static org.mockito.Mockito.mock;
 
 public class TestEmbeddedChannel extends EmbeddedChannel {
 
-    private final SockJsChannelConfig config  = new DefaultSockJsChannelConfig(mock(SocketChannel.class),
-            mock(Socket.class));
+    private final Channel parent;
 
-    public TestEmbeddedChannel() {
+    public TestEmbeddedChannel(final Channel parent) {
         // remove EmbeddedChannels LastInboundHandler channel handler or it will simply
         // store all messages written.
+        this.parent = parent;
         pipeline().remove("EmbeddedChannel$LastInboundHandler#0");
     }
 
@@ -48,7 +44,12 @@ public class TestEmbeddedChannel extends EmbeddedChannel {
 
     @Override
     public ChannelConfig config() {
-        return config == null ? super.config() : config;
+        return parent == null ? super.config() : parent.config();
+    }
+
+    @Override
+    public Channel parent() {
+        return parent;
     }
 
     private static final class TestUnsafe implements Unsafe {

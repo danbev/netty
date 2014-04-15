@@ -27,18 +27,70 @@ import static io.netty.channel.ChannelOption.valueOf;
 public final class SockJsChannelOption {
 
     private static final Class<SockJsChannelOption> T = SockJsChannelOption.class;
+
+    /**
+     * SockJS prefix option. See {@link SockJsChannelConfig#getPrefix()} for details.
+     */
     public static final ChannelOption<String> PREFIX = valueOf(T, "PREFIX");
+
+    /**
+     * SockJS WebSocket enabled option. See {@link SockJsChannelConfig#isWebSocketEnabled()} for details.
+     */
     public static final ChannelOption<Boolean> WEBSOCKET_ENABLED = valueOf(T, "WEBSOCKET_ENABLED");
+
+    /**
+     * SockJS WebSocket heartbeat option. See {@link SockJsChannelConfig#webSocketHeartbeatInterval()} for details.
+     */
     public static final ChannelOption<Long> WEBSOCKET_HEARTBEAT_INTERVAL = valueOf(T, "WEBSOCKET_HEARTBEAT_INTERVAL");
+
+    /**
+     * SockJS WebSocket protocols option. See {@link SockJsChannelConfig#webSocketProtocol()} for details.
+     */
     public static final ChannelOption<Set<String>> WEBSOCKET_PROTOCOLS = valueOf(T, "WEBSOCKET_PROTOCOLS");
+
+    /**
+     * SockJS cookies neeeded option. See {@link SockJsChannelConfig#areCookiesNeeded()} for details.
+     */
     public static final ChannelOption<Boolean> COOKIES_NEEDED = valueOf(T, "COOKIES_NEEDED");
+
+    /**
+     * SockJS URL option. See {@link SockJsChannelConfig#sockJsUrl()} for details.
+     */
     public static final ChannelOption<String> SOCKJS_URL = valueOf(T, "SOCKJS_URL");
+
+    /**
+     * SockJS session timeout option. See {@link SockJsChannelConfig#sessionTimeout()} for details.
+     */
     public static final ChannelOption<Long> SESSION_TIMEOUT = valueOf(T, "SESSION_TIMEOUT");
+
+    /**
+     * SockJS heartbeat interval option. See {@link SockJsChannelConfig#heartbeatInterval()} for details.
+     */
     public static final ChannelOption<Long> HEARTBEAT_INTERVAL = valueOf(T, "HEARTBEAT_INTERVAL");
+
+    /**
+     * SockJS max streaming bytes size option. See {@link SockJsChannelConfig#maxStreamingBytesSize()} for details.
+     */
     public static final ChannelOption<Integer> MAX_STREAMING_BYTES_SIZE = valueOf(T, "MAX_STREAMING_BYTES_SIZE");
+
+    /**
+     * SockJS TLS option. See {@link SockJsChannelConfig#isTls()} for details.
+     */
     public static final ChannelOption<Boolean> TLS = valueOf(T, "TLS");
+
+    /**
+     * SockJS keystore option. See {@link SockJsChannelConfig#keyStore()} for details.
+     */
     public static final ChannelOption<String> KEYSTORE = valueOf(T, "KEYSTORE");
+
+    /**
+     * SockJS keystore password option. See {@link SockJsChannelConfig#keyStorePassword()} for details.
+     */
     public static final ChannelOption<String> KEYSTORE_PASSWORD = valueOf(T, "KEYSTORE_PASSWORD");
+
+    /**
+     * SockJS CORS configuration option. See {@link SockJsChannelConfig#corsConfig()} for details.
+     */
     public static final ChannelOption<CorsConfig> CORS_CONFIG = valueOf(T, "CORS_CONFIG");
 
     private SockJsChannelOption() {
@@ -52,7 +104,7 @@ public final class SockJsChannelOption {
      * @param option the option to be set for the SockJs service.
      * @return ChannelOption for the passed original option plus a SockJs service prefix.
      */
-    public static ChannelOption forPrefix(final String prefix, ChannelOption<?> option) {
+    public static ChannelOption<?> forPrefix(final String prefix, ChannelOption<?> option) {
         return valueOf(option.name() + '#' + prefix);
     }
 

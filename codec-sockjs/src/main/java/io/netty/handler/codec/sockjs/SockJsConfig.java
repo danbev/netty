@@ -15,7 +15,6 @@
  */
 package io.netty.handler.codec.sockjs;
 
-import io.netty.channel.ChannelInitializer;
 import io.netty.handler.codec.http.cors.CorsConfig;
 
 import java.util.Set;
@@ -198,7 +197,7 @@ public interface SockJsConfig {
 
     /**
      * Returns the keystore to be used if transport layer security is enabled.
-     * TODO: This should probably be moved into the SockJsChannel and not be per service.
+     * TODO: This should probably be moved into the SockJsServerChannel and not be per service.
      *
      * @return {@code String} the path to the keystore to be used
      */
@@ -206,7 +205,7 @@ public interface SockJsConfig {
 
     /**
      * Sets the keystore to be used.
-     * TODO: This should probably be moved into the SockJsChannel and not be per service.
+     * TODO: This should probably be moved into the SockJsServerChannel and not be per service.
      *
      * @param keyStore the keystore to be used.
      * @return SockJsConfig to support method chaining.
@@ -215,7 +214,7 @@ public interface SockJsConfig {
 
     /**
      * Returns the keystore password to be used if transport layer security is enabled.
-     * TODO: This should probably be moved into the SockJsChannel and not be per service.
+     * TODO: This should probably be moved into the SockJsServerChannel and not be per service.
      *
      * @return {@code String} the password to the configured keystore
      */
@@ -223,7 +222,7 @@ public interface SockJsConfig {
 
     /**
      * Sets the keystore password.
-     * TODO: This should probably be moved into the SockJsChannel and not be per service.
+     * TODO: This should probably be moved into the SockJsServerChannel and not be per service.
      *
      * @param password the password for the keystore.
      * @return SockJsConfig to support method chaining.
@@ -243,19 +242,5 @@ public interface SockJsConfig {
      * @return SockJsConfig to support method chaining.
      */
     SockJsConfig setCorsConfig(CorsConfig corsConfig);
-
-    /**
-     * Returns the {@link ChannelInitializer} for a SockJS service.
-     *
-     * @return {@link ChannelInitializer} to override the default SockJS handlers.
-     */
-    ChannelInitializer<SockJsChannel> channelInitializer();
-
-    /**
-     * Sets the {@link ChannelInitializer} for this SockJS service.
-     * @param init the ChannelInitilizer to be used.
-     * @return SockJsConfig to support method chaining.
-     */
-    SockJsConfig setChannelInitializer(ChannelInitializer<SockJsChannel> init);
 
 }

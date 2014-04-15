@@ -15,25 +15,25 @@
  */
 package io.netty.handler.codec.sockjs.oio;
 
-import io.netty.channel.ChannelInitializer;
 import io.netty.channel.ChannelOption;
-import io.netty.channel.socket.oio.DefaultOioSocketChannelConfig;
+import io.netty.channel.socket.ServerSocketChannel;
+import io.netty.channel.socket.oio.DefaultOioServerSocketChannelConfig;
 import io.netty.handler.codec.http.cors.CorsConfig;
 import io.netty.handler.codec.sockjs.DefaultSockJsChannelConfig;
-import io.netty.handler.codec.sockjs.SockJsChannel;
 import io.netty.handler.codec.sockjs.SockJsChannelConfig;
 import io.netty.handler.codec.sockjs.SockJsConfig;
 
-import java.net.Socket;
+import java.net.ServerSocket;
 import java.util.Set;
 
-public class DefaultOioSockJsChannelConfig extends DefaultOioSocketChannelConfig implements OioSockJsChannelConfig {
+public class DefaultOioSockJsChannelConfig extends DefaultOioServerSocketChannelConfig
+        implements OioSockJsChannelConfig {
 
     private final SockJsChannelConfig sockJsChannelConfig;
 
-    public DefaultOioSockJsChannelConfig(final OioSockJsSocketChannel channel, final Socket socket) {
+    public DefaultOioSockJsChannelConfig(ServerSocketChannel channel, ServerSocket socket) {
         super(channel, socket);
-        sockJsChannelConfig = new DefaultSockJsChannelConfig(channel, socket);
+        sockJsChannelConfig = new DefaultSockJsChannelConfig(channel);
     }
 
     @Override
@@ -181,13 +181,4 @@ public class DefaultOioSockJsChannelConfig extends DefaultOioSocketChannelConfig
         return sockJsChannelConfig.setCorsConfig(corsConfig);
     }
 
-    @Override
-    public ChannelInitializer<SockJsChannel> channelInitializer() {
-        return sockJsChannelConfig.channelInitializer();
-    }
-
-    @Override
-    public SockJsConfig setChannelInitializer(final ChannelInitializer<SockJsChannel> init) {
-        return sockJsChannelConfig.setChannelInitializer(init);
-    }
 }

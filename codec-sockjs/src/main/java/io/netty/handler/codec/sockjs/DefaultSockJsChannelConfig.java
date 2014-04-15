@@ -15,27 +15,38 @@
  */
 package io.netty.handler.codec.sockjs;
 
-import io.netty.channel.ChannelInitializer;
+import io.netty.channel.Channel;
 import io.netty.channel.ChannelOption;
-import io.netty.channel.socket.DefaultSocketChannelConfig;
-import io.netty.channel.socket.SocketChannel;
+import io.netty.channel.ChannelPipeline;
+import io.netty.channel.DefaultChannelConfig;
+import io.netty.handler.codec.http.HttpHeaders.Names;
+import io.netty.handler.codec.http.HttpObjectAggregator;
+import io.netty.handler.codec.http.HttpRequestDecoder;
+import io.netty.handler.codec.http.HttpResponseEncoder;
 import io.netty.handler.codec.http.cors.CorsConfig;
+import io.netty.handler.codec.http.cors.CorsConfig.Builder;
 
-import java.net.Socket;
+import java.util.Date;
+import java.util.Map;
 import java.util.Set;
+import java.util.concurrent.Callable;
 
 import static io.netty.handler.codec.sockjs.SockJsChannelOption.*;
 
 /**
  * Represents a configuration options for a SockJs Channel.
  */
-public class DefaultSockJsChannelConfig extends DefaultSocketChannelConfig implements SockJsChannelConfig {
+public class DefaultSockJsChannelConfig extends DefaultChannelConfig implements SockJsChannelConfig {
 
     private final SockJsConfig config;
 
-    public DefaultSockJsChannelConfig(final SocketChannel channel, final Socket socket) {
-        super(channel, socket);
-        config = new DefaultSockJsConfig();
+    public DefaultSockJsChannelConfig(final Channel channel) {
+        this(channel, new DefaultSockJsConfig());
+    }
+
+    public DefaultSockJsChannelConfig(final Channel channel, final SockJsConfig sockJsConfig) {
+        super(channel);
+        config = sockJsConfig;
     }
 
     @Override
@@ -67,9 +78,9 @@ public class DefaultSockJsChannelConfig extends DefaultSocketChannelConfig imple
         } else if (option == CORS_CONFIG) {
             config.setCorsConfig((CorsConfig) value);
         } else {
-            return false;
+            return super.setOption(option, value);
         }
-        return super.setOption(option, value);
+        return true;
     }
 
     @Override
@@ -115,6 +126,24 @@ public class DefaultSockJsChannelConfig extends DefaultSocketChannelConfig imple
             return (T) config.corsConfig();
         }
         return super.getOption(option);
+    }
+
+    @Override
+    public Map<ChannelOption<?>, Object> getOptions() {
+        return getOptions(super.getOptions(),
+                PREFIX,
+                WEBSOCKET_ENABLED,
+                WEBSOCKET_HEARTBEAT_INTERVAL,
+                WEBSOCKET_PROTOCOLS,
+                COOKIES_NEEDED,
+                SOCKJS_URL,
+                SESSION_TIMEOUT,
+                HEARTBEAT_INTERVAL,
+                MAX_STREAMING_BYTES_SIZE,
+                TLS,
+                KEYSTORE,
+                KEYSTORE_PASSWORD,
+                CORS_CONFIG);
     }
 
     @Override
@@ -252,13 +281,28 @@ public class DefaultSockJsChannelConfig extends DefaultSocketChannelConfig imple
         return config.setCorsConfig(corsConfig);
     }
 
-    @Override
-    public SockJsConfig setChannelInitializer(ChannelInitializer<SockJsChannel> init) {
-        return config.setChannelInitializer(init);
+    public static void addDefaultSockJsHandlers(final ChannelPipeline pipeline) {
+        pipeline.addLast("decoder", new HttpRequestDecoder());
+        pipeline.addLast("encoder", new HttpResponseEncoder());
+        pipeline.addLast("chucked", new HttpObjectAggregator(1048576));
+        pipeline.addLast("mux", new SockJsMultiplexer());
     }
 
-    @Override
-    public ChannelInitializer<SockJsChannel> channelInitializer() {
-        return config.channelInitializer();
+    public static Builder defaultCorsConfig() {
+        return CorsConfig.withAnyOrigin()
+                .allowCredentials()
+                .preflightResponseHeader(Names.CACHE_CONTROL, "public, max-age=31536000")
+                .preflightResponseHeader(Names.SET_COOKIE, "JSESSIONID=dummy;path=/")
+                .preflightResponseHeader(Names.EXPIRES, new Callable<Date>() {
+                    @Override
+                    public Date call() throws Exception {
+                        final Date date = new Date();
+                        date.setTime(date.getTime() + 3600 * 1000);
+                        return date;
+                    }
+                })
+                .allowedRequestHeaders(Names.CONTENT_TYPE.toString())
+                .maxAge(31536000);
     }
+
 }

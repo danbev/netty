@@ -15,13 +15,19 @@
  */
 package io.netty.handler.codec.sockjs;
 
-import io.netty.channel.ChannelInitializer;
 import io.netty.handler.codec.http.cors.CorsConfig;
+import io.netty.handler.codec.http.cors.CorsConfig.Builder;
 import io.netty.util.internal.StringUtil;
 
 import java.util.HashSet;
 import java.util.Iterator;
 import java.util.Set;
+import java.util.Date;
+import java.util.concurrent.Callable;
+
+import static io.netty.handler.codec.http.HttpHeaders.Names.CACHE_CONTROL;
+import static io.netty.handler.codec.http.HttpHeaders.Names.EXPIRES;
+import static io.netty.handler.codec.http.HttpHeaders.Names.SET_COOKIE;
 
 /**
  * Represents a configuration options for a SockJs Channel.
@@ -41,8 +47,7 @@ public class DefaultSockJsConfig implements SockJsConfig {
     private boolean tls;
     private String keyStore;
     private String keystorePassword;
-    private CorsConfig corsConfig = CorsConfig.withAnyOrigin().allowCredentials().maxAge(31536000).build();
-    private ChannelInitializer<SockJsChannel> channelInitializer;
+    private CorsConfig corsConfig = defaultCorsConfig().build();
 
     public DefaultSockJsConfig() {
     }
@@ -210,17 +215,6 @@ public class DefaultSockJsConfig implements SockJsConfig {
         return this;
     }
 
-    @Override
-    public ChannelInitializer<SockJsChannel> channelInitializer() {
-        return channelInitializer;
-    }
-
-    @Override
-    public SockJsConfig setChannelInitializer(ChannelInitializer<SockJsChannel> init) {
-        channelInitializer = init;
-        return this;
-    }
-
     public String toString() {
         return StringUtil.simpleClassName(this) + "[getPrefix=" + prefix +
                 ", webSocketEnabled=" + webSocketEnabled +
@@ -234,8 +228,30 @@ public class DefaultSockJsConfig implements SockJsConfig {
                 ", tls=" + tls +
                 ", keyStore=" + keyStore +
                 ", corsConfig=" + corsConfig +
-                ", channelInitializer=" + channelInitializer +
                 ']';
+    }
+
+    public static Builder defaultCorsConfig(final String... origins) {
+        return addDefaultOptions(CorsConfig.withOrigins(origins));
+    }
+
+    public static Builder defaultCorsConfig() {
+        return addDefaultOptions(CorsConfig.withAnyOrigin());
+    }
+
+    private static Builder addDefaultOptions(final Builder builder) {
+        return builder.allowCredentials()
+                .preflightResponseHeader(CACHE_CONTROL, "public, max-age=31536000")
+                .preflightResponseHeader(SET_COOKIE, "JSESSIONID=dummy;path=/")
+                .preflightResponseHeader(EXPIRES, new Callable<Date>() {
+                    @Override
+                    public Date call() throws Exception {
+                        final Date date = new Date();
+                        date.setTime(date.getTime() + 3600 * 1000);
+                        return date;
+                    }
+                })
+                .maxAge(31536000);
     }
 
 }

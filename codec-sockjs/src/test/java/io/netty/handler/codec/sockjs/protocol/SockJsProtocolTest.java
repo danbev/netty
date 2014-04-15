@@ -20,7 +20,6 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import io.netty.buffer.ByteBuf;
 import io.netty.buffer.ByteBufHolder;
 import io.netty.buffer.Unpooled;
-import io.netty.channel.ChannelHandler;
 import io.netty.channel.embedded.EmbeddedChannel;
 import io.netty.handler.codec.http.ClientCookieEncoder;
 import io.netty.handler.codec.http.DefaultFullHttpRequest;
@@ -41,19 +40,15 @@ import io.netty.handler.codec.http.websocketx.CloseWebSocketFrame;
 import io.netty.handler.codec.http.websocketx.TextWebSocketFrame;
 import io.netty.handler.codec.http.websocketx.WebSocketVersion;
 import io.netty.handler.codec.sockjs.SockJsChannelConfig;
-import io.netty.handler.codec.sockjs.SockJsChannelInitializer;
 import io.netty.handler.codec.sockjs.SockJsChannelOption;
-import io.netty.handler.codec.sockjs.SockJsCloseHandler;
-import io.netty.handler.codec.sockjs.SockJsEchoHandler;
-import io.netty.handler.codec.sockjs.transport.EventSourceTransport;
 import io.netty.handler.codec.sockjs.transport.HttpResponseBuilder;
 import io.netty.handler.codec.sockjs.transport.TransportType;
 import io.netty.handler.codec.sockjs.util.HttpUtil;
 import io.netty.handler.codec.sockjs.util.JsonUtil;
-import io.netty.handler.codec.sockjs.util.TestEmbeddedChannel;
 import io.netty.util.ReferenceCountUtil;
 import org.junit.Test;
 
+import java.util.Arrays;
 import java.util.UUID;
 import java.util.regex.Pattern;
 
@@ -61,9 +56,22 @@ import static io.netty.handler.codec.http.HttpHeaders.Names.*;
 import static io.netty.handler.codec.http.HttpHeaders.Values.WEBSOCKET;
 import static io.netty.handler.codec.http.HttpHeaders.Values.KEEP_ALIVE;
 import static io.netty.handler.codec.http.HttpMethod.*;
+import static io.netty.handler.codec.http.HttpResponseStatus.BAD_REQUEST;
+import static io.netty.handler.codec.http.HttpResponseStatus.INTERNAL_SERVER_ERROR;
+import static io.netty.handler.codec.http.HttpResponseStatus.METHOD_NOT_ALLOWED;
+import static io.netty.handler.codec.http.HttpResponseStatus.NOT_FOUND;
+import static io.netty.handler.codec.http.HttpResponseStatus.NO_CONTENT;
+import static io.netty.handler.codec.http.HttpResponseStatus.OK;
+import static io.netty.handler.codec.http.HttpResponseStatus.SWITCHING_PROTOCOLS;
 import static io.netty.handler.codec.http.HttpVersion.*;
 import static io.netty.handler.codec.http.websocketx.WebSocketVersion.*;
+import static io.netty.handler.codec.sockjs.DefaultSockJsChannelConfig.defaultCorsConfig;
+import static io.netty.handler.codec.sockjs.SockJsChannelOption.SOCKJS_URL;
 import static io.netty.handler.codec.sockjs.SockJsTestUtil.*;
+import static io.netty.handler.codec.sockjs.transport.EventSourceTransport.CONTENT_TYPE_EVENT_STREAM;
+import static io.netty.handler.codec.sockjs.transport.HttpResponseBuilder.CONTENT_TYPE_HTML;
+import static io.netty.handler.codec.sockjs.transport.HttpResponseBuilder.CONTENT_TYPE_JAVASCRIPT;
+import static io.netty.handler.codec.sockjs.transport.HttpResponseBuilder.CONTENT_TYPE_PLAIN;
 import static io.netty.handler.codec.sockjs.util.ChannelUtil.*;
 import static io.netty.util.CharsetUtil.*;
 import static org.hamcrest.CoreMatchers.containsString;
@@ -83,11 +91,11 @@ public class SockJsProtocolTest {
      */
     @Test
     public void baseUrlGreetingTestGreeting() throws Exception {
-        final EmbeddedChannel ch = sockJsPipeline("/echo", new SockJsEchoHandler());
+        final EmbeddedChannel ch = echoChannel();
         ch.writeInbound(httpRequest(ch.config().getOption(SockJsChannelOption.PREFIX)));
 
         final FullHttpResponse response = ch.readOutbound();
-        assertThat(response.getStatus().code(), is(HttpResponseStatus.OK.code()));
+        assertThat(response.getStatus().code(), is(OK.code()));
         assertThat(response.headers().get(CONTENT_TYPE), equalTo("text/plain; charset=UTF-8"));
         assertThat(response.content().toString(UTF_8), equalTo("Welcome to SockJS!\n"));
         verifyNoSET_COOKIE(response);
@@ -156,29 +164,32 @@ public class SockJsProtocolTest {
      */
     @Test
     public void iframeCachability() throws Exception {
-        EmbeddedChannel ch = sockJsPipeline("/echo", new SockJsEchoHandler());
-
+        EmbeddedChannel ch = echoChannel();
         ch.writeInbound(httpRequest("/echo" + "/iframe.html"));
+
         final FullHttpResponse response1 = ch.readOutbound();
         final String etag1 = getEtag(response1);
         response1.release();
+        ch.close();
 
-        ch = sockJsPipeline("/echo", new SockJsEchoHandler());
+        ch = echoChannel();
         ch.writeInbound(httpRequest("/echo/iframe.html"));
 
         final FullHttpResponse response2 = ch.readOutbound();
         final String etag2 = getEtag(response2);
         assertThat(etag1, equalTo(etag2));
         response2.release();
+        ch.close();
 
         final HttpRequest requestWithEtag = httpRequest("/echo/iframe.html");
         requestWithEtag.headers().set(IF_NONE_MATCH, etag1);
-        ch = sockJsPipeline("/echo", new SockJsEchoHandler());
+        ch = echoChannel();
         ch.writeInbound(requestWithEtag);
 
         final HttpResponse response = ch.readOutbound();
         assertThat(response.getStatus(), equalTo(HttpResponseStatus.NOT_MODIFIED));
         assertThat(response.headers().get(CONTENT_TYPE), is(nullValue()));
+        ch.close();
     }
 
     /*
@@ -187,7 +198,7 @@ public class SockJsProtocolTest {
     @Test
     public void infoTestBasic() throws Exception {
         final FullHttpResponse response = sendInfoRequest();
-        assertThat(response.getStatus(), is(HttpResponseStatus.OK));
+        assertThat(response.getStatus(), is(OK));
         verifyContentType(response, "application/json; charset=UTF-8");
         verifyNoSET_COOKIE(response);
         verifyNotCached(response);
@@ -218,17 +229,16 @@ public class SockJsProtocolTest {
      */
     @Test
     public void infoTestOptions() throws Exception {
-        final CorsConfig corsConfig = SockJsChannelInitializer.defaultCorsConfig()
+        final EmbeddedChannel ch = echoChannel(sockJsChannelConfig(defaultCorsConfig()
+                .allowedRequestHeaders(Names.CONTENT_TYPE.toString())
                 .preflightResponseHeader(Names.CONTENT_TYPE, "text/plain; charset=UTF-8")
-                .build();
-        final EmbeddedChannel ch = sockJsPipeline("/echo", new SockJsEchoHandler(), corsConfig);
-        ch.writeInbound(httpRequest("/echo", OPTIONS));
+                .build()));
+        final HttpRequest request = httpRequest("/echo", OPTIONS);
+        request.headers().set(ACCESS_CONTROL_REQUEST_HEADERS, CONTENT_TYPE);
+        ch.writeInbound(request);
 
         final HttpResponse response = ch.readOutbound();
-        // sockjs-protocol expects a 204 "No Content" while CORS "should" return 200 "OK".
-        // perhaps this should be configurable. Check the spec!
-        // assertThat(buildResponse.getStatus(), is(HttpResponseStatus.NO_CONTENT));
-        assertThat(response.getStatus(), is(HttpResponseStatus.OK));
+        assertThat(response.getStatus(), is(OK));
         assertCORSPreflightResponseHeaders(response);
         assertCORSHeaders(response, "*");
     }
@@ -239,8 +249,7 @@ public class SockJsProtocolTest {
     @Test
     public void corsConfigOverride() throws Exception {
         final String origin = "http://localhost";
-        final CorsConfig corsConfig = CorsConfig.withOrigin(origin).build();
-        final EmbeddedChannel ch = sockJsPipeline("/echo", new SockJsEchoHandler(), corsConfig);
+        final EmbeddedChannel ch = echoChannel(sockJsChannelConfig(CorsConfig.withOrigin(origin).build()));
         ch.writeInbound(httpRequest("/echo", OPTIONS));
 
         final HttpResponse response = ch.readOutbound();
@@ -252,18 +261,18 @@ public class SockJsProtocolTest {
      */
     @Test
     public void infoTestOptionsNullOrigin() throws Exception {
-        final CorsConfig corsConfig = SockJsChannelInitializer.defaultCorsConfig()
+        final SockJsChannelConfig config = sockJsChannelConfig(defaultCorsConfig()
+                .allowedRequestHeaders(Names.CONTENT_TYPE.toString())
                 .preflightResponseHeader(Names.CONTENT_TYPE, "text/plain; charset=UTF-8")
-                .build();
-        final EmbeddedChannel ch = sockJsPipeline("/echo", new SockJsEchoHandler(), corsConfig);
+                .build());
+        final EmbeddedChannel ch = echoChannel(config);
         final FullHttpRequest request = httpRequest("/echo/info", OPTIONS);
+        request.headers().set(ACCESS_CONTROL_REQUEST_HEADERS, CONTENT_TYPE);
         request.headers().set(ORIGIN, "null");
         ch.writeInbound(request);
 
         final HttpResponse response = ch.readOutbound();
-        // sockjs-protocol expects a 204 "No Content" while CORS "should" return 200 "OK".
-        // assertThat(buildResponse.getStatus(), is(HttpResponseStatus.NO_CONTENT));
-        assertThat(response.getStatus(), is(HttpResponseStatus.OK));
+        assertThat(response.getStatus(), is(OK));
         assertCORSPreflightResponseHeaders(response);
         assertCORSHeaders(response, "*");
     }
@@ -273,12 +282,12 @@ public class SockJsProtocolTest {
      */
     @Test
     public void infoTestDisabledWebsocket() throws Exception {
-        final EmbeddedChannel ch = sockJsPipeline("/echo", new SockJsEchoHandler());
+        final EmbeddedChannel ch = echoChannel();
         ch.config().setOption(SockJsChannelOption.WEBSOCKET_ENABLED, false);
         ch.writeInbound(httpRequest("/echo/info"));
 
         final FullHttpResponse response = ch.readOutbound();
-        assertThat(response.getStatus(), is(HttpResponseStatus.OK));
+        assertThat(response.getStatus(), is(OK));
         assertThat(contentAsJson(response).get("websocket").asBoolean(), is(false));
         response.release();
     }
@@ -312,20 +321,17 @@ public class SockJsProtocolTest {
      */
     @Test
     public void sessionUrlsTestIgnoringServerId() throws Exception {
-        final SockJsEchoHandler echoHandler = new SockJsEchoHandler();
         final String sessionId = UUID.randomUUID().toString();
         final String sessionUrl = "/echo/000/" + sessionId;
 
-        final FullHttpResponse openSessionResponse = xhrRequest(sessionUrl, sockJsPipeline("/echo", echoHandler));
+        final FullHttpResponse openSessionResponse = xhrRequest(sessionUrl, echoChannel());
         assertOpenFrameResponse(openSessionResponse);
 
-        final FullHttpResponse sendResponse = xhrSendRequest(sessionUrl, "[\"a\"]",
-                sockJsPipeline("/echo", echoHandler));
+        final FullHttpResponse sendResponse = xhrSendRequest(sessionUrl, "[\"a\"]", echoChannel());
         assertNoContent(sendResponse);
         sendResponse.release();
 
-        final FullHttpResponse pollResponse = xhrRequest("/echo/999/" + sessionId,
-                sockJsPipeline("/echo", echoHandler));
+        final FullHttpResponse pollResponse = xhrRequest("/echo/999/" + sessionId, echoChannel());
         assertMessageFrameContent(pollResponse, "a");
         pollResponse.release();
     }
@@ -335,24 +341,21 @@ public class SockJsProtocolTest {
      */
     @Test
     public void protocolTestSimpleSession() throws Exception {
-        final SockJsEchoHandler echoHandler = new SockJsEchoHandler();
         final String sessionUrl = "/echo/111/" + UUID.randomUUID();
 
-        final FullHttpResponse openSessionResponse = xhrRequest(sessionUrl, sockJsPipeline("/echo", echoHandler));
+        final FullHttpResponse openSessionResponse = xhrRequest(sessionUrl, echoChannel());
         assertOpenFrameResponse(openSessionResponse);
 
-        final FullHttpResponse sendResponse = xhrSendRequest(sessionUrl, "[\"a\"]",
-                sockJsPipeline("/echo", echoHandler));
+        final FullHttpResponse sendResponse = xhrSendRequest(sessionUrl, "[\"a\"]", echoChannel());
         assertNoContent(sendResponse);
         sendResponse.release();
 
-        final FullHttpResponse pollResponse = xhrRequest(sessionUrl, sockJsPipeline("/echo", echoHandler));
+        final FullHttpResponse pollResponse = xhrRequest(sessionUrl, echoChannel());
         assertMessageFrameContent(pollResponse, "a");
         pollResponse.release();
 
-        final FullHttpResponse badSessionResponse = xhrSendRequest("/echo/111/badsession", "[\"a\"]",
-                sockJsPipeline("/echo", echoHandler));
-        assertThat(badSessionResponse.getStatus(), is(HttpResponseStatus.NOT_FOUND));
+        final FullHttpResponse badSessionResponse = xhrSendRequest("/echo/111/badsession", "[\"a\"]", echoChannel());
+        assertThat(badSessionResponse.getStatus(), is(NOT_FOUND));
         badSessionResponse.release();
     }
 
@@ -361,13 +364,11 @@ public class SockJsProtocolTest {
      */
     @Test
     public void protocolTestCloseSession() throws Exception {
-        final ChannelHandler closeHandler = new SockJsCloseHandler();
         final String sessionUrl = "/close/222/" + UUID.randomUUID();
-
-        final FullHttpResponse openSessionResponse = xhrRequest(sessionUrl, sockJsPipeline("/close", closeHandler));
+        final FullHttpResponse openSessionResponse = xhrRequest(sessionUrl, closeChannel());
         assertOpenFrameResponse(openSessionResponse);
-        assertGoAwayResponse(xhrRequest(sessionUrl, sockJsPipeline("/close", closeHandler)));
-        assertGoAwayResponse(xhrRequest(sessionUrl, sockJsPipeline("/close", closeHandler)));
+        assertGoAwayResponse(xhrRequest(sessionUrl, closeChannel()));
+        assertGoAwayResponse(xhrRequest(sessionUrl, closeChannel()));
     }
 
     /*
@@ -375,15 +376,13 @@ public class SockJsProtocolTest {
      */
     @Test
     public void webSocketHttpErrorsTestHttpMethod() throws Exception {
-        final ChannelHandler echoHandler = new SockJsEchoHandler();
         final String sessionUrl = "/echo/222/" + UUID.randomUUID();
-        final EmbeddedChannel ch = sockJsPipeline("/echo", echoHandler);
+        final EmbeddedChannel ch = echoChannel();
 
-        final HttpRequest request = httpRequest(sessionUrl + "/websocket");
-        ch.writeInbound(request);
+        ch.writeInbound(httpRequest(sessionUrl + "/websocket"));
 
         final FullHttpResponse response = ch.readOutbound();
-        assertThat(response.getStatus(), equalTo(HttpResponseStatus.BAD_REQUEST));
+        assertThat(response.getStatus(), equalTo(BAD_REQUEST));
         assertThat(response.content().toString(UTF_8), equalTo("Can \"Upgrade\" only to \"WebSocket\"."));
         response.release();
     }
@@ -393,9 +392,8 @@ public class SockJsProtocolTest {
      */
     @Test
     public void webSocketHttpErrorsTestInvalidConnectionHeader() throws Exception {
-        final ChannelHandler echoHandler = new SockJsEchoHandler();
         final String sessionUrl = "/echo/222/" + UUID.randomUUID();
-        final EmbeddedChannel ch = sockJsPipeline("/echo", echoHandler);
+        final EmbeddedChannel ch = echoChannel();
 
         final FullHttpRequest request = webSocketUpgradeRequest(sessionUrl + "/websocket");
         request.headers().set(UPGRADE, "websocket");
@@ -403,7 +401,7 @@ public class SockJsProtocolTest {
         ch.writeInbound(request);
 
         final FullHttpResponse response = ch.readOutbound();
-        assertThat(response.getStatus(), equalTo(HttpResponseStatus.BAD_REQUEST));
+        assertThat(response.getStatus(), equalTo(BAD_REQUEST));
         assertThat(response.content().toString(UTF_8), equalTo("\"Connection\" must be \"Upgrade\"."));
         response.release();
     }
@@ -413,16 +411,15 @@ public class SockJsProtocolTest {
      */
     @Test
     public void webSocketHttpErrorsTestInvalidMethod() throws Exception {
-        final ChannelHandler echoHandler = new SockJsEchoHandler();
         final String sessionUrl = "/echo/222/" + UUID.randomUUID();
-        final EmbeddedChannel ch = sockJsPipeline("/echo", echoHandler);
+        final EmbeddedChannel ch = echoChannel();
 
         final FullHttpRequest request = webSocketUpgradeRequest(sessionUrl + "/websocket");
         request.setMethod(POST);
         ch.writeInbound(request);
 
         final HttpResponse response = ch.readOutbound();
-        assertThat(response.getStatus(), equalTo(HttpResponseStatus.METHOD_NOT_ALLOWED));
+        assertThat(response.getStatus(), equalTo(METHOD_NOT_ALLOWED));
     }
 
     /*
@@ -430,16 +427,16 @@ public class SockJsProtocolTest {
      */
     @Test
     public void webSocketHixie76TestTransport() throws Exception {
-        final ChannelHandler echoHandler = new SockJsEchoHandler();
         final String sessionUrl = "/echo/222/" + UUID.randomUUID();
-        final EmbeddedChannel ch = wsSockJsPipeline("/echo", echoHandler);
+        final EmbeddedChannel ch = webSocketEchoChannel();
 
-        final FullHttpRequest request = webSocketUpgradeRequest(sessionUrl + "/websocket", V00);
-        ch.writeInbound(request);
+        ch.writeInbound(webSocketUpgradeRequest(sessionUrl + "/websocket", V00));
 
         final FullHttpResponse upgradeResponse = HttpUtil.decodeFullHttpResponse(ch);
         assertThat(upgradeResponse.content().toString(UTF_8), equalTo("8jKS'y:G*Co,Wxa-"));
         upgradeResponse.release();
+        ch.readOutbound();
+        ch.readOutbound();
 
         final TextWebSocketFrame openFrame = ch.readOutbound();
         assertThat(openFrame.content().toString(UTF_8), equalTo("o"));
@@ -459,9 +456,8 @@ public class SockJsProtocolTest {
      */
     @Test
     public void webSocketHixie76TestClose() throws Exception {
-        final ChannelHandler closeHandler = new SockJsCloseHandler();
         final String sessionUrl = "/close/222/" + UUID.randomUUID();
-        final EmbeddedChannel ch = wsSockJsPipeline("/close", closeHandler);
+        final EmbeddedChannel ch = webSocketCloseChannel();
 
         final FullHttpRequest request = webSocketUpgradeRequest(sessionUrl + "/websocket", V00);
         ch.writeInbound(request);
@@ -470,6 +466,8 @@ public class SockJsProtocolTest {
         assertThat(upgradeResponse.content().toString(UTF_8), equalTo("8jKS'y:G*Co,Wxa-"));
         upgradeResponse.release();
 
+        ch.readOutbound();
+        ch.readOutbound();
         final TextWebSocketFrame openFrame = ch.readOutbound();
         assertThat(openFrame.content().toString(UTF_8), equalTo("o"));
         openFrame.release();
@@ -486,9 +484,8 @@ public class SockJsProtocolTest {
      */
     @Test
     public void webSocketHixie76TestEmptyFrame() throws Exception {
-        final ChannelHandler echoHandler = new SockJsEchoHandler();
         final String sessionUrl = "/echo/222/" + UUID.randomUUID();
-        final EmbeddedChannel ch = wsSockJsPipeline("/echo", echoHandler);
+        final EmbeddedChannel ch = webSocketEchoChannel();
 
         final FullHttpRequest request = webSocketUpgradeRequest(sessionUrl + "/websocket", V00);
         ch.writeInbound(request);
@@ -496,6 +493,8 @@ public class SockJsProtocolTest {
         final FullHttpResponse upgradeResponse = HttpUtil.decodeFullHttpResponse(ch);
         assertThat(upgradeResponse.content().toString(UTF_8), equalTo("8jKS'y:G*Co,Wxa-"));
         upgradeResponse.release();
+        ch.readOutbound();
+        ch.readOutbound();
 
         final TextWebSocketFrame openFrame = ch.readOutbound();
         assertThat(openFrame.content().toString(UTF_8), equalTo("o"));
@@ -517,25 +516,33 @@ public class SockJsProtocolTest {
      */
     @Test
     public void webSocketHixie76TestReuseSessionId() throws Exception {
-        final ChannelHandler echoHandler = new SockJsEchoHandler();
         final String sessionUrl = "/echo/222/" + UUID.randomUUID();
-        final EmbeddedChannel ch1 = wsSockJsPipeline("/echo", echoHandler);
-        final EmbeddedChannel ch2 = wsSockJsPipeline("/echo", echoHandler);
+        final EmbeddedChannel ch1 = webSocketEchoChannel();
+        final EmbeddedChannel ch2 = webSocketEchoChannel();
+        final EmbeddedChannel ch3 = webSocketEchoChannel();
 
         ch1.writeInbound(webSocketUpgradeRequest(sessionUrl + "/websocket", V00));
+
         final FullHttpResponse upgradeResponse = HttpUtil.decodeFullHttpResponse(ch1);
+        assertThat(upgradeResponse.getStatus(), equalTo(SWITCHING_PROTOCOLS));
         assertThat(upgradeResponse.content().toString(UTF_8), equalTo("8jKS'y:G*Co,Wxa-"));
         upgradeResponse.release();
 
         ch2.writeInbound(webSocketUpgradeRequest(sessionUrl + "/websocket", V00));
+
         final FullHttpResponse upgradeResponse2 = HttpUtil.decodeFullHttpResponse(ch2);
+        assertThat(upgradeResponse2.getStatus(), equalTo(SWITCHING_PROTOCOLS));
         assertThat(upgradeResponse2.content().toString(UTF_8), equalTo("8jKS'y:G*Co,Wxa-"));
         upgradeResponse2.release();
 
+        ch1.readOutbound();
+        ch1.readOutbound();
         final ByteBufHolder open1 = ch1.readOutbound();
         assertThat(open1.content().toString(UTF_8), equalTo("o"));
         open1.release();
 
+        ch2.readOutbound();
+        ch2.readOutbound();
         final ByteBufHolder open2 = ch2.readOutbound();
         assertThat(open2.content().toString(UTF_8), equalTo("o"));
         open2.release();
@@ -553,22 +560,25 @@ public class SockJsProtocolTest {
         ch1.close();
         ch2.close();
 
-        final EmbeddedChannel newCh = wsSockJsPipeline("/echo", echoHandler);
+        ch3.writeInbound(webSocketUpgradeRequest(sessionUrl + "/websocket"));
 
-        newCh.writeInbound(webSocketUpgradeRequest(sessionUrl + "/websocket"));
-        final FullHttpResponse upgradeResponse3 = HttpUtil.decodeFullHttpResponse(newCh);
-        assertThat(upgradeResponse3.getStatus(), equalTo(HttpResponseStatus.SWITCHING_PROTOCOLS));
-        upgradeResponse3.release();
+        final HttpResponse upgradeResponse3 = HttpUtil.decode(ch3);
+        assertThat(upgradeResponse3.getStatus(), equalTo(SWITCHING_PROTOCOLS));
 
-        final ByteBufHolder open = (ByteBufHolder) readOutboundDiscardEmpty(newCh);
-        assertThat(open.content().toString(UTF_8), equalTo("o"));
-        open.release();
+        final ByteBufHolder open3 = ch3.readOutbound();
+        assertThat(open3.content().toString(UTF_8), equalTo("o"));
+        open3.release();
 
-        newCh.writeInbound(new TextWebSocketFrame("\"a\""));
-        final ByteBufHolder msg = (ByteBufHolder) readOutboundDiscardEmpty(newCh);
-        assertThat(msg.content().toString(UTF_8), equalTo("a[\"a\"]"));
-        msg.release();
-        newCh.close();
+        ch3.writeInbound(new TextWebSocketFrame("\"a\""));
+        final ByteBufHolder msg3 = ch3.readOutbound();
+        assertThat(msg3.content().toString(UTF_8), equalTo("a[\"a\"]"));
+        msg3.release();
+
+        ch3.writeInbound(new TextWebSocketFrame("\"b\""));
+        final ByteBufHolder msg4 = ch3.readOutbound();
+        assertThat(msg4.content().toString(UTF_8), equalTo("a[\"b\"]"));
+        msg4.release();
+        ch3.close();
     }
 
     /*
@@ -576,9 +586,8 @@ public class SockJsProtocolTest {
      */
     @Test
     public void webSocketHixie76TestHAProxy() throws Exception {
-        final ChannelHandler echoHandler = new SockJsEchoHandler();
         final String sessionUrl = "/echo/222/" + UUID.randomUUID();
-        final EmbeddedChannel ch = wsSockJsPipeline("/echo", echoHandler);
+        final EmbeddedChannel ch = webSocketEchoChannel();
 
         final FullHttpRequest request = new DefaultFullHttpRequest(HTTP_1_1, GET, sessionUrl + "/websocket");
         request.headers().set(HOST, "server.test.com");
@@ -591,7 +600,7 @@ public class SockJsProtocolTest {
         ch.writeInbound(request);
 
         final HttpResponse upgradeResponse = HttpUtil.decode(ch);
-        assertThat(upgradeResponse.getStatus(), equalTo(HttpResponseStatus.SWITCHING_PROTOCOLS));
+        assertThat(upgradeResponse.getStatus(), equalTo(SWITCHING_PROTOCOLS));
 
         ch.writeInbound(Unpooled.copiedBuffer("^n:ds[4U", US_ASCII));
 
@@ -616,17 +625,19 @@ public class SockJsProtocolTest {
      */
     @Test
     public void webSocketHixie76TestBrokenJSON() throws Exception {
-        final ChannelHandler echoHandler = new SockJsEchoHandler();
-        final String serviceName = "/echo"; //this was close??
+        final String serviceName = "/echo";
         final String sessionUrl = serviceName + "/222/" + UUID.randomUUID();
-        final EmbeddedChannel ch = wsSockJsPipeline("/echo", echoHandler);
+        final EmbeddedChannel ch = webSocketEchoChannel();
 
         final FullHttpRequest request = webSocketUpgradeRequest(sessionUrl + "/websocket", V00);
         ch.writeInbound(request);
 
         final FullHttpResponse upgradeResponse = HttpUtil.decodeFullHttpResponse(ch);
-        assertThat(upgradeResponse.getStatus(), equalTo(HttpResponseStatus.SWITCHING_PROTOCOLS));
+        assertThat(upgradeResponse.getStatus(), equalTo(SWITCHING_PROTOCOLS));
         assertThat(upgradeResponse.content().toString(UTF_8), equalTo("8jKS'y:G*Co,Wxa-"));
+        ch.readOutbound();
+        ch.readOutbound();
+
         final ByteBufHolder open = ch.readOutbound();
         assertThat(open.content().toString(UTF_8), equalTo("o"));
         open.release();
@@ -697,14 +708,13 @@ public class SockJsProtocolTest {
      */
     @Test
     public void webSocketHybi10Firefox602ConnectionHeader() throws Exception {
-        final ChannelHandler echoHandler = new SockJsEchoHandler();
-        final EmbeddedChannel ch = wsSockJsPipeline("/echo", echoHandler);
+        final EmbeddedChannel ch = webSocketEchoChannel();
         final FullHttpRequest request = HttpUtil.webSocketUpgradeRequest("/echo/123/123/websocket", V08);
         request.headers().set(CONNECTION, "keep-alive, Upgrade");
         ch.writeInbound(request);
 
         final HttpResponse response = HttpUtil.decode(ch);
-        assertThat(response.getStatus(), is(HttpResponseStatus.SWITCHING_PROTOCOLS));
+        assertThat(response.getStatus(), is(SWITCHING_PROTOCOLS));
         assertThat(response.headers().get(CONNECTION), equalTo("Upgrade"));
     }
 
@@ -713,20 +723,20 @@ public class SockJsProtocolTest {
      */
     @Test
     public void xhrPollingTestOptions() throws Exception {
-        final CorsConfig corsConfig = SockJsChannelInitializer.defaultCorsConfig()
+        final SockJsChannelConfig config = sockJsChannelConfig(defaultCorsConfig()
+                .allowedRequestHeaders(Names.CONTENT_TYPE.toString())
                 .preflightResponseHeader(Names.CONTENT_TYPE, "text/plain; charset=UTF-8")
-                .build();
-        final ChannelHandler echoHandler = new SockJsEchoHandler();
+                .build());
         final String sessionUrl = "/echo/abc/" + UUID.randomUUID();
         final FullHttpRequest xhrRequest = httpRequest(sessionUrl + "/xhr", OPTIONS);
+        xhrRequest.headers().set(ACCESS_CONTROL_REQUEST_HEADERS, CONTENT_TYPE);
 
-        final HttpResponse xhrOptionsResponse = xhrRequest(xhrRequest,
-                sockJsPipeline("/echo", echoHandler, corsConfig));
+        final HttpResponse xhrOptionsResponse = xhrRequest(xhrRequest, echoChannel(config));
         assertCORSPreflightResponseHeaders(xhrOptionsResponse);
 
         final FullHttpRequest xhrSendRequest = httpRequest(sessionUrl + "/xhr_send", OPTIONS);
-        final HttpResponse xhrSendOptionsResponse = xhrRequest(xhrSendRequest,
-                sockJsPipeline("echo", echoHandler, corsConfig));
+        xhrSendRequest.headers().set(ACCESS_CONTROL_REQUEST_HEADERS, CONTENT_TYPE);
+        final HttpResponse xhrSendOptionsResponse = xhrRequest(xhrSendRequest, echoChannel(config));
         assertCORSPreflightResponseHeaders(xhrSendOptionsResponse);
     }
 
@@ -735,38 +745,35 @@ public class SockJsProtocolTest {
      */
     @Test
     public void xhrPollingTestTransport() throws Exception {
-        final ChannelHandler echoHandler = new SockJsEchoHandler();
         final String sessionUrl = "/echo/abc/" + UUID.randomUUID();
 
-        final FullHttpResponse response = xhrRequest(sessionUrl, sockJsPipeline("/echo", echoHandler));
+        final FullHttpResponse response = xhrRequest(sessionUrl, echoChannel());
         assertOpenFrameResponse(response);
-        assertThat(response.headers().get(CONTENT_TYPE), equalTo(HttpResponseBuilder.CONTENT_TYPE_JAVASCRIPT));
+        assertThat(response.headers().get(CONTENT_TYPE), equalTo(CONTENT_TYPE_JAVASCRIPT));
         assertCORSHeaders(response, "*");
         verifyNotCached(response);
 
-        final FullHttpResponse xhrSendResponse = xhrSendRequest(sessionUrl, "[\"x\"]",
-                sockJsPipeline("/echo", echoHandler));
+        final FullHttpResponse xhrSendResponse = xhrSendRequest(sessionUrl, "[\"x\"]", echoChannel());
         assertNoContent(xhrSendResponse);
-        assertThat(xhrSendResponse.headers().get(CONTENT_TYPE), equalTo(HttpResponseBuilder.CONTENT_TYPE_PLAIN));
+        assertThat(xhrSendResponse.headers().get(CONTENT_TYPE), equalTo(CONTENT_TYPE_PLAIN));
         assertCORSHeaders(response, "*");
         verifyNotCached(xhrSendResponse);
         xhrSendResponse.release();
 
-        final FullHttpResponse pollResponse = xhrRequest(sessionUrl, sockJsPipeline("/echo", echoHandler));
+        final FullHttpResponse pollResponse = xhrRequest(sessionUrl, echoChannel());
         assertMessageFrameContent(pollResponse, "x");
         pollResponse.release();
     }
 
     @Test
     public void xhrPollingSessionReuse() throws Exception {
-        final ChannelHandler echoHandler = new SockJsEchoHandler();
         final String sessionUrl = "/echo/abc/" + UUID.randomUUID();
-        assertOpenFrameResponse(xhrRequest(sessionUrl, sockJsPipeline("/echo", echoHandler)));
-        assertNoContent(xhrSendRequest(sessionUrl, "[\"x\"]", sockJsPipeline("/echo", echoHandler)));
-        assertMessageFrameContent(xhrRequest(sessionUrl, sockJsPipeline("/echo", echoHandler)), "x");
-        xhrRequest(sessionUrl, sockJsPipeline("/echo", echoHandler));
-        assertNoContent(xhrSendRequest(sessionUrl, "[\"x\"]", sockJsPipeline("/echo", echoHandler)));
-        assertMessageFrameContent(xhrRequest(sessionUrl, sockJsPipeline("/echo", echoHandler)), "x");
+        assertOpenFrameResponse(xhrRequest(sessionUrl, echoChannel()));
+        assertNoContent(xhrSendRequest(sessionUrl, "[\"x\"]", echoChannel()));
+        assertMessageFrameContent(xhrRequest(sessionUrl, echoChannel()), "x");
+        xhrRequest(sessionUrl, echoChannel());
+        assertNoContent(xhrSendRequest(sessionUrl, "[\"x\"]", echoChannel()));
+        assertMessageFrameContent(xhrRequest(sessionUrl, echoChannel()), "x");
     }
 
     /*
@@ -774,11 +781,9 @@ public class SockJsProtocolTest {
      */
     @Test
     public void xhrPollingTestInvalidSession() throws Exception {
-        final ChannelHandler echoHandler = new SockJsEchoHandler();
         final String sessionUrl = "/echo/abc/" + UUID.randomUUID();
-        final FullHttpResponse xhrSendResponse = xhrSendRequest(sessionUrl, "[\"x\"]",
-                sockJsPipeline("/echo", echoHandler));
-        assertThat(xhrSendResponse.getStatus(), is(HttpResponseStatus.NOT_FOUND));
+        final FullHttpResponse xhrSendResponse = xhrSendRequest(sessionUrl, "[\"x\"]", echoChannel());
+        assertThat(xhrSendResponse.getStatus(), is(NOT_FOUND));
         xhrSendResponse.release();
     }
 
@@ -787,28 +792,25 @@ public class SockJsProtocolTest {
      */
     @Test
     public void xhrPollingTestInvalidJson() throws Exception {
-        final ChannelHandler echoHandler = new SockJsEchoHandler();
         final String sessionUrl = "/echo/abc/" + UUID.randomUUID();
 
-        assertOpenFrameResponse(xhrRequest(sessionUrl, sockJsPipeline("/echo", echoHandler)));
+        assertOpenFrameResponse(xhrRequest(sessionUrl, echoChannel()));
 
-        final FullHttpResponse xhrSendResponse = xhrSendRequest(sessionUrl, "[\"x\"",
-                sockJsPipeline("/echo", echoHandler));
-        assertThat(xhrSendResponse.getStatus(), is(HttpResponseStatus.INTERNAL_SERVER_ERROR));
+        final FullHttpResponse xhrSendResponse = xhrSendRequest(sessionUrl, "[\"x\"", echoChannel());
+        assertThat(xhrSendResponse.getStatus(), is(INTERNAL_SERVER_ERROR));
         assertThat(xhrSendResponse.content().toString(UTF_8), equalTo("Broken JSON encoding."));
         xhrSendResponse.release();
 
-        final FullHttpResponse noPayloadResponse = xhrSendRequest(sessionUrl, "", sockJsPipeline("/echo", echoHandler));
-        assertThat(noPayloadResponse.getStatus(), is(HttpResponseStatus.INTERNAL_SERVER_ERROR));
+        final FullHttpResponse noPayloadResponse = xhrSendRequest(sessionUrl, "", echoChannel());
+        assertThat(noPayloadResponse.getStatus(), is(INTERNAL_SERVER_ERROR));
         assertThat(noPayloadResponse.content().toString(UTF_8), equalTo("Payload expected."));
         noPayloadResponse.release();
 
-        final FullHttpResponse validSendResponse = xhrSendRequest(sessionUrl, "[\"a\"]",
-                sockJsPipeline("/echo", echoHandler));
-        assertThat(validSendResponse.getStatus(), is(HttpResponseStatus.NO_CONTENT));
+        final FullHttpResponse validSendResponse = xhrSendRequest(sessionUrl, "[\"a\"]", echoChannel());
+        assertThat(validSendResponse.getStatus(), is(NO_CONTENT));
         validSendResponse.release();
 
-        final FullHttpResponse pollResponse = xhrRequest(sessionUrl, sockJsPipeline("/echo", echoHandler));
+        final FullHttpResponse pollResponse = xhrRequest(sessionUrl, echoChannel());
         assertMessageFrameContent(pollResponse, "a");
         pollResponse.release();
     }
@@ -818,46 +820,40 @@ public class SockJsProtocolTest {
      */
     @Test
     public void xhrPollingTestContentTypes() throws Exception {
-        final ChannelHandler echoHandler = new SockJsEchoHandler();
         final String sessionUrl = "/echo/abc/" + UUID.randomUUID();
 
-        final FullHttpResponse response = xhrRequest(sessionUrl, sockJsPipeline("/echo", echoHandler));
-        assertThat(response.getStatus(), is(HttpResponseStatus.OK));
+        final FullHttpResponse response = xhrRequest(sessionUrl, echoChannel());
+        assertThat(response.getStatus(), is(OK));
         assertThat(response.content().toString(UTF_8), equalTo("o\n"));
         response.release();
 
-        final FullHttpResponse textPlain = xhrSendRequest(sessionUrl, "[\"a\"]", "text/plain",
-                sockJsPipeline("/echo", echoHandler));
-        assertThat(textPlain.getStatus(), is(HttpResponseStatus.NO_CONTENT));
+        final FullHttpResponse textPlain = xhrSendRequest(sessionUrl, "[\"a\"]", "text/plain", echoChannel());
+        assertThat(textPlain.getStatus(), is(NO_CONTENT));
         textPlain.release();
 
-        final FullHttpResponse json = xhrSendRequest(sessionUrl, "[\"b\"]", "application/json",
-                sockJsPipeline("/echo", echoHandler));
-        assertThat(json.getStatus(), is(HttpResponseStatus.NO_CONTENT));
+        final FullHttpResponse json = xhrSendRequest(sessionUrl, "[\"b\"]", "application/json", echoChannel());
+        assertThat(json.getStatus(), is(NO_CONTENT));
         json.release();
 
         final FullHttpResponse json2 = xhrSendRequest(sessionUrl, "[\"c\"]", "application/json;charset=utf-8",
-                sockJsPipeline("/echo", echoHandler));
-        assertThat(json2.getStatus(), is(HttpResponseStatus.NO_CONTENT));
+                echoChannel());
+        assertThat(json2.getStatus(), is(NO_CONTENT));
         json2.release();
-        final FullHttpResponse xml = xhrSendRequest(sessionUrl, "[\"d\"]", "application/xml",
-                sockJsPipeline("/echo", echoHandler));
-        assertThat(xml.getStatus(), is(HttpResponseStatus.NO_CONTENT));
+        final FullHttpResponse xml = xhrSendRequest(sessionUrl, "[\"d\"]", "application/xml", echoChannel());
+        assertThat(xml.getStatus(), is(NO_CONTENT));
         xml.release();
-        final FullHttpResponse xml2 = xhrSendRequest(sessionUrl, "[\"e\"]", "text/xml",
-                sockJsPipeline("/echo", echoHandler));
-        assertThat(xml2.getStatus(), is(HttpResponseStatus.NO_CONTENT));
+        final FullHttpResponse xml2 = xhrSendRequest(sessionUrl, "[\"e\"]", "text/xml", echoChannel());
+        assertThat(xml2.getStatus(), is(NO_CONTENT));
         xml2.release();
-        final FullHttpResponse xml3 = xhrSendRequest(sessionUrl, "[\"f\"]", "text/xml; charset=utf-8",
-                sockJsPipeline("/echo", echoHandler));
-        assertThat(xml3.getStatus(), is(HttpResponseStatus.NO_CONTENT));
+        final FullHttpResponse xml3 = xhrSendRequest(sessionUrl, "[\"f\"]", "text/xml; charset=utf-8", echoChannel());
+        assertThat(xml3.getStatus(), is(NO_CONTENT));
         xml3.release();
-        final FullHttpResponse empty = xhrSendRequest(sessionUrl, "[\"g\"]", "", sockJsPipeline("/echo", echoHandler));
-        assertThat(empty.getStatus(), is(HttpResponseStatus.NO_CONTENT));
+        final FullHttpResponse empty = xhrSendRequest(sessionUrl, "[\"g\"]", "", echoChannel());
+        assertThat(empty.getStatus(), is(NO_CONTENT));
         empty.release();
 
-        final FullHttpResponse pollRequest = xhrRequest(sessionUrl, sockJsPipeline("/echo", echoHandler));
-        assertThat(pollRequest.getStatus(), is(HttpResponseStatus.OK));
+        final FullHttpResponse pollRequest = xhrRequest(sessionUrl, echoChannel());
+        assertThat(pollRequest.getStatus(), is(OK));
         assertThat(pollRequest.content().toString(UTF_8), equalTo("a[\"a\",\"b\",\"c\",\"d\",\"e\",\"f\",\"g\"]\n"));
         pollRequest.release();
     }
@@ -867,35 +863,34 @@ public class SockJsProtocolTest {
      */
     @Test
     public void xhrPollingTestRequestHeadersCors() throws Exception {
-        final ChannelHandler echoHandler = new SockJsEchoHandler();
+        final SockJsChannelConfig config = sockJsChannelConfig(defaultCorsConfig()
+                .allowedRequestHeaders(Names.CONTENT_TYPE.toString(), "a", "b", "c")
+                .build());
         final String sessionUrl = "/echo/abc/" + UUID.randomUUID();
 
         final FullHttpRequest okRequest = httpRequest(sessionUrl + "/xhr", POST);
-        okRequest.headers().set(ACCESS_CONTROL_REQUEST_HEADERS, "a, b, c");
-        CorsConfig corsConfig = SockJsChannelInitializer.defaultCorsConfig().allowedRequestHeaders("a, b, c").build();
-        final HttpResponse response = xhrRequest(okRequest, sockJsPipeline("/echo", echoHandler, corsConfig));
-        assertThat(response.getStatus(), is(HttpResponseStatus.OK));
+        okRequest.headers().set(ORIGIN, "https://localhost:8081");
+        okRequest.headers().set(ACCESS_CONTROL_REQUEST_HEADERS, Arrays.asList("a", "b", "c", CONTENT_TYPE));
+        final HttpResponse response = xhrRequest(okRequest, echoChannel(config));
+        assertThat(response.getStatus(), is(OK));
         assertCORSHeaders(response, "*");
-        assertThat(response.headers().get(ACCESS_CONTROL_ALLOW_HEADERS), equalTo("a, b, c"));
+        assertThat(response.headers().getAll(ACCESS_CONTROL_ALLOW_HEADERS), hasItems("a", "b", "c"));
 
         final String emptySessionUrl = "/echo/abc/" + UUID.randomUUID();
         final FullHttpRequest emptyHeaderRequest = httpRequest(emptySessionUrl + "/xhr", POST);
         emptyHeaderRequest.headers().set(ACCESS_CONTROL_REQUEST_HEADERS, "");
-        corsConfig = SockJsChannelInitializer.defaultCorsConfig().allowedRequestHeaders("").build();
-        final HttpResponse emptyHeaderResponse = xhrRequest(emptyHeaderRequest,
-                sockJsPipeline("/echo", echoHandler, corsConfig));
-        assertThat(emptyHeaderResponse.getStatus(), is(HttpResponseStatus.OK));
+        config.setCorsConfig(defaultCorsConfig().allowedRequestHeaders("").build());
+        final HttpResponse emptyHeaderResponse = xhrRequest(emptyHeaderRequest, echoChannel(config));
+        assertThat(emptyHeaderResponse.getStatus(), is(OK));
         assertCORSHeaders(response, "*");
-        //TODO: sort out if this should be possible. We added an request header of '""' above. Should that be ignored?
         assertThat(emptyHeaderResponse.headers().get(ACCESS_CONTROL_ALLOW_HEADERS), equalTo(""));
 
         final String noHeaderSessionUrl = "/echo/abc/" + UUID.randomUUID();
         final FullHttpRequest noHeaderRequest = httpRequest(noHeaderSessionUrl + "/xhr", POST);
-        final HttpResponse noHeaderResponse = xhrRequest(noHeaderRequest, sockJsPipeline("/echo", echoHandler));
-        assertThat(noHeaderResponse.getStatus(), is(HttpResponseStatus.OK));
+        final HttpResponse noHeaderResponse = xhrRequest(noHeaderRequest, echoChannel(config));
+        assertThat(noHeaderResponse.getStatus(), is(OK));
         assertCORSHeaders(response, "*");
-        //TODO: sort out why this should be null and not contains a Content-Type header?
-        //assertThat(noHeaderResponse.headers().get(ACCESS_CONTROL_ALLOW_HEADERS), is(nullValue()));
+        assertThat(noHeaderResponse.headers().get(ACCESS_CONTROL_ALLOW_HEADERS), is(nullValue()));
     }
 
     /*
@@ -903,16 +898,15 @@ public class SockJsProtocolTest {
      */
     @Test
     public void xhrStreamingTestOptions() throws Exception {
-        final ChannelHandler echoHandler = new SockJsEchoHandler();
         final String sessionUrl = "/echo/222/" + UUID.randomUUID();
-        final EmbeddedChannel ch = sockJsPipeline("/echo", echoHandler);
+        final EmbeddedChannel ch = echoChannel();
 
         final FullHttpRequest request = httpRequest(sessionUrl + TransportType.XHR_STREAMING.path(), GET);
         ch.writeInbound(request);
 
         final HttpResponse response = ch.readOutbound();
-        assertThat(response.getStatus(), equalTo(HttpResponseStatus.OK));
-        assertThat(response.headers().get(CONTENT_TYPE), equalTo(HttpResponseBuilder.CONTENT_TYPE_JAVASCRIPT));
+        assertThat(response.getStatus(), equalTo(OK));
+        assertThat(response.headers().get(CONTENT_TYPE), equalTo(CONTENT_TYPE_JAVASCRIPT));
         assertCORSHeaders(response, "*");
         verifyNoCacheHeaders(response);
 
@@ -927,9 +921,8 @@ public class SockJsProtocolTest {
         assertThat(openResponse.content().toString(UTF_8), equalTo("o\n"));
         openResponse.release();
 
-        final FullHttpResponse validSendResponse = xhrSendRequest(sessionUrl, "[\"x\"]",
-                sockJsPipeline("/echo", echoHandler));
-        assertThat(validSendResponse.getStatus(), is(HttpResponseStatus.NO_CONTENT));
+        final FullHttpResponse validSendResponse = xhrSendRequest(sessionUrl, "[\"x\"]", echoChannel());
+        assertThat(validSendResponse.getStatus(), is(NO_CONTENT));
         validSendResponse.release();
 
         final DefaultHttpContent chunk = ch.readOutbound();
@@ -942,16 +935,15 @@ public class SockJsProtocolTest {
      */
     @Test
     public void xhrStreamingTestResponseLimit() throws Exception {
-        final ChannelHandler echoHandler = new SockJsEchoHandler();
         final String sessionUrl = "/echo/222/" + UUID.randomUUID();
-        final EmbeddedChannel ch = sockJsPipeline("/echo", echoHandler);
+        final EmbeddedChannel ch = echoChannel();
         ch.config().setOption(SockJsChannelOption.MAX_STREAMING_BYTES_SIZE, 4096);
 
         final FullHttpRequest request = httpRequest(sessionUrl + TransportType.XHR_STREAMING.path(), GET);
         ch.writeInbound(request);
         final HttpResponse response = ch.readOutbound();
-        assertThat(response.getStatus(), equalTo(HttpResponseStatus.OK));
-        assertThat(response.headers().get(CONTENT_TYPE), equalTo(HttpResponseBuilder.CONTENT_TYPE_JAVASCRIPT));
+        assertThat(response.getStatus(), equalTo(OK));
+        assertThat(response.headers().get(CONTENT_TYPE), equalTo(CONTENT_TYPE_JAVASCRIPT));
         assertCORSHeaders(response, "*");
         verifyNoCacheHeaders(response);
 
@@ -968,9 +960,8 @@ public class SockJsProtocolTest {
 
         final String msg = generateMessage(128);
         for (int i = 0; i < 31; i++) {
-            final FullHttpResponse validSendResponse = xhrSendRequest(sessionUrl, "[\"" + msg + "\"]",
-                    sockJsPipeline("/echo", echoHandler));
-            assertThat(validSendResponse.getStatus(), is(HttpResponseStatus.NO_CONTENT));
+            final FullHttpResponse validSendResponse = xhrSendRequest(sessionUrl, "[\"" + msg + "\"]", echoChannel());
+            assertThat(validSendResponse.getStatus(), is(NO_CONTENT));
             validSendResponse.release();
             final DefaultHttpContent chunk = ch.readOutbound();
             assertThat(chunk.content().toString(UTF_8), equalTo("a[\"" + msg + "\"]\n"));
@@ -987,16 +978,15 @@ public class SockJsProtocolTest {
      */
     @Test
     public void eventSourceTestResponseLimit() throws Exception {
-        final ChannelHandler echoHandler = new SockJsEchoHandler();
         final String sessionUrl = "/echo/222/" + UUID.randomUUID();
-        final EmbeddedChannel ch = sockJsPipeline("/echo", echoHandler);
+        final EmbeddedChannel ch = echoChannel();
         ch.config().setOption(SockJsChannelOption.MAX_STREAMING_BYTES_SIZE, 4096);
 
         final FullHttpRequest request = httpRequest(sessionUrl + TransportType.EVENTSOURCE.path(), GET);
         ch.writeInbound(request);
         final HttpResponse response =  ch.readOutbound();
-        assertThat(response.getStatus(), equalTo(HttpResponseStatus.OK));
-        assertThat(response.headers().get(CONTENT_TYPE), equalTo(EventSourceTransport.CONTENT_TYPE_EVENT_STREAM));
+        assertThat(response.getStatus(), equalTo(OK));
+        assertThat(response.headers().get(CONTENT_TYPE), equalTo(CONTENT_TYPE_EVENT_STREAM));
 
         final DefaultHttpContent newLinePrelude = ch.readOutbound();
         assertThat(newLinePrelude.content().toString(UTF_8), equalTo("\r\n"));
@@ -1007,9 +997,8 @@ public class SockJsProtocolTest {
         data.release();
 
         final String msg = generateMessage(4096);
-        final FullHttpResponse validSendResponse = xhrSendRequest(sessionUrl, "[\"" + msg + "\"]",
-                sockJsPipeline("/echo", echoHandler));
-        assertThat(validSendResponse.getStatus(), is(HttpResponseStatus.NO_CONTENT));
+        final FullHttpResponse validSendResponse = xhrSendRequest(sessionUrl, "[\"" + msg + "\"]", echoChannel());
+        assertThat(validSendResponse.getStatus(), is(NO_CONTENT));
         validSendResponse.release();
 
         final DefaultHttpContent chunk = ch.readOutbound();
@@ -1023,16 +1012,15 @@ public class SockJsProtocolTest {
      */
     @Test
     public void eventSourceTestTransport() throws Exception {
-        final ChannelHandler echoHandler = new SockJsEchoHandler();
         final String sessionUrl = "/echo/222/" + UUID.randomUUID();
-        final EmbeddedChannel ch = sockJsPipeline("/echo", echoHandler);
+        final EmbeddedChannel ch = echoChannel();
         ch.config().setOption(SockJsChannelOption.MAX_STREAMING_BYTES_SIZE, 4096);
 
         final FullHttpRequest request = httpRequest(sessionUrl + TransportType.EVENTSOURCE.path(), GET);
         ch.writeInbound(request);
         final HttpResponse response =  ch.readOutbound();
-        assertThat(response.getStatus(), equalTo(HttpResponseStatus.OK));
-        assertThat(response.headers().get(CONTENT_TYPE), equalTo(EventSourceTransport.CONTENT_TYPE_EVENT_STREAM));
+        assertThat(response.getStatus(), equalTo(OK));
+        assertThat(response.headers().get(CONTENT_TYPE), equalTo(CONTENT_TYPE_EVENT_STREAM));
 
         final DefaultHttpContent newLinePrelude = ch.readOutbound();
         assertThat(newLinePrelude.content().toString(UTF_8), equalTo("\r\n"));
@@ -1043,9 +1031,8 @@ public class SockJsProtocolTest {
         data.release();
 
         final String msg = "[\"  \\u0000\\n\\r \"]";
-        final FullHttpResponse validSendResponse = xhrSendRequest(sessionUrl, msg,
-                sockJsPipeline("/echo", echoHandler));
-        assertThat(validSendResponse.getStatus(), is(HttpResponseStatus.NO_CONTENT));
+        final FullHttpResponse validSendResponse = xhrSendRequest(sessionUrl, msg, echoChannel());
+        assertThat(validSendResponse.getStatus(), is(NO_CONTENT));
         validSendResponse.release();
 
         final DefaultHttpContent chunk = ch.readOutbound();
@@ -1058,17 +1045,16 @@ public class SockJsProtocolTest {
      */
     @Test
     public void htmlFileTestTransport() throws Exception {
-        final ChannelHandler echoHandler = new SockJsEchoHandler();
         final String serviceName = "/echo";
         final String sessionUrl = serviceName + "/222/" + UUID.randomUUID();
-        final EmbeddedChannel ch = sockJsPipeline("/echo", echoHandler);
+        final EmbeddedChannel ch = echoChannel();
         ch.config().setOption(SockJsChannelOption.MAX_STREAMING_BYTES_SIZE, 4096);
 
         final FullHttpRequest request = httpRequest(sessionUrl + TransportType.HTMLFILE.path() + "?c=callback", GET);
         ch.writeInbound(request);
         final HttpResponse response =  ch.readOutbound();
-        assertThat(response.getStatus(), equalTo(HttpResponseStatus.OK));
-        assertThat(response.headers().get(CONTENT_TYPE), equalTo(HttpResponseBuilder.CONTENT_TYPE_HTML));
+        assertThat(response.getStatus(), equalTo(OK));
+        assertThat(response.headers().get(CONTENT_TYPE), equalTo(CONTENT_TYPE_HTML));
 
         final HttpContent headerChunk = ch.readOutbound();
         assertThat(headerChunk.content().readableBytes(), is(greaterThan(1024)));
@@ -1080,9 +1066,8 @@ public class SockJsProtocolTest {
         assertThat(openChunk.content().toString(UTF_8), equalTo("<script>\np(\"o\");\n</script>\r\n"));
         openChunk.release();
 
-        final FullHttpResponse validSendResponse = xhrSendRequest(sessionUrl, "[\"x\"]",
-                sockJsPipeline("/echo", echoHandler));
-        assertThat(validSendResponse.getStatus(), is(HttpResponseStatus.NO_CONTENT));
+        final FullHttpResponse validSendResponse = xhrSendRequest(sessionUrl, "[\"x\"]", echoChannel());
+        assertThat(validSendResponse.getStatus(), is(NO_CONTENT));
         validSendResponse.release();
 
         final DefaultHttpContent messageChunk = ch.readOutbound();
@@ -1096,16 +1081,15 @@ public class SockJsProtocolTest {
      */
     @Test
     public void htmlFileTestNoCallback() throws Exception {
-        final ChannelHandler echoHandler = new SockJsEchoHandler();
         final String serviceName = "/echo";
         final String sessionUrl = serviceName + "/222/" + UUID.randomUUID();
-        final EmbeddedChannel ch = sockJsPipeline("/echo", echoHandler);
+        final EmbeddedChannel ch = echoChannel();
         ch.config().setOption(SockJsChannelOption.MAX_STREAMING_BYTES_SIZE, 4096);
 
         final FullHttpRequest request = httpRequest(sessionUrl + TransportType.HTMLFILE.path() + "?c=", GET);
         ch.writeInbound(request);
         final FullHttpResponse response =  ch.readOutbound();
-        assertThat(response.getStatus(), equalTo(HttpResponseStatus.INTERNAL_SERVER_ERROR));
+        assertThat(response.getStatus(), equalTo(INTERNAL_SERVER_ERROR));
         assertThat(response.content().toString(UTF_8), equalTo("\"callback\" parameter required"));
         response.release();
     }
@@ -1115,16 +1099,15 @@ public class SockJsProtocolTest {
      */
     @Test
     public void htmlFileTestResponseLimit() throws Exception {
-        final ChannelHandler echoHandler = new SockJsEchoHandler();
         final String serviceName = "/echo";
         final String sessionUrl = serviceName + "/222/" + UUID.randomUUID();
-        final EmbeddedChannel ch = sockJsPipeline("/echo", echoHandler);
+        final EmbeddedChannel ch = echoChannel();
         ch.config().setOption(SockJsChannelOption.MAX_STREAMING_BYTES_SIZE, 4096);
 
         final FullHttpRequest request = httpRequest(sessionUrl + TransportType.HTMLFILE.path() + "?c=callback", GET);
         ch.writeInbound(request);
         final HttpResponse response =  ch.readOutbound();
-        assertThat(response.getStatus(), equalTo(HttpResponseStatus.OK));
+        assertThat(response.getStatus(), equalTo(OK));
 
         // read and discard header chunk
         ReferenceCountUtil.release(ch.readOutbound());
@@ -1132,9 +1115,8 @@ public class SockJsProtocolTest {
         ReferenceCountUtil.release(ch.readOutbound());
 
         final String msg = generateMessage(4096);
-        final FullHttpResponse validSendResponse = xhrSendRequest(sessionUrl, "[\"" + msg + "\"]",
-                sockJsPipeline("/echo", echoHandler));
-        assertThat(validSendResponse.getStatus(), is(HttpResponseStatus.NO_CONTENT));
+        final FullHttpResponse validSendResponse = xhrSendRequest(sessionUrl, "[\"" + msg + "\"]", echoChannel());
+        assertThat(validSendResponse.getStatus(), is(NO_CONTENT));
         validSendResponse.release();
 
         final DefaultHttpContent chunk = ch.readOutbound();
@@ -1148,31 +1130,29 @@ public class SockJsProtocolTest {
      */
     @Test
     public void jsonpPollingTestTransport() throws Exception {
-        final ChannelHandler echoHandler = new SockJsEchoHandler();
         final String serviceName = "/echo";
         final String sessionUrl = serviceName + "/222/" + UUID.randomUUID();
 
-        final TestEmbeddedChannel ch = sockJsPipeline("/echo", echoHandler);
+        final EmbeddedChannel ch = echoChannel();
         final FullHttpResponse response = (FullHttpResponse) jsonpRequest(sessionUrl + "/jsonp?c=%63allback", ch);
-        assertThat(response.getStatus(), is(HttpResponseStatus.OK));
+        assertThat(response.getStatus(), is(OK));
         assertThat(response.content().toString(UTF_8), equalTo("callback(\"o\");\r\n"));
-        assertThat(response.headers().get(CONTENT_TYPE), equalTo(HttpResponseBuilder.CONTENT_TYPE_JAVASCRIPT));
+        assertThat(response.headers().get(CONTENT_TYPE), equalTo(CONTENT_TYPE_JAVASCRIPT));
         verifyNotCached(response);
         response.release();
 
         final String data = "d=%5B%22x%22%5D";
-        final FullHttpResponse sendResponse = jsonpSend(sessionUrl + "/jsonp_send", data,
-                sockJsPipeline("/echo", echoHandler));
-        assertThat(sendResponse.getStatus(), is(HttpResponseStatus.OK));
+        final FullHttpResponse sendResponse = jsonpSend(sessionUrl + "/jsonp_send", data, echoChannel());
+        assertThat(sendResponse.getStatus(), is(OK));
         assertThat(sendResponse.content().toString(UTF_8), equalTo("ok"));
-        assertThat(sendResponse.headers().get(CONTENT_TYPE), equalTo(HttpResponseBuilder.CONTENT_TYPE_PLAIN));
+        assertThat(sendResponse.headers().get(CONTENT_TYPE), equalTo(CONTENT_TYPE_PLAIN));
         verifyNotCached(response);
         sendResponse.release();
 
         final FullHttpResponse pollResponse = (FullHttpResponse) jsonpRequest(sessionUrl + "/jsonp?c=callback",
-                sockJsPipeline("/echo", echoHandler));
-        assertThat(pollResponse.getStatus(), is(HttpResponseStatus.OK));
-        assertThat(pollResponse.headers().get(CONTENT_TYPE), equalTo(HttpResponseBuilder.CONTENT_TYPE_JAVASCRIPT));
+                echoChannel());
+        assertThat(pollResponse.getStatus(), is(OK));
+        assertThat(pollResponse.headers().get(CONTENT_TYPE), equalTo(CONTENT_TYPE_JAVASCRIPT));
         assertThat(pollResponse.content().toString(UTF_8), equalTo("callback(\"a[\\\"x\\\"]\");\r\n"));
         verifyNotCached(pollResponse);
         pollResponse.release();
@@ -1183,10 +1163,9 @@ public class SockJsProtocolTest {
      */
     @Test
     public void jsonpPollingTestNoCallback() throws Exception {
-        final ChannelHandler echoHandler = new SockJsEchoHandler();
-        final TestEmbeddedChannel ch = sockJsPipeline("/echo", echoHandler);
+        final EmbeddedChannel ch = echoChannel();
         final FullHttpResponse response = (FullHttpResponse) jsonpRequest("/echo/a/a/jsonp", ch);
-        assertThat(response.getStatus(), is(HttpResponseStatus.INTERNAL_SERVER_ERROR));
+        assertThat(response.getStatus(), is(INTERNAL_SERVER_ERROR));
         assertThat(response.content().toString(UTF_8), equalTo("\"callback\" parameter required"));
         response.release();
     }
@@ -1196,30 +1175,25 @@ public class SockJsProtocolTest {
      */
     @Test
     public void jsonpPollingTestInvalidJson() throws Exception {
-        final ChannelHandler echoHandler = new SockJsEchoHandler();
         final String serviceName = "/echo";
         final String sessionUrl = serviceName + "/222/" + UUID.randomUUID();
 
-        final FullHttpResponse response = (FullHttpResponse) jsonpRequest(sessionUrl + "/jsonp?c=x",
-                sockJsPipeline("/echo", echoHandler));
-        assertThat(response.getStatus(), is(HttpResponseStatus.OK));
+        final FullHttpResponse response = (FullHttpResponse) jsonpRequest(sessionUrl + "/jsonp?c=x", echoChannel());
+        assertThat(response.getStatus(), is(OK));
         assertThat(response.content().toString(UTF_8), equalTo("x(\"o\");\r\n"));
         response.release();
 
-        assertBrokenJSONEncoding(jsonpSend(sessionUrl + "/jsonp_send", "d=%5B%22x",
-                sockJsPipeline("/echo", echoHandler)));
-        assertPayloadExpected(jsonpSend(sessionUrl + "/jsonp_send", "", sockJsPipeline("/echo", echoHandler)));
-        assertPayloadExpected(jsonpSend(sessionUrl + "/jsonp_send", "d=", sockJsPipeline("/echo", echoHandler)));
-        assertPayloadExpected(jsonpSend(sessionUrl + "/jsonp_send", "p=p", sockJsPipeline("/echo", echoHandler)));
+        assertBrokenJSONEncoding(jsonpSend(sessionUrl + "/jsonp_send", "d=%5B%22x", echoChannel()));
+        assertPayloadExpected(jsonpSend(sessionUrl + "/jsonp_send", "", echoChannel()));
+        assertPayloadExpected(jsonpSend(sessionUrl + "/jsonp_send", "d=", echoChannel()));
+        assertPayloadExpected(jsonpSend(sessionUrl + "/jsonp_send", "p=p", echoChannel()));
 
-        final FullHttpResponse sendResponse = jsonpSend(sessionUrl + "/jsonp_send", "d=%5B%22b%22%5D",
-                sockJsPipeline("/echo", echoHandler));
-        assertThat(sendResponse.getStatus(), is(HttpResponseStatus.OK));
+        final FullHttpResponse sendResponse = jsonpSend(sessionUrl + "/jsonp_send", "d=%5B%22b%22%5D", echoChannel());
+        assertThat(sendResponse.getStatus(), is(OK));
         sendResponse.release();
 
-        final FullHttpResponse pollResponse = (FullHttpResponse) jsonpRequest(sessionUrl + "/jsonp?c=x",
-                sockJsPipeline("/echo", echoHandler));
-        assertThat(pollResponse.getStatus(), is(HttpResponseStatus.OK));
+        final FullHttpResponse pollResponse = (FullHttpResponse) jsonpRequest(sessionUrl + "/jsonp?c=x", echoChannel());
+        assertThat(pollResponse.getStatus(), is(OK));
         assertThat(pollResponse.content().toString(UTF_8), equalTo("x(\"a[\\\"b\\\"]\");\r\n"));
         pollResponse.release();
     }
@@ -1229,19 +1203,16 @@ public class SockJsProtocolTest {
      */
     @Test
     public void jsonpPollingTestContentTypes() throws Exception {
-        final ChannelHandler echoHandler = new SockJsEchoHandler();
         final String serviceName = "/echo";
         final String sessionUrl = serviceName + "/222/" + UUID.randomUUID();
 
-        final FullHttpResponse response = (FullHttpResponse) jsonpRequest(sessionUrl + "/jsonp?c=x",
-                sockJsPipeline("/echo", echoHandler));
+        final FullHttpResponse response = (FullHttpResponse) jsonpRequest(sessionUrl + "/jsonp?c=x", echoChannel());
         assertThat(response.content().toString(UTF_8), equalTo("x(\"o\");\r\n"));
         response.release();
 
         final String data = "d=%5B%22abc%22%5D";
-        final FullHttpResponse sendResponse = jsonpSend(sessionUrl + "/jsonp_send", data,
-                sockJsPipeline("/echo", echoHandler));
-        assertThat(sendResponse.getStatus(), is(HttpResponseStatus.OK));
+        final FullHttpResponse sendResponse = jsonpSend(sessionUrl + "/jsonp_send", data, echoChannel());
+        assertThat(sendResponse.getStatus(), is(OK));
         sendResponse.release();
 
         final FullHttpRequest plainRequest = httpRequest(sessionUrl + "/jsonp_send", POST);
@@ -1250,13 +1221,12 @@ public class SockJsProtocolTest {
         plainRequest.content().writeBytes(byteBuf);
         byteBuf.release();
 
-        final FullHttpResponse plainResponse = jsonpSend(plainRequest, sockJsPipeline("/echo", echoHandler));
-        assertThat(plainResponse.getStatus(), is(HttpResponseStatus.OK));
+        final FullHttpResponse plainResponse = jsonpSend(plainRequest, echoChannel());
+        assertThat(plainResponse.getStatus(), is(OK));
         plainResponse.release();
 
-        final FullHttpResponse pollResponse = (FullHttpResponse) jsonpRequest(sessionUrl + "/jsonp?c=x",
-                sockJsPipeline("/echo", echoHandler));
-        assertThat(pollResponse.getStatus(), is(HttpResponseStatus.OK));
+        final FullHttpResponse pollResponse = (FullHttpResponse) jsonpRequest(sessionUrl + "/jsonp?c=x", echoChannel());
+        assertThat(pollResponse.getStatus(), is(OK));
         assertThat(pollResponse.content().toString(UTF_8), equalTo("x(\"a[\\\"abc\\\",\\\"%61bc\\\"]\");\r\n"));
         pollResponse.release();
     }
@@ -1266,21 +1236,19 @@ public class SockJsProtocolTest {
      */
     @Test
     public void jsonpPollingTestClose() throws Exception {
-        final ChannelHandler closeHandler = new SockJsCloseHandler();
         final String serviceName = "/close";
         final String sessionUrl = serviceName + "/222/" + UUID.randomUUID();
-        final FullHttpResponse response = (FullHttpResponse) jsonpRequest(sessionUrl + "/jsonp?c=x",
-                sockJsPipeline("/close", closeHandler));
+        final FullHttpResponse response = (FullHttpResponse) jsonpRequest(sessionUrl + "/jsonp?c=x", closeChannel());
         assertThat(response.content().toString(UTF_8), equalTo("x(\"o\");\r\n"));
         response.release();
 
         final FullHttpResponse firstResponse = (FullHttpResponse) jsonpRequest(sessionUrl + "/jsonp?c=x",
-                sockJsPipeline("/close", closeHandler));
+                closeChannel());
         assertThat(firstResponse.content().toString(UTF_8), equalTo("x(\"c[3000,\\\"Go away!\\\"]\");\r\n"));
         firstResponse.release();
 
         final FullHttpResponse secondResponse = (FullHttpResponse) jsonpRequest(sessionUrl + "/jsonp?c=x",
-                sockJsPipeline("/close", closeHandler));
+                closeChannel());
         assertThat(secondResponse.content().toString(UTF_8), equalTo("x(\"c[3000,\\\"Go away!\\\"]\");\r\n"));
         secondResponse.release();
     }
@@ -1290,11 +1258,10 @@ public class SockJsProtocolTest {
      */
     @Test
     public void jsessionIdCookieTestBasic() throws Exception {
-        final ChannelHandler echoHandler = new SockJsEchoHandler();
-        final EmbeddedChannel ch = sockJsPipeline("/echo", echoHandler);
+        final EmbeddedChannel ch = echoChannel();
         ch.config().setOption(SockJsChannelOption.COOKIES_NEEDED, true);
         final FullHttpResponse response = infoRequest(ch, "/echo");
-        assertThat(response.getStatus(), is(HttpResponseStatus.OK));
+        assertThat(response.getStatus(), is(OK));
         verifyNoSET_COOKIE(response);
         assertThat(infoAsJson(response).get("cookie_needed").asBoolean(), is(true));
         response.release();
@@ -1305,8 +1272,7 @@ public class SockJsProtocolTest {
      */
     @Test
     public void jsessionIdCookieTestXhr() throws Exception {
-        final ChannelHandler echoHandler = new SockJsEchoHandler();
-        final EmbeddedChannel ch = sockJsPipeline("/echo", echoHandler);
+        final EmbeddedChannel ch = echoChannel();
         ch.config().setOption(SockJsChannelOption.COOKIES_NEEDED, true);
         assertSetCookie(TransportType.XHR.path());
 
@@ -1316,7 +1282,7 @@ public class SockJsProtocolTest {
         request.headers().set("Cookie", ClientCookieEncoder.encode("JSESSIONID", "abcdef"));
         ch.writeInbound(request);
         final FullHttpResponse response = ch.readOutbound();
-        assertThat(response.getStatus(), is(HttpResponseStatus.OK));
+        assertThat(response.getStatus(), is(OK));
         assertSetCookie("abcdef", response);
         response.release();
     }
@@ -1358,9 +1324,8 @@ public class SockJsProtocolTest {
      */
     @Test
     public void rawWebsocketTestTransport() throws Exception {
-        final ChannelHandler echoHandler = new SockJsEchoHandler();
         final String serviceName = "/echo";
-        final EmbeddedChannel ch = wsSockJsPipeline("/echo", echoHandler);
+        final EmbeddedChannel ch = webSocketEchoChannel();
 
         ch.writeInbound(webSocketUpgradeRequest(serviceName + "/websocket"));
         // Discard Switching Protocols buildResponse
@@ -1377,8 +1342,7 @@ public class SockJsProtocolTest {
      */
     @Test
     public void rawWebsocketTestClose() throws Exception {
-        final ChannelHandler closeHandler = new SockJsCloseHandler();
-        final EmbeddedChannel ch = wsSockJsPipeline("/close", closeHandler);
+        final EmbeddedChannel ch = webSocketCloseChannel();
         ch.writeInbound(webSocketUpgradeRequest("/close/websocket"));
         ReferenceCountUtil.release(ch.readOutbound());
         assertThat(ch.isActive(), is(false));
@@ -1389,8 +1353,7 @@ public class SockJsProtocolTest {
     public void webSocketCloseSession() throws Exception {
         final String serviceName = "/echo";
         final String sessionUrl = serviceName + "/222/" + UUID.randomUUID();
-        final ChannelHandler handler = new SockJsEchoHandler();
-        final EmbeddedChannel ch = wsSockJsPipeline("/echo", handler);
+        final EmbeddedChannel ch = webSocketEchoChannel();
 
         final FullHttpRequest request = webSocketUpgradeRequest(sessionUrl + "/websocket", V13.toHttpHeaderValue());
         ch.writeInbound(request);
@@ -1415,20 +1378,18 @@ public class SockJsProtocolTest {
      */
     @Test
     public void jsonEncodingTestXhrServerEncodes() throws Exception {
-        final ChannelHandler echoHandler = new SockJsEchoHandler();
         final String sessionUrl = "/echo/abc/" + UUID.randomUUID();
 
-        final FullHttpResponse response = xhrRequest(sessionUrl, sockJsPipeline("/echo", echoHandler));
+        final FullHttpResponse response = xhrRequest(sessionUrl, echoChannel());
         assertOpenFrameResponse(response);
 
         final String content = serverKillerStringEsc();
-        final FullHttpResponse xhrSendResponse = xhrSendRequest(sessionUrl, "[\"" + content + "\"]",
-                sockJsPipeline("/echo", echoHandler));
-        assertThat(xhrSendResponse.getStatus(), is(HttpResponseStatus.NO_CONTENT));
+        final FullHttpResponse xhrSendResponse = xhrSendRequest(sessionUrl, "[\"" + content + "\"]", echoChannel());
+        assertThat(xhrSendResponse.getStatus(), is(NO_CONTENT));
         xhrSendResponse.release();
 
-        final FullHttpResponse pollResponse = xhrRequest(sessionUrl, sockJsPipeline("/echo", echoHandler));
-        assertThat(pollResponse.getStatus(), is(HttpResponseStatus.OK));
+        final FullHttpResponse pollResponse = xhrRequest(sessionUrl, echoChannel());
+        assertThat(pollResponse.getStatus(), is(OK));
         assertThat(pollResponse.content().toString(UTF_8), equalTo("a[\"" + content + "\"]\n"));
         pollResponse.release();
     }
@@ -1438,22 +1399,20 @@ public class SockJsProtocolTest {
      */
     @Test
     public void jsonEncodingTestXhrServerDecodes() throws Exception {
-        final ChannelHandler echoHandler = new SockJsEchoHandler();
         final String sessionUrl = "/echo/abc/" + UUID.randomUUID();
 
-        final FullHttpResponse response = xhrRequest(sessionUrl, sockJsPipeline("/echo", echoHandler));
-        assertThat(response.getStatus(), is(HttpResponseStatus.OK));
+        final FullHttpResponse response = xhrRequest(sessionUrl, echoChannel());
+        assertThat(response.getStatus(), is(OK));
         assertThat(response.content().toString(UTF_8), equalTo("o\n"));
         response.release();
 
         final String content = "[\"" + generateUnicodeValues(0x0000, 0xFFFF) + "\"]";
-        final FullHttpResponse xhrSendResponse = xhrSendRequest(sessionUrl, content,
-                sockJsPipeline("/echo", echoHandler));
-        assertThat(xhrSendResponse.getStatus(), is(HttpResponseStatus.NO_CONTENT));
+        final FullHttpResponse xhrSendResponse = xhrSendRequest(sessionUrl, content, echoChannel());
+        assertThat(xhrSendResponse.getStatus(), is(NO_CONTENT));
         xhrSendResponse.release();
 
-        final FullHttpResponse pollResponse = xhrRequest(sessionUrl, sockJsPipeline("/echo", echoHandler));
-        assertThat(pollResponse.getStatus(), is(HttpResponseStatus.OK));
+        final FullHttpResponse pollResponse = xhrRequest(sessionUrl, echoChannel());
+        assertThat(pollResponse.getStatus(), is(OK));
 
         // Let the content go through the MessageFrame to match what the buildResponse will go through.
         final MessageFrame messageFrame = new MessageFrame(JsonUtil.decode(content)[0]);
@@ -1469,14 +1428,13 @@ public class SockJsProtocolTest {
      */
     @Test
     public void handlingCloseTestCloseFrame() throws Exception {
-        final ChannelHandler closeHandler = new SockJsCloseHandler();
         final String sessionUrl = "/close/222/" + UUID.randomUUID();
-        final EmbeddedChannel ch = sockJsPipeline("/close", closeHandler);
+        final EmbeddedChannel ch = closeChannel();
         final FullHttpRequest request = httpRequest(sessionUrl + TransportType.XHR_STREAMING.path(), GET);
         ch.writeInbound(request);
 
         final HttpResponse response =  ch.readOutbound();
-        assertThat(response.getStatus(), equalTo(HttpResponseStatus.OK));
+        assertThat(response.getStatus(), equalTo(OK));
         //Read and discard prelude
         ReferenceCountUtil.release(ch.readOutbound());
         // Read and discard of the open frame
@@ -1486,12 +1444,12 @@ public class SockJsProtocolTest {
         assertThat(closeResponse.content().toString(UTF_8), equalTo("c[3000,\"Go away!\"]\n"));
         closeResponse.release();
 
-        final EmbeddedChannel ch2 = sockJsPipeline("/close", closeHandler);
+        final EmbeddedChannel ch2 = closeChannel();
         final FullHttpRequest request2 = httpRequest(sessionUrl + TransportType.XHR_STREAMING.path(), GET);
         ch2.writeInbound(request2);
 
         final HttpResponse response2 =  ch2.readOutbound();
-        assertThat(response2.getStatus(), equalTo(HttpResponseStatus.OK));
+        assertThat(response2.getStatus(), equalTo(OK));
 
         //Read and discard prelude
         ReferenceCountUtil.release(ch2.readOutbound());
@@ -1509,26 +1467,25 @@ public class SockJsProtocolTest {
      */
     @Test
     public void handlingCloseTestCloseRequest() throws Exception {
-        final ChannelHandler echoHandler = new SockJsEchoHandler();
         final String sessionUrl = "/echo/222/" + UUID.randomUUID();
-        final EmbeddedChannel ch = sockJsPipeline("/echo", echoHandler);
+        final EmbeddedChannel ch = echoChannel();
         final FullHttpRequest request = httpRequest(sessionUrl + TransportType.XHR_STREAMING.path(), POST);
         ch.writeInbound(request);
 
         final HttpResponse response = ch.readOutbound();
-        assertThat(response.getStatus(), equalTo(HttpResponseStatus.OK));
+        assertThat(response.getStatus(), equalTo(OK));
         //Read and discard prelude
         ReferenceCountUtil.release(ch.readOutbound());
         final DefaultHttpContent openResponse = ch.readOutbound();
         assertThat(openResponse.content().toString(UTF_8), equalTo("o\n"));
         openResponse.release();
 
-        final EmbeddedChannel ch2 = sockJsPipeline("/echo", echoHandler);
+        final EmbeddedChannel ch2 = echoChannel();
         final FullHttpRequest request2 = httpRequest(sessionUrl + TransportType.XHR_STREAMING.path(), POST);
         ch2.writeInbound(request2);
 
         final HttpResponse response2 =  ch2.readOutbound();
-        assertThat(response2.getStatus(), equalTo(HttpResponseStatus.OK));
+        assertThat(response2.getStatus(), equalTo(OK));
         //Read and discard prelude
         ReferenceCountUtil.release(ch2.readOutbound());
 
@@ -1544,26 +1501,25 @@ public class SockJsProtocolTest {
      */
     @Test
     public void handlingCloseTestAbortXhrStreaming() throws Exception {
-        final ChannelHandler echoHandler = new SockJsEchoHandler();
         final String sessionUrl = "/echo/222/" + UUID.randomUUID();
-        final EmbeddedChannel ch = sockJsPipeline("/echo", echoHandler);
+        final EmbeddedChannel ch = echoChannel();
         final FullHttpRequest request = httpRequest(sessionUrl + TransportType.XHR_STREAMING.path(), GET);
         ch.writeInbound(request);
 
         final HttpResponse response =  ch.readOutbound();
-        assertThat(response.getStatus(), equalTo(HttpResponseStatus.OK));
+        assertThat(response.getStatus(), equalTo(OK));
         //Read and discard prelude
         ReferenceCountUtil.release(ch.readOutbound());
         final DefaultHttpContent openResponse = ch.readOutbound();
         assertThat(openResponse.content().toString(UTF_8), equalTo("o\n"));
         openResponse.release();
 
-        final EmbeddedChannel ch2 = sockJsPipeline("/echo", echoHandler);
+        final EmbeddedChannel ch2 = echoChannel();
         final FullHttpRequest request2 = httpRequest(sessionUrl + TransportType.XHR_STREAMING.path(), GET);
         ch2.writeInbound(request2);
 
         final HttpResponse response2 =  ch2.readOutbound();
-        assertThat(response2.getStatus(), equalTo(HttpResponseStatus.OK));
+        assertThat(response2.getStatus(), equalTo(OK));
         //Read and discard prelude
         ReferenceCountUtil.release(ch2.readOutbound());
 
@@ -1574,12 +1530,12 @@ public class SockJsProtocolTest {
         assertThat(ch2.isActive(), is(false));
         ch.close();
 
-        final EmbeddedChannel ch3 = sockJsPipeline("/echo", echoHandler);
+        final EmbeddedChannel ch3 = echoChannel();
         final FullHttpRequest request3 = httpRequest(sessionUrl + TransportType.XHR_STREAMING.path(), POST);
         ch3.writeInbound(request3);
 
         final HttpResponse response3 =  ch3.readOutbound();
-        assertThat(response3.getStatus(), equalTo(HttpResponseStatus.OK));
+        assertThat(response3.getStatus(), equalTo(OK));
         //Read and discard prelude
         ReferenceCountUtil.release(ch3.readOutbound());
 
@@ -1596,24 +1552,23 @@ public class SockJsProtocolTest {
      */
     @Test
     public void handlingCloseTestAbortXhrPolling() throws Exception {
-        final ChannelHandler echoHandler = new SockJsEchoHandler();
         final String sessionUrl = "/echo/000/" + UUID.randomUUID();
 
-        final EmbeddedChannel ch = sockJsPipeline("/echo", echoHandler);
+        final EmbeddedChannel ch = echoChannel();
         ch.writeInbound(httpRequest(sessionUrl + TransportType.XHR.path(), GET));
 
         final FullHttpResponse response = ch.readOutbound();
-        assertThat(response.getStatus(), is(HttpResponseStatus.OK));
+        assertThat(response.getStatus(), is(OK));
         assertThat(response.content().toString(UTF_8), equalTo("o\n"));
         response.release();
 
-        final EmbeddedChannel ch2 = sockJsPipeline("/echo", echoHandler);
+        final EmbeddedChannel ch2 = echoChannel();
         ch2.writeInbound(httpRequest(sessionUrl + TransportType.XHR.path(), GET));
         final FullHttpResponse response2 = ch2.readOutbound();
         assertThat(response2.content().toString(UTF_8), equalTo("c[2010,\"Another connection still open\"]\n"));
         response2.release();
 
-        final EmbeddedChannel ch3 = sockJsPipeline("/echo", echoHandler);
+        final EmbeddedChannel ch3 = echoChannel();
         ch3.writeInbound(httpRequest(sessionUrl + TransportType.XHR.path(), GET));
 
         final FullHttpResponse response3 = ch3.readOutbound();
@@ -1626,15 +1581,13 @@ public class SockJsProtocolTest {
      */
     @Test
     public void http10TestSynchronous() throws Exception {
-        final ChannelHandler echoHandler = new SockJsEchoHandler();
-
-        final EmbeddedChannel ch = sockJsPipeline("/echo", echoHandler);
+        final EmbeddedChannel ch = echoChannel();
         final FullHttpRequest request = httpGetRequest("/echo", HTTP_1_0);
         request.headers().set(CONNECTION, KEEP_ALIVE);
         ch.writeInbound(request);
 
         final FullHttpResponse response = ch.readOutbound();
-        assertThat(response.getStatus(), is(HttpResponseStatus.OK));
+        assertThat(response.getStatus(), is(OK));
         assertThat(response.getProtocolVersion(), is(HTTP_1_0));
         assertThat(response.headers().get(TRANSFER_ENCODING), is(nullValue()));
         if (response.headers().get(CONTENT_LENGTH) == null) {
@@ -1649,9 +1602,10 @@ public class SockJsProtocolTest {
                 assertThat(ch.isActive(), is(false));
             } else {
                 assertThat(connectionHeader, equalTo("keep-alive"));
-                ch.writeInbound(httpGetRequest("/echo", HTTP_1_0));
-                final HttpResponse newResponse = ch.readOutbound();
-                assertThat(newResponse.getStatus(), is(HttpResponseStatus.OK));
+                final EmbeddedChannel ch2 = echoChannel();
+                ch2.writeInbound(httpGetRequest("/echo", HTTP_1_0));
+                final HttpResponse newResponse = ch2.readOutbound();
+                assertThat(newResponse.getStatus(), is(OK));
             }
         }
         response.release();
@@ -1662,15 +1616,14 @@ public class SockJsProtocolTest {
      */
     @Test
     public void http10TestStreaming() throws Exception {
-        final ChannelHandler closeHandler = new SockJsCloseHandler();
         final String sessionUrl = "/close/222/" + UUID.randomUUID();
-        final EmbeddedChannel ch = sockJsPipeline("/close", closeHandler);
+        final EmbeddedChannel ch = closeChannel();
         final FullHttpRequest request = httpPostRequest(sessionUrl + TransportType.XHR_STREAMING.path(), HTTP_1_0);
         request.headers().set(CONNECTION, KEEP_ALIVE);
         ch.writeInbound(request);
 
         final HttpResponse response =  ch.readOutbound();
-        assertThat(response.getStatus(), equalTo(HttpResponseStatus.OK));
+        assertThat(response.getStatus(), equalTo(OK));
         assertThat(response.getProtocolVersion(), is(HTTP_1_0));
         assertThat(response.headers().get(TRANSFER_ENCODING), is(nullValue()));
         assertThat(response.headers().get(CONTENT_LENGTH), is(nullValue()));
@@ -1698,15 +1651,13 @@ public class SockJsProtocolTest {
      */
     @Test
     public void http11TestSynchronous() throws Exception {
-        final ChannelHandler echoHandler = new SockJsEchoHandler();
-
-        final EmbeddedChannel ch = sockJsPipeline("/echo", echoHandler);
+        final EmbeddedChannel ch = echoChannel();
         final FullHttpRequest request = httpGetRequest("/echo", HTTP_1_1);
         request.headers().set(CONNECTION, KEEP_ALIVE);
         ch.writeInbound(request);
 
         final FullHttpResponse response = ch.readOutbound();
-        assertThat(response.getStatus(), is(HttpResponseStatus.OK));
+        assertThat(response.getStatus(), is(OK));
         assertThat(response.getProtocolVersion(), is(HTTP_1_1));
         String connectionHeader = response.headers().get(CONNECTION);
         if (connectionHeader != null) {
@@ -1722,10 +1673,12 @@ public class SockJsProtocolTest {
             assertThat(response.content().toString(UTF_8), equalTo("Welcome to SockJS!\n"));
         }
         response.release();
+        ch.close();
 
-        ch.writeInbound(httpGetRequest("/echo", HTTP_1_0));
-        final FullHttpResponse newResponse = ch.readOutbound();
-        assertThat(newResponse.getStatus(), is(HttpResponseStatus.OK));
+        final EmbeddedChannel ch2 = echoChannel();
+        ch2.writeInbound(httpGetRequest("/echo", HTTP_1_0));
+        final FullHttpResponse newResponse = ch2.readOutbound();
+        assertThat(newResponse.getStatus(), is(OK));
         newResponse.release();
     }
 
@@ -1734,15 +1687,14 @@ public class SockJsProtocolTest {
      */
     @Test
     public void http11TestStreaming() throws Exception {
-        final ChannelHandler closeHandler = new SockJsCloseHandler();
         final String sessionUrl = "/close/222/" + UUID.randomUUID();
-        final EmbeddedChannel ch = sockJsPipeline("/close", closeHandler);
+        final EmbeddedChannel ch = closeChannel();
         final FullHttpRequest request = httpPostRequest(sessionUrl + TransportType.XHR_STREAMING.path(), HTTP_1_1);
         request.headers().set(CONNECTION, KEEP_ALIVE);
         ch.writeInbound(request);
 
         final HttpResponse response =  ch.readOutbound();
-        assertThat(response.getStatus(), equalTo(HttpResponseStatus.OK));
+        assertThat(response.getStatus(), equalTo(OK));
         assertThat(response.getProtocolVersion(), is(HTTP_1_1));
         assertThat(response.headers().get(TRANSFER_ENCODING), equalTo("chunked"));
         assertThat(response.headers().get(CONTENT_LENGTH), is(nullValue()));
@@ -1767,27 +1719,26 @@ public class SockJsProtocolTest {
 
     @Test
     public void prefixNotFound() throws Exception {
-        final ChannelHandler echoHandler = new SockJsEchoHandler();
-        final EmbeddedChannel ch = sockJsPipeline("/echo", echoHandler);
+        final EmbeddedChannel ch = echoChannel();
         ch.config().setOption(SockJsChannelOption.COOKIES_NEEDED, true);
         ch.writeInbound(httpRequest("/missing"));
         final FullHttpResponse response = ch.readOutbound();
-        assertThat(response.getStatus().code(), is(HttpResponseStatus.NOT_FOUND.code()));
+        assertThat(response.getStatus().code(), is(NOT_FOUND.code()));
         response.release();
     }
 
     private static void assertGoAwayResponse(final FullHttpResponse response) {
-        assertThat(response.getStatus(), is(HttpResponseStatus.OK));
+        assertThat(response.getStatus(), is(OK));
         assertThat(response.content().toString(UTF_8), equalTo("c[3000,\"Go away!\"]\n"));
     }
 
     private static void assertNoContent(final FullHttpResponse response) {
-        assertThat(response.getStatus(), is(HttpResponseStatus.NO_CONTENT));
+        assertThat(response.getStatus(), is(NO_CONTENT));
         assertThat(response.content().isReadable(), is(false));
     }
 
     private static void assertMessageFrameContent(final FullHttpResponse response, final String expected) {
-        assertThat(response.getStatus(), is(HttpResponseStatus.OK));
+        assertThat(response.getStatus(), is(OK));
         assertThat(response.content().toString(UTF_8), equalTo("a[\"" + expected + "\"]\n"));
     }
 
@@ -1838,16 +1789,15 @@ public class SockJsProtocolTest {
     }
 
     private static void assertSetCookie(final String transportPath) {
-        final ChannelHandler echoHandler = new SockJsEchoHandler();
         final String serviceName = "/echo";
         final String sessionUrl = serviceName + "/abc/" + UUID.randomUUID();
-        final EmbeddedChannel ch = sockJsPipeline("/echo", echoHandler);
+        final EmbeddedChannel ch = echoChannel();
         ch.config().setOption(SockJsChannelOption.COOKIES_NEEDED, true);
         final FullHttpRequest request = httpRequest(sessionUrl + transportPath, GET);
         ch.writeInbound(request);
 
         final HttpResponse response = ch.readOutbound();
-        assertThat(response.getStatus(), is(HttpResponseStatus.OK));
+        assertThat(response.getStatus(), is(OK));
         assertSetCookie("dummy", response);
         if (response instanceof FullHttpResponse) {
             ((FullHttpResponse) response).release();
@@ -1868,17 +1818,17 @@ public class SockJsProtocolTest {
     }
 
     private static void assertOpenFrameResponse(final FullHttpResponse response) {
-        assertThat(response.getStatus(), is(HttpResponseStatus.OK));
+        assertThat(response.getStatus(), is(OK));
         assertThat(response.content().toString(UTF_8), equalTo("o\n"));
         response.release();
     }
 
     private static void verifyHeaders(final WebSocketVersion version) throws Exception {
-        final EmbeddedChannel ch = wsSockJsPipeline("/echo", new SockJsEchoHandler());
+        final EmbeddedChannel ch = webSocketEchoChannel();
         final FullHttpRequest request = HttpUtil.webSocketUpgradeRequest("/echo/websocket", version);
         ch.writeInbound(request);
         final HttpResponse response = HttpUtil.decode(ch);
-        assertThat(response.getStatus(), is(HttpResponseStatus.SWITCHING_PROTOCOLS));
+        assertThat(response.getStatus(), is(SWITCHING_PROTOCOLS));
         assertThat(response.headers().get(CONNECTION), equalTo("Upgrade"));
         assertThat(response.headers().get(UPGRADE), equalTo("websocket"));
         assertThat(response.headers().get(CONTENT_LENGTH), is(nullValue()));
@@ -1907,9 +1857,8 @@ public class SockJsProtocolTest {
     }
 
     private static void webSocketTestTransport(final WebSocketVersion version) {
-        final ChannelHandler echoHandler = new SockJsEchoHandler();
         final String sessionUrl = "/echo/222/" + UUID.randomUUID();
-        final EmbeddedChannel ch = wsSockJsPipeline("/echo", echoHandler);
+        final EmbeddedChannel ch = webSocketEchoChannel();
 
         final FullHttpRequest request = webSocketUpgradeRequest(sessionUrl + "/websocket", version);
         ch.writeInbound(request);
@@ -1930,9 +1879,8 @@ public class SockJsProtocolTest {
     }
 
     private static void webSocketTestClose(final WebSocketVersion version) {
-        final ChannelHandler closeHandler = new SockJsCloseHandler();
         final String sessionUrl = "/close/222/" + UUID.randomUUID();
-        final EmbeddedChannel ch = wsSockJsPipeline("/close", closeHandler);
+        final EmbeddedChannel ch = webSocketCloseChannel();
 
         final FullHttpRequest request = webSocketUpgradeRequest(sessionUrl + "/websocket", version.toHttpHeaderValue());
         ch.writeInbound(request);
@@ -1952,9 +1900,8 @@ public class SockJsProtocolTest {
     }
 
     private static void webSocketTestBrokenJSON(final WebSocketVersion version) throws Exception {
-        final ChannelHandler closeHandler = new SockJsCloseHandler();
         final String sessionUrl = "/close/222/" + UUID.randomUUID();
-        final EmbeddedChannel ch = wsSockJsPipeline("/close", closeHandler);
+        final EmbeddedChannel ch = webSocketCloseChannel();
 
         final FullHttpRequest request = webSocketUpgradeRequest(sessionUrl + "/websocket", version.toHttpHeaderValue());
         ch.writeInbound(request);
@@ -1997,13 +1944,13 @@ public class SockJsProtocolTest {
     }
 
     private static void assertBrokenJSONEncoding(final FullHttpResponse response) {
-        assertThat(response.getStatus(), is(HttpResponseStatus.INTERNAL_SERVER_ERROR));
+        assertThat(response.getStatus(), is(INTERNAL_SERVER_ERROR));
         assertThat(response.content().toString(UTF_8), equalTo("Broken JSON encoding."));
         response.release();
     }
 
     private static void assertPayloadExpected(final FullHttpResponse response) {
-        assertThat(response.getStatus(), is(HttpResponseStatus.INTERNAL_SERVER_ERROR));
+        assertThat(response.getStatus(), is(INTERNAL_SERVER_ERROR));
         assertThat(response.content().toString(UTF_8), equalTo("Payload expected."));
         response.release();
     }
@@ -2102,13 +2049,12 @@ public class SockJsProtocolTest {
     }
 
     private static void assertOKResponse(final String sessionPart) {
-        final ChannelHandler echoHandler = new SockJsEchoHandler();
-        final EmbeddedChannel ch = sockJsPipeline("/echo", echoHandler);
+        final EmbeddedChannel ch = echoChannel();
         ch.config().setOption(SockJsChannelOption.COOKIES_NEEDED, true);
 
         ch.writeInbound(httpRequest("/echo" + sessionPart + TransportType.XHR.path()));
         final FullHttpResponse response = ch.readOutbound();
-        assertThat(response.getStatus(), is(HttpResponseStatus.OK));
+        assertThat(response.getStatus(), is(OK));
         assertThat(response.content().toString(UTF_8), equalTo("o\n"));
         response.release();
     }
@@ -2132,20 +2078,19 @@ public class SockJsProtocolTest {
     }
 
     private static void verifyIframe(final String path) {
-        final EmbeddedChannel ch = sockJsPipeline("/echo", new SockJsEchoHandler());
-        final SockJsChannelConfig config = (SockJsChannelConfig) ch.config();
+        final EmbeddedChannel ch = echoChannel();
         ch.config().setOption(SockJsChannelOption.PREFIX, "/echo");
         ch.config().setOption(SockJsChannelOption.COOKIES_NEEDED, true);
         ch.writeInbound(httpRequest("/echo" + path));
 
         final FullHttpResponse response = ch.readOutbound();
-        assertThat(response.getStatus().code(), is(HttpResponseStatus.OK.code()));
+        assertThat(response.getStatus().code(), is(OK.code()));
         assertThat(response.headers().get(CONTENT_TYPE), equalTo("text/html; charset=UTF-8"));
         assertThat(response.headers().get(CACHE_CONTROL), equalTo("max-age=31536000, public"));
         assertThat(response.headers().get(EXPIRES), is(notNullValue()));
         verifyNoSET_COOKIE(response);
         assertThat(response.headers().get(ETAG), is(notNullValue()));
-        assertThat(response.content().toString(UTF_8), equalTo(iframeHtml(config.sockJsUrl())));
+        assertThat(response.content().toString(UTF_8), equalTo(iframeHtml(ch.config().getOption(SOCKJS_URL))));
         response.release();
     }
 
@@ -2169,12 +2114,12 @@ public class SockJsProtocolTest {
     }
 
     private static void assertNotFoundResponse(final String prefix, final String path) {
-        final TestEmbeddedChannel ch = sockJsPipeline(prefix, new SockJsEchoHandler());
+        final EmbeddedChannel ch = echoChannel();
         ch.config().setOption(SockJsChannelOption.PREFIX, prefix);
         ch.config().setOption(SockJsChannelOption.COOKIES_NEEDED, true);
         ch.writeInbound(httpRequest('/' + prefix + path));
         final FullHttpResponse response = ch.readOutbound();
-        assertThat(response.getStatus(), is(HttpResponseStatus.NOT_FOUND));
+        assertThat(response.getStatus(), is(NOT_FOUND));
         response.release();
     }
 
@@ -2208,7 +2153,7 @@ public class SockJsProtocolTest {
     }
 
     private static FullHttpResponse sendInfoRequest() {
-        final EmbeddedChannel ch = sockJsPipeline("/echo", new SockJsEchoHandler());
+        final EmbeddedChannel ch = echoChannel();
         ch.writeInbound(httpRequest(ch.config().getOption(SockJsChannelOption.PREFIX) + "/info"));
         final FullHttpResponse response = ch.readOutbound();
         ch.close();

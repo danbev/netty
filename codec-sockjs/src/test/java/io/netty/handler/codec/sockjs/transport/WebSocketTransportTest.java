@@ -55,14 +55,14 @@ public class WebSocketTransportTest {
     @Test
     public void upgradeRequest() throws Exception {
         final ChannelHandler echoHandler = new SockJsEchoHandler();
-        final EmbeddedChannel ch = wsSockJsPipeline("/echo", echoHandler);
+        final EmbeddedChannel ch = wsSockJsChannel("/echo", echoHandler);
         assertUpgradeRequest(ch);
     }
 
     @Test
     public void invalidHttpMethod() throws Exception {
         final ChannelHandler echoHandler = new SockJsEchoHandler();
-        final EmbeddedChannel ch = wsSockJsPipeline("/echo", echoHandler);
+        final EmbeddedChannel ch = wsSockJsChannel("/echo", echoHandler);
         final FullHttpRequest request = new DefaultFullHttpRequest(HTTP_1_1, POST, "/echo/websocket");
         request.retain();
         ch.writeInbound(request);
@@ -74,9 +74,8 @@ public class WebSocketTransportTest {
     @Test
     public void nonUpgradeRequest() throws Exception {
         final ChannelHandler echoHandler = new SockJsEchoHandler();
-        final EmbeddedChannel ch = wsSockJsPipeline("/echo", echoHandler);
+        final EmbeddedChannel ch = wsSockJsChannel("/echo", echoHandler);
         final FullHttpRequest request = new DefaultFullHttpRequest(HTTP_1_1, GET, "/echo/123/123/websocket");
-        request.retain();
         ch.writeInbound(request);
 
         final FullHttpResponse response = decodeFullHttpResponse(ch);
@@ -89,7 +88,7 @@ public class WebSocketTransportTest {
     @Test
     public void invalidConnectionHeader() throws Exception {
         final ChannelHandler echoHandler = new SockJsEchoHandler();
-        final EmbeddedChannel ch = wsSockJsPipeline("/echo", echoHandler);
+        final EmbeddedChannel ch = wsSockJsChannel("/echo", echoHandler);
         final FullHttpRequest request = webSocketUpgradeRequest("/echo/123/123/websocket", WebSocketVersion.V13);
         request.headers().set(UPGRADE, "WebSocket");
         request.headers().set(CONNECTION, "close");
@@ -104,7 +103,7 @@ public class WebSocketTransportTest {
     @Test
     public void invalidJsonInWebSocketFrame() throws Exception {
         final ChannelHandler echoHandler = new SockJsEchoHandler();
-        final EmbeddedChannel ch = wsSockJsPipeline("/echo", echoHandler);
+        final EmbeddedChannel ch = wsSockJsChannel("/echo", echoHandler);
         assertUpgradeRequest(ch);
 
         ch.writeInbound(new TextWebSocketFrame("[invalidJson"));
@@ -114,7 +113,7 @@ public class WebSocketTransportTest {
     @Test
     public void writeJsonArray() throws Exception {
         final ChannelHandler echoHandler = new SockJsEchoHandler();
-        final EmbeddedChannel ch = wsSockJsPipeline("/echo", echoHandler);
+        final EmbeddedChannel ch = wsSockJsChannel("/echo", echoHandler);
         assertUpgradeRequest(ch);
 
         ch.writeInbound(new TextWebSocketFrame("[\"x\",\"y\"]"));
@@ -135,7 +134,7 @@ public class WebSocketTransportTest {
     @Test
     public void writeJsonString() throws Exception {
         final ChannelHandler echoHandler = new SockJsEchoHandler();
-        final EmbeddedChannel ch = wsSockJsPipeline("/echo", echoHandler);
+        final EmbeddedChannel ch = wsSockJsChannel("/echo", echoHandler);
         assertUpgradeRequest(ch);
 
         final TextWebSocketFrame open = ch.readOutbound();
@@ -152,7 +151,7 @@ public class WebSocketTransportTest {
     @Test
     public void firefox602ConnectionHeader() throws Exception {
         final ChannelHandler echoHandler = new SockJsEchoHandler();
-        final EmbeddedChannel ch = wsSockJsPipeline("/echo", echoHandler);
+        final EmbeddedChannel ch = wsSockJsChannel("/echo", echoHandler);
         final FullHttpRequest request = webSocketUpgradeRequest("/echo/123/123/websocket", WebSocketVersion.V08);
         request.headers().set(CONNECTION, "keep-alive, Upgrade");
         ch.writeInbound(request);
@@ -172,7 +171,7 @@ public class WebSocketTransportTest {
 
     private static void verifyHeaders(final WebSocketVersion version) throws Exception {
         final ChannelHandler echoHandler = new SockJsEchoHandler();
-        final EmbeddedChannel ch = wsSockJsPipeline("/echo", echoHandler);
+        final EmbeddedChannel ch = wsSockJsChannel("/echo", echoHandler);
         final FullHttpRequest request = webSocketUpgradeRequest("/echo/123/123/websocket", version);
         ch.writeInbound(request);
         final HttpResponse response = decode(ch);

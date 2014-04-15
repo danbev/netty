@@ -31,7 +31,7 @@ public class SockJsEchoHandler extends SimpleChannelInboundHandler<String> {
     @Override
     public void userEventTriggered(final ChannelHandlerContext ctx, final Object evt) throws Exception {
         if (evt == Event.ON_SESSION_OPEN) {
-            logger.info("Connected");
+            //logger.info(ctx.channel().parent().config().getOption(SockJsChannelOption.PREFIX) + " Connected");
         } else {
             super.userEventTriggered(ctx, evt);
         }
@@ -39,13 +39,13 @@ public class SockJsEchoHandler extends SimpleChannelInboundHandler<String> {
 
     @Override
     protected void messageReceived(final ChannelHandlerContext ctx, final String msg) throws Exception {
-        logger.info("Echoing : " + msg);
+        //logger.info(ctx.channel().parent().config().getOption(SockJsChannelOption.PREFIX) + " Echoing: " + msg);
         ctx.writeAndFlush(msg);
     }
 
     @Override
     public void close(final ChannelHandlerContext ctx, final ChannelPromise promise) throws Exception {
-        logger.info("Closing");
+        //logger.info(ctx.channel().parent().config().getOption(SockJsChannelOption.PREFIX) + " closing");
         super.close(ctx, promise);
     }
 }

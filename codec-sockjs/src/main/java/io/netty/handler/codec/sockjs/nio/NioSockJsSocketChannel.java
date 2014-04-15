@@ -16,34 +16,38 @@
 package io.netty.handler.codec.sockjs.nio;
 
 import io.netty.channel.Channel;
-import io.netty.channel.ChannelHandler;
 import io.netty.channel.EventLoop;
+import io.netty.channel.socket.ServerSocketChannel;
 import io.netty.channel.socket.nio.NioSocketChannel;
-import io.netty.handler.codec.sockjs.DefaultSockJsChannelConfig;
-import io.netty.handler.codec.sockjs.SockJsChannel;
-import io.netty.handler.codec.sockjs.SockJsChannelConfig;
-import io.netty.handler.codec.sockjs.SockJsChannelInitializer;
+import io.netty.handler.codec.http.HttpObjectAggregator;
+import io.netty.handler.codec.http.HttpRequestDecoder;
+import io.netty.handler.codec.http.HttpResponseEncoder;
+import io.netty.handler.codec.sockjs.SockJsMultiplexer;
 
 import java.nio.channels.SocketChannel;
 
-public class NioSockJsSocketChannel extends NioSocketChannel implements SockJsChannel {
+public class NioSockJsSocketChannel extends NioSocketChannel {
 
-    private final SockJsChannelConfig sockJsConfig;
-
+    private boolean registered;
     public NioSockJsSocketChannel(final Channel parent, final EventLoop eventLoop, final SocketChannel socket) {
         super(parent, eventLoop, socket);
-        sockJsConfig = new DefaultSockJsChannelConfig(this, socket.socket());
-        addSockJsHandler(new SockJsChannelInitializer());
     }
 
     @Override
-    public SockJsChannelConfig config() {
-        return sockJsConfig;
+    public ServerSocketChannel parent() {
+        return super.parent();
     }
 
     @Override
-    public void addSockJsHandler(ChannelHandler handler) {
-        pipeline().addLast(handler);
+    protected void doRegister() throws Exception {
+        if (!registered) {
+            super.doRegister();
+            pipeline().addLast("decoder", new HttpRequestDecoder());
+            pipeline().addLast("encoder", new HttpResponseEncoder());
+            pipeline().addLast("chucked", new HttpObjectAggregator(1048576));
+            pipeline().addLast("mux", new SockJsMultiplexer());
+            registered = true;
+        }
     }
 
 }

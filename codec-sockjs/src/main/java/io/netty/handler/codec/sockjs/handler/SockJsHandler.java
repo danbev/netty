@@ -15,21 +15,16 @@
  */
 package io.netty.handler.codec.sockjs.handler;
 
-import io.netty.channel.Channel;
-import io.netty.channel.ChannelFuture;
-import io.netty.channel.ChannelFutureListener;
 import io.netty.channel.ChannelHandler;
 import io.netty.channel.ChannelHandlerContext;
 import io.netty.channel.SimpleChannelInboundHandler;
-import io.netty.handler.codec.http.HttpHeaders;
+import io.netty.handler.codec.http.HttpMethod;
 import io.netty.handler.codec.http.HttpRequest;
-import io.netty.handler.codec.http.HttpResponse;
 import io.netty.handler.codec.http.QueryStringDecoder;
 import io.netty.handler.codec.sockjs.SockJsChannelConfig;
 import io.netty.handler.codec.sockjs.SockJsConfig;
 import io.netty.handler.codec.sockjs.transport.EventSourceTransport;
 import io.netty.handler.codec.sockjs.transport.HtmlFileTransport;
-import io.netty.handler.codec.sockjs.transport.HttpResponseBuilder;
 import io.netty.handler.codec.sockjs.transport.JsonpPollingTransport;
 import io.netty.handler.codec.sockjs.transport.JsonpSendTransport;
 import io.netty.handler.codec.sockjs.transport.RawWebSocketTransport;
@@ -47,9 +42,10 @@ import java.util.concurrent.ConcurrentMap;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
-import static io.netty.handler.codec.http.HttpHeaders.Names.*;
-import static io.netty.handler.codec.http.HttpHeaders.Values.*;
-import static java.util.UUID.*;
+import static io.netty.handler.codec.sockjs.util.TransportUtil.writeMethodNotAllowedResponse;
+import static io.netty.handler.codec.sockjs.util.TransportUtil.writeNotFoundResponse;
+import static io.netty.handler.codec.sockjs.util.TransportUtil.writeResponse;
+import static java.util.UUID.randomUUID;
 
 /**
  * This handler is the main entry point for SockJS HTTP Request.
@@ -64,13 +60,21 @@ public class SockJsHandler extends SimpleChannelInboundHandler<HttpRequest> {
     private static final ConcurrentMap<String, SockJsSession> sessions = new ConcurrentHashMap<String, SockJsSession>();
     private static final PathParams NON_SUPPORTED_PATH = new NonSupportedPath();
     private static final Pattern SERVER_SESSION_PATTERN = Pattern.compile("^/([^/.]+)/([^/.]+)/([^/.]+)");
+    private final SockJsChannelConfig config;
+
+    public SockJsHandler(final SockJsChannelConfig config) {
+        this.config = config;
+    }
 
     @Override
     public void messageReceived(final ChannelHandlerContext ctx, final HttpRequest request) throws Exception {
-        if (logger.isDebugEnabled()) {
-            logger.debug("RequestUri : [{}]", request.getUri());
+        if (request.getMethod() == HttpMethod.OPTIONS) {
+            writeMethodNotAllowedResponse(request, ctx);
+            return;
         }
-        final SockJsChannelConfig config = (SockJsChannelConfig) ctx.channel().config();
+        if (logger.isDebugEnabled()) {
+            logger.debug("Requesturi : [{}]", request.getUri());
+        }
         if (requestPathMatchesPrefix(request, config)) {
             final String path = extractPath(request, config);
             if (Greeting.matches(path)) {
@@ -180,26 +184,6 @@ public class SockJsHandler extends SimpleChannelInboundHandler<HttpRequest> {
             logger.debug("Using existing session [{}]", sessionId);
         }
         return session;
-    }
-
-    private static void writeNotFoundResponse(final HttpRequest request, final ChannelHandlerContext ctx) {
-        writeResponse(ctx.channel(), request, HttpResponseBuilder.responseFor(request)
-                .notFound()
-                .content("Not found").contentType(HttpResponseBuilder.CONTENT_TYPE_PLAIN)
-                .buildFullResponse(ctx.alloc()));
-    }
-
-    private static void writeResponse(final Channel channel,
-                                      final HttpRequest request,
-                                      final HttpResponse response) {
-        boolean hasKeepAliveHeader = HttpHeaders.equalsIgnoreCase(KEEP_ALIVE, request.headers().get(CONNECTION));
-        if (!request.getProtocolVersion().isKeepAliveDefault() && hasKeepAliveHeader) {
-            response.headers().set(CONNECTION, KEEP_ALIVE);
-        }
-        final ChannelFuture wf = channel.writeAndFlush(response);
-        if (!HttpHeaders.isKeepAlive(request)) {
-            wf.addListener(ChannelFutureListener.CLOSE);
-        }
     }
 
     @Override

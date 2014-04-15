@@ -52,7 +52,8 @@ public final class HttpUtil {
 
     public static FullHttpResponse decodeFullHttpResponse(final EmbeddedChannel channel) throws Exception {
         final EmbeddedChannel ch = new EmbeddedChannel(new HttpResponseDecoder());
-        ch.writeInbound(channel.readOutbound());
+        ch.writeInbound(channel.outboundMessages().toArray());
+        //ch.writeInbound(channel.readOutbound(), channel.readOutbound());
         final HttpResponse response = ch.readInbound();
         final HttpContent content = ch.readInbound();
         final DefaultFullHttpResponse fullResponse = new DefaultFullHttpResponse(response.getProtocolVersion(),
