@@ -92,11 +92,23 @@ public class CorsHandlerTest {
                 .allowedRequestMethods(OPTIONS, GET, DELETE)
                 .allowedRequestHeaders("content-type", "xheader1")
                 .build();
-        final HttpResponse response = preflightRequest(config, "http://localhost:8888", "content-type, xheader1");
+        final HttpResponse response = preflightRequest(config, "http://localhost:8888", "content-type", "xheader1");
         assertThat(response.headers().get(ACCESS_CONTROL_ALLOW_ORIGIN), is("http://localhost:8888"));
         assertThat(response.headers().getAll(ACCESS_CONTROL_ALLOW_METHODS), hasItems("OPTIONS", "GET"));
         assertThat(response.headers().getAll(ACCESS_CONTROL_ALLOW_HEADERS), hasItems("content-type", "xheader1"));
         assertThat(response.headers().get(VARY), equalTo(ORIGIN.toString()));
+    }
+
+    @Test
+    public void preflightGetRequestWithSubsetOfHeaders() {
+        final CorsConfig config = CorsConfig.withOrigin("http://localhost:8888")
+                .allowedRequestMethods(HttpMethod.OPTIONS, HttpMethod.GET, HttpMethod.DELETE)
+                .allowedRequestHeaders("xheader1", "xheader2")
+                .build();
+        final HttpResponse response = preflightRequest(config, "http://localhost:8888", "content-type, xheader1");
+        assertThat(response.headers().get(ACCESS_CONTROL_ALLOW_ORIGIN), is("http://localhost:8888"));
+        assertThat(response.headers().getAll(ACCESS_CONTROL_ALLOW_METHODS), hasItems("OPTIONS", "GET"));
+        assertThat(response.headers().get(ACCESS_CONTROL_ALLOW_HEADERS), equalTo("xheader1"));
     }
 
     @Test
@@ -265,7 +277,7 @@ public class CorsHandlerTest {
 
     private static HttpResponse preflightRequest(final CorsConfig config,
                                                  final String origin,
-                                                 final String requestHeaders) {
+                                                 final String... requestHeaders) {
         final EmbeddedChannel channel = new EmbeddedChannel(new CorsHandler(config));
         final FullHttpRequest httpRequest = createHttpRequest(OPTIONS);
         httpRequest.headers().set(ORIGIN, origin);

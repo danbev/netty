@@ -26,6 +26,10 @@ import io.netty.handler.codec.http.HttpResponse;
 import io.netty.util.internal.logging.InternalLogger;
 import io.netty.util.internal.logging.InternalLoggerFactory;
 
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Set;
+
 import static io.netty.handler.codec.http.HttpHeaders.Names.*;
 import static io.netty.handler.codec.http.HttpMethod.*;
 import static io.netty.handler.codec.http.HttpResponseStatus.*;
@@ -169,7 +173,17 @@ public class CorsHandler extends ChannelHandlerAdapter {
     }
 
     private void setAllowHeaders(final HttpResponse response) {
-        response.headers().set(ACCESS_CONTROL_ALLOW_HEADERS, config.allowedRequestHeaders());
+        final Set<String> allowedHeaders = config.allowedRequestHeaders();
+        final List<String> responseHeaders = new ArrayList<String>();
+        for (String header : request.headers().getAll(ACCESS_CONTROL_REQUEST_HEADERS)) {
+            for (String val : header.split(",")) {
+                final String trimmed = val.trim();
+                if (allowedHeaders.contains(trimmed)) {
+                    responseHeaders.add(trimmed);
+                }
+            }
+        }
+        response.headers().add(ACCESS_CONTROL_ALLOW_HEADERS, responseHeaders);
     }
 
     private void setMaxAge(final HttpResponse response) {
