@@ -48,7 +48,7 @@ public class NettySockJsServer {
             sb.channel(NioSockJsServerChannel.class);
             sb.group(bossGroup, workerGroup);
 
-            final CorsConfig corsConfig = DefaultSockJsConfig.defaultCorsConfig("test", "*")
+            final CorsConfig corsConfig = DefaultSockJsConfig.defaultCorsConfig("test", "*", "localhost:8081")
                     .allowedRequestHeaders("a", "b", "c")
                     .allowNullOrigin()
                     .allowedRequestMethods(POST, GET, OPTIONS)
@@ -63,6 +63,7 @@ public class NettySockJsServer {
             sb.option(PREFIX, "/echo");
             sb.option(MAX_STREAMING_BYTES_SIZE, 4096);
             sb.option(CORS_CONFIG, corsConfig);
+            sb.option(HEARTBEAT_INTERVAL, 60000L);
             sb.register();
 
             sb.childHandler(new ChannelInitializer<SocketChannel>() {
@@ -73,6 +74,7 @@ public class NettySockJsServer {
             });
             sb.option(PREFIX, "/close");
             sb.option(CORS_CONFIG, corsConfig);
+            sb.option(HEARTBEAT_INTERVAL, 60000L);
             sb.register();
 
             sb.childHandler(new ChannelInitializer<SocketChannel>() {
@@ -84,6 +86,7 @@ public class NettySockJsServer {
             sb.option(PREFIX, "/cookie_needed_echo");
             sb.option(COOKIES_NEEDED, true);
             sb.option(CORS_CONFIG, corsConfig);
+            sb.option(HEARTBEAT_INTERVAL, 60000L);
             sb.register();
 
             sb.childHandler(new ChannelInitializer<SocketChannel>() {
@@ -95,6 +98,7 @@ public class NettySockJsServer {
             sb.option(PREFIX, "/disabled_websocket_echo");
             sb.option(WEBSOCKET_ENABLED, false);
             sb.option(CORS_CONFIG, corsConfig);
+            sb.option(HEARTBEAT_INTERVAL, 60000L);
             sb.register();
 
             final Channel ch = sb.bind(port).sync().channel();

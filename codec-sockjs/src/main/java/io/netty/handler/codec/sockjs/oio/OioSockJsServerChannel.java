@@ -1,0 +1,147 @@
+/*
+ * Copyright 2013 The Netty Project
+ *
+ * The Netty Project licenses this file to you under the Apache License, version
+ * 2.0 (the "License"); you may not use this file except in compliance with the
+ * License. You may obtain a copy of the License at:
+ *
+ * http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS, WITHOUT
+ * WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the
+ * License for the specific language governing permissions and limitations under
+ * the License.
+ */
+package io.netty.handler.codec.sockjs.oio;
+
+import io.netty.channel.AbstractServerChannel;
+import io.netty.channel.ChannelHandlerAdapter;
+import io.netty.channel.ChannelHandlerContext;
+import io.netty.channel.EventLoop;
+import io.netty.channel.EventLoopGroup;
+import io.netty.channel.oio.OioEventLoopGroup;
+import io.netty.channel.socket.oio.OioServerSocketChannel;
+import io.netty.handler.codec.sockjs.DefaultSockJsChannelConfig;
+import io.netty.handler.codec.sockjs.SockJsChannelConfig;
+import io.netty.handler.codec.sockjs.SockJsServerChannel;
+import io.netty.handler.codec.sockjs.SockJsServerSocketChannelAdapter;
+import io.netty.handler.codec.sockjs.SockJsService;
+import io.netty.util.internal.logging.InternalLogger;
+import io.netty.util.internal.logging.InternalLoggerFactory;
+
+import java.net.Socket;
+import java.net.SocketAddress;
+import java.net.SocketTimeoutException;
+import java.util.List;
+import java.util.concurrent.ConcurrentHashMap;
+
+public class OioSockJsServerChannel extends AbstractServerChannel implements SockJsServerChannel {
+
+    private static final InternalLogger logger = InternalLoggerFactory.getInstance(OioSockJsServerChannel.class);
+
+    private static final ConcurrentHashMap<String, SockJsService> services =
+            new ConcurrentHashMap<String, SockJsService>();
+
+    private final SockJsChannelConfig config;
+    private OioServerSocketChannel oio;
+
+    public OioSockJsServerChannel(final EventLoop eventLoop, final EventLoopGroup childGroup) {
+        super(eventLoop, childGroup);
+        config = new DefaultSockJsChannelConfig(this);
+    }
+
+    @Override
+    protected void doRegister() throws Exception {
+        services.putIfAbsent(config.getPrefix(), new SockJsService(config, pipeline().removeFirst()));
+    }
+
+    @Override
+    public SockJsService serviceFor(String prefix) {
+        return services.get(prefix);
+    }
+
+    @Override
+    public SockJsChannelConfig config() {
+        return config;
+    }
+
+    @Override
+    public boolean isOpen() {
+        return true;
+    }
+
+    @Override
+    public boolean isActive() {
+        return oio != null && oio.isActive();
+    }
+
+    @Override
+    protected void doBind(SocketAddress localAddress) throws Exception {
+        oio = new OioServerSocketChannel(eventLoop(), childEventLoopGroup()) {
+            @Override
+            protected int doReadMessages(List<Object> buf) throws Exception {
+                if (serverSocket().isClosed()) {
+                    return -1;
+                }
+                try {
+                    final Socket s = serverSocket().accept();
+                    try {
+                        if (s != null) {
+                            final SockJsServerSocketChannelAdapter parent =
+                                    new SockJsServerSocketChannelAdapter(OioSockJsServerChannel.this, this);
+                            buf.add(new OioSockJsSocketChannel(parent, childEventLoopGroup().next(), s));
+                            return 1;
+                        }
+                    } catch (final Throwable t) {
+                        logger.warn("Failed to create a new channel from an accepted socket.", t);
+                        if (s != null) {
+                            try {
+                                s.close();
+                            } catch (final Throwable t2) {
+                                logger.warn("Failed to close a socket.", t2);
+                            }
+                        }
+                    }
+                } catch (final SocketTimeoutException e) {
+                    // Expected
+                }
+                return 0;
+            }
+        };
+        // Force only one read per loop, otherwise the above socket.accept will timeout
+        // causing a delay of about 1 sec for each and every request.
+        // TODO: run this by the Norman or Trustin and see what I'm missing.
+        oio.config().setMaxMessagesPerRead(1);
+        oio.pipeline().addLast(new ChannelHandlerAdapter() {
+            @Override
+            public void channelRead(final ChannelHandlerContext ctx, final Object msg) throws Exception {
+                final OioSockJsSocketChannel channel = (OioSockJsSocketChannel) msg;
+                channel.doRegister();
+                channel.doBeginRead();
+            }
+        });
+        oio.bind(localAddress);
+    }
+
+    @Override
+    protected boolean isCompatible(EventLoop loop) {
+        return loop.parent() instanceof OioEventLoopGroup;
+    }
+
+    @Override
+    protected SocketAddress localAddress0() {
+        return oio != null ? oio.localAddress() : null;
+    }
+
+    @Override
+    protected void doClose() throws Exception {
+        if (oio != null) {
+            oio.close();
+        }
+    }
+
+    @Override
+    protected void doBeginRead() throws Exception {
+    }
+}
