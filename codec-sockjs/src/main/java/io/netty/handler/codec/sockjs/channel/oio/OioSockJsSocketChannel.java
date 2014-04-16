@@ -28,14 +28,21 @@ import java.net.Socket;
 public class OioSockJsSocketChannel extends OioSocketChannel {
 
     private boolean registered;
+    private final OioSockJsSocketChannelConfig config;
 
     public OioSockJsSocketChannel(Channel parent, EventLoop eventLoop, Socket socket) {
         super(parent, eventLoop, socket);
+        config = new DefaultOioSockJsSocketChannelConfig(this, socket);
     }
 
     @Override
     protected void doBeginRead() throws Exception {
         super.doBeginRead();
+    }
+
+    @Override
+    public OioSockJsSocketChannelConfig config() {
+        return config;
     }
 
     @Override

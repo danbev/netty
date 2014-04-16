@@ -20,9 +20,11 @@ import io.netty.channel.Channel;
 import io.netty.channel.ChannelInitializer;
 import io.netty.channel.EventLoopGroup;
 import io.netty.channel.nio.NioEventLoopGroup;
+import io.netty.channel.oio.OioEventLoopGroup;
 import io.netty.channel.socket.SocketChannel;
 import io.netty.handler.codec.http.cors.CorsConfig;
 import io.netty.handler.codec.sockjs.channel.nio.NioSockJsServerChannel;
+import io.netty.handler.codec.sockjs.channel.oio.OioSockJsServerChannel;
 
 import static io.netty.handler.codec.http.HttpMethod.*;
 import static io.netty.handler.codec.sockjs.channel.SockJsChannelOption.*;

@@ -20,6 +20,7 @@ import io.netty.channel.ChannelHandlerContext;
 import io.netty.handler.codec.http.HttpRequest;
 import io.netty.handler.codec.http.QueryStringDecoder;
 import io.netty.handler.codec.http.cors.CorsHandler;
+import io.netty.handler.codec.sockjs.SockJsServiceConfig;
 import io.netty.handler.codec.sockjs.channel.SockJsServerSocketChannelAdapter;
 import io.netty.handler.codec.sockjs.SockJsService;
 import io.netty.handler.codec.sockjs.channel.SockJsSocketChannelConfig;
@@ -53,7 +54,7 @@ public class SockJsMultiplexer extends ChannelHandlerAdapter {
             ctx.fireChannelRegistered();
             ctx.fireChannelRead(ctx.channel());
             ctx.pipeline().remove("ServerBootstrap$ServerBootstrapAcceptor#0");
-            final SockJsSocketChannelConfig sockJsConfig = (SockJsSocketChannelConfig) ctx.channel().config();
+            final SockJsServiceConfig sockJsConfig = (SockJsServiceConfig) ctx.channel().config();
             sockJsConfig.setPrefix(sockJsService.prefix());
 
             if (ctx.pipeline().get("sockjs") == null) {
