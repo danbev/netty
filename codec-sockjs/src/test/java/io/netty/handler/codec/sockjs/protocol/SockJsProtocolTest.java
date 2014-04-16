@@ -39,8 +39,8 @@ import io.netty.handler.codec.http.cors.CorsConfig;
 import io.netty.handler.codec.http.websocketx.CloseWebSocketFrame;
 import io.netty.handler.codec.http.websocketx.TextWebSocketFrame;
 import io.netty.handler.codec.http.websocketx.WebSocketVersion;
-import io.netty.handler.codec.sockjs.SockJsChannelConfig;
 import io.netty.handler.codec.sockjs.SockJsChannelOption;
+import io.netty.handler.codec.sockjs.SockJsSocketChannelConfig;
 import io.netty.handler.codec.sockjs.transport.HttpResponseBuilder;
 import io.netty.handler.codec.sockjs.transport.TransportType;
 import io.netty.handler.codec.sockjs.util.HttpUtil;
@@ -65,7 +65,7 @@ import static io.netty.handler.codec.http.HttpResponseStatus.OK;
 import static io.netty.handler.codec.http.HttpResponseStatus.SWITCHING_PROTOCOLS;
 import static io.netty.handler.codec.http.HttpVersion.*;
 import static io.netty.handler.codec.http.websocketx.WebSocketVersion.*;
-import static io.netty.handler.codec.sockjs.DefaultSockJsChannelConfig.defaultCorsConfig;
+import static io.netty.handler.codec.sockjs.DefaultSockJsSocketChannelConfig.defaultCorsConfig;
 import static io.netty.handler.codec.sockjs.SockJsChannelOption.SOCKJS_URL;
 import static io.netty.handler.codec.sockjs.SockJsTestUtil.*;
 import static io.netty.handler.codec.sockjs.transport.EventSourceTransport.CONTENT_TYPE_EVENT_STREAM;
@@ -261,7 +261,7 @@ public class SockJsProtocolTest {
      */
     @Test
     public void infoTestOptionsNullOrigin() throws Exception {
-        final SockJsChannelConfig config = sockJsChannelConfig(defaultCorsConfig()
+        final SockJsSocketChannelConfig config = sockJsChannelConfig(defaultCorsConfig()
                 .allowedRequestHeaders(Names.CONTENT_TYPE.toString())
                 .preflightResponseHeader(Names.CONTENT_TYPE, "text/plain; charset=UTF-8")
                 .build());
@@ -723,7 +723,7 @@ public class SockJsProtocolTest {
      */
     @Test
     public void xhrPollingTestOptions() throws Exception {
-        final SockJsChannelConfig config = sockJsChannelConfig(defaultCorsConfig()
+        final SockJsSocketChannelConfig config = sockJsChannelConfig(defaultCorsConfig()
                 .allowedRequestHeaders(Names.CONTENT_TYPE.toString())
                 .preflightResponseHeader(Names.CONTENT_TYPE, "text/plain; charset=UTF-8")
                 .build());
@@ -863,7 +863,7 @@ public class SockJsProtocolTest {
      */
     @Test
     public void xhrPollingTestRequestHeadersCors() throws Exception {
-        final SockJsChannelConfig config = sockJsChannelConfig(defaultCorsConfig()
+        final SockJsSocketChannelConfig config = sockJsChannelConfig(defaultCorsConfig()
                 .allowedRequestHeaders(Names.CONTENT_TYPE.toString(), "a", "b", "c")
                 .build());
         final String sessionUrl = "/echo/abc/" + UUID.randomUUID();
@@ -2114,8 +2114,7 @@ public class SockJsProtocolTest {
     }
 
     private static void assertNotFoundResponse(final String prefix, final String path) {
-        final EmbeddedChannel ch = echoChannel();
-        ch.config().setOption(SockJsChannelOption.PREFIX, prefix);
+        final EmbeddedChannel ch = echoChannel(prefix);
         ch.config().setOption(SockJsChannelOption.COOKIES_NEEDED, true);
         ch.writeInbound(httpRequest('/' + prefix + path));
         final FullHttpResponse response = ch.readOutbound();

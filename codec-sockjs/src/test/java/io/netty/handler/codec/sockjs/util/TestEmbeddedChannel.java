@@ -28,11 +28,18 @@ import java.net.SocketAddress;
 public class TestEmbeddedChannel extends EmbeddedChannel {
 
     private final Channel parent;
+    private final ChannelConfig config;
 
-    public TestEmbeddedChannel(final Channel parent) {
-        // remove EmbeddedChannels LastInboundHandler channel handler or it will simply
-        // store all messages written.
+    /**
+     * Sole constructor.
+     *
+     * @param parent the parent channel.
+     * @param config the configuration for this channel.
+     */
+    public TestEmbeddedChannel(final Channel parent, final ChannelConfig config) {
         this.parent = parent;
+        this.config = config;
+        // remove EmbeddedChannels LastInboundHandler channel handler or it will simply store all messages written.
         pipeline().remove("EmbeddedChannel$LastInboundHandler#0");
     }
 
@@ -44,7 +51,7 @@ public class TestEmbeddedChannel extends EmbeddedChannel {
 
     @Override
     public ChannelConfig config() {
-        return parent == null ? super.config() : parent.config();
+        return parent == null ? super.config() : config;
     }
 
     @Override

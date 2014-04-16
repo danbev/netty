@@ -21,17 +21,15 @@ import io.netty.channel.ChannelOption;
 import io.netty.channel.MessageSizeEstimator;
 import io.netty.channel.RecvByteBufAllocator;
 import io.netty.channel.socket.ServerSocketChannelConfig;
-import io.netty.handler.codec.http.cors.CorsConfig;
 
 import java.util.Map;
-import java.util.Set;
 
 public class DefaultSockJsServerSocketChannelConfig implements SockJsServerSocketChannelConfig {
 
     private final ServerSocketChannelConfig serverSocketChannelConfig;
-    private final SockJsChannelConfig sockJsConfig;
+    private final SockJsServerChannelConfig sockJsConfig;
 
-    public DefaultSockJsServerSocketChannelConfig(final SockJsChannelConfig sockJsConfig,
+    public DefaultSockJsServerSocketChannelConfig(final SockJsServerChannelConfig sockJsConfig,
                                                   final ServerSocketChannelConfig serverSocketChannelConfig) {
         this.sockJsConfig = sockJsConfig;
         this.serverSocketChannelConfig = serverSocketChannelConfig;
@@ -200,9 +198,10 @@ public class DefaultSockJsServerSocketChannelConfig implements SockJsServerSocke
     }
 
     @Override
-    public SockJsConfig setPrefix(String prefix) {
+    public SockJsServerConfig setPrefix(String prefix) {
         return sockJsConfig.setPrefix(prefix);
     }
+    /*
 
     @Override
     public boolean isWebSocketEnabled() {
@@ -288,6 +287,7 @@ public class DefaultSockJsServerSocketChannelConfig implements SockJsServerSocke
     public SockJsConfig setMaxStreamingBytesSize(int max) {
         return sockJsConfig.setMaxStreamingBytesSize(max);
     }
+    */
 
     @Override
     public boolean isTls() {
@@ -295,7 +295,7 @@ public class DefaultSockJsServerSocketChannelConfig implements SockJsServerSocke
     }
 
     @Override
-    public SockJsConfig setTls(boolean tls) {
+    public SockJsServerConfig setTls(boolean tls) {
         return sockJsConfig.setTls(tls);
     }
 
@@ -305,7 +305,7 @@ public class DefaultSockJsServerSocketChannelConfig implements SockJsServerSocke
     }
 
     @Override
-    public SockJsConfig setKeyStore(String keyStore) {
+    public SockJsServerConfig setKeyStore(String keyStore) {
         return sockJsConfig.setKeyStore(keyStore);
     }
 
@@ -315,10 +315,11 @@ public class DefaultSockJsServerSocketChannelConfig implements SockJsServerSocke
     }
 
     @Override
-    public SockJsConfig setKeyStorePassword(String password) {
+    public SockJsServerConfig setKeyStorePassword(String password) {
         return sockJsConfig.setKeyStorePassword(password);
     }
 
+    /*
     @Override
     public CorsConfig corsConfig() {
         return sockJsConfig.corsConfig();
@@ -328,4 +329,5 @@ public class DefaultSockJsServerSocketChannelConfig implements SockJsServerSocke
     public SockJsConfig setCorsConfig(CorsConfig corsConfig) {
         return sockJsConfig.setCorsConfig(corsConfig);
     }
+    */
 }

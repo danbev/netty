@@ -19,6 +19,8 @@ import io.netty.channel.ChannelHandlerAdapter;
 import io.netty.channel.ChannelHandlerContext;
 import io.netty.handler.codec.http.HttpRequest;
 import io.netty.handler.codec.http.QueryStringDecoder;
+import io.netty.handler.codec.http.cors.CorsHandler;
+import io.netty.handler.codec.sockjs.handler.SockJsHandler;
 import io.netty.util.internal.logging.InternalLogger;
 import io.netty.util.internal.logging.InternalLoggerFactory;
 
@@ -49,12 +51,15 @@ public class SockJsMultiplexer extends ChannelHandlerAdapter {
             ctx.fireChannelRegistered();
             ctx.fireChannelRead(ctx.channel());
             ctx.pipeline().remove("ServerBootstrap$ServerBootstrapAcceptor#0");
+            final SockJsSocketChannelConfig sockJsConfig = (SockJsSocketChannelConfig) ctx.channel().config();
+            sockJsConfig.setPrefix(sockJsService.prefix());
+
             if (ctx.pipeline().get("sockjs") == null) {
-                ctx.pipeline().addAfter(ctx.name(), "sockjs", sockJsService.sockJsHandler());
-                ctx.pipeline().addAfter(ctx.name(), "cors", sockJsService.corsHandler());
+                ctx.pipeline().addAfter(ctx.name(), "sockjs", new SockJsHandler(sockJsConfig));
+                ctx.pipeline().addAfter(ctx.name(), "cors", new CorsHandler(sockJsConfig.corsConfig()));
             } else {
-                ctx.pipeline().replace("sockjs", "sockjs", sockJsService.sockJsHandler());
-                ctx.pipeline().replace("cors", "cors", sockJsService.corsHandler());
+                ctx.pipeline().replace("sockjs", "sockjs", new SockJsHandler(sockJsConfig));
+                ctx.pipeline().replace("cors", "cors", new CorsHandler(sockJsConfig.corsConfig()));
             }
         }
         ctx.fireChannelRead(msg);

@@ -22,9 +22,9 @@ import io.netty.channel.EventLoop;
 import io.netty.channel.EventLoopGroup;
 import io.netty.channel.oio.OioEventLoopGroup;
 import io.netty.channel.socket.oio.OioServerSocketChannel;
-import io.netty.handler.codec.sockjs.DefaultSockJsChannelConfig;
-import io.netty.handler.codec.sockjs.SockJsChannelConfig;
+import io.netty.handler.codec.sockjs.DefaultSockJsServerChannelConfig;
 import io.netty.handler.codec.sockjs.SockJsServerChannel;
+import io.netty.handler.codec.sockjs.SockJsServerChannelConfig;
 import io.netty.handler.codec.sockjs.SockJsServerSocketChannelAdapter;
 import io.netty.handler.codec.sockjs.SockJsService;
 import io.netty.util.internal.logging.InternalLogger;
@@ -43,17 +43,18 @@ public class OioSockJsServerChannel extends AbstractServerChannel implements Soc
     private static final ConcurrentHashMap<String, SockJsService> services =
             new ConcurrentHashMap<String, SockJsService>();
 
-    private final SockJsChannelConfig config;
+    private final SockJsServerChannelConfig config;
     private OioServerSocketChannel oio;
 
     public OioSockJsServerChannel(final EventLoop eventLoop, final EventLoopGroup childGroup) {
         super(eventLoop, childGroup);
-        config = new DefaultSockJsChannelConfig(this);
+        config = new DefaultSockJsServerChannelConfig(this);
     }
 
     @Override
     protected void doRegister() throws Exception {
-        services.putIfAbsent(config.getPrefix(), new SockJsService(config, pipeline().removeFirst()));
+        final String prefix = config.getPrefix();
+        services.putIfAbsent(prefix, new SockJsService(prefix, pipeline().removeFirst()));
     }
 
     @Override
@@ -62,7 +63,7 @@ public class OioSockJsServerChannel extends AbstractServerChannel implements Soc
     }
 
     @Override
-    public SockJsChannelConfig config() {
+    public SockJsServerChannelConfig config() {
         return config;
     }
 

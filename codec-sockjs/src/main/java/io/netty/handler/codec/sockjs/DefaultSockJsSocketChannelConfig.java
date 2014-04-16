@@ -15,10 +15,10 @@
  */
 package io.netty.handler.codec.sockjs;
 
-import io.netty.channel.Channel;
 import io.netty.channel.ChannelOption;
 import io.netty.channel.ChannelPipeline;
-import io.netty.channel.DefaultChannelConfig;
+import io.netty.channel.socket.DefaultSocketChannelConfig;
+import io.netty.channel.socket.SocketChannel;
 import io.netty.handler.codec.http.HttpHeaders.Names;
 import io.netty.handler.codec.http.HttpObjectAggregator;
 import io.netty.handler.codec.http.HttpRequestDecoder;
@@ -26,6 +26,7 @@ import io.netty.handler.codec.http.HttpResponseEncoder;
 import io.netty.handler.codec.http.cors.CorsConfig;
 import io.netty.handler.codec.http.cors.CorsConfig.Builder;
 
+import java.net.Socket;
 import java.util.Date;
 import java.util.Map;
 import java.util.Set;
@@ -34,19 +35,15 @@ import java.util.concurrent.Callable;
 import static io.netty.handler.codec.sockjs.SockJsChannelOption.*;
 
 /**
- * Represents a configuration options for a SockJs Channel.
+ * Represents a configuration options for a SockJS Channel.
  */
-public class DefaultSockJsChannelConfig extends DefaultChannelConfig implements SockJsChannelConfig {
+public class DefaultSockJsSocketChannelConfig extends DefaultSocketChannelConfig implements SockJsSocketChannelConfig {
 
     private final SockJsConfig config;
 
-    public DefaultSockJsChannelConfig(final Channel channel) {
-        this(channel, new DefaultSockJsConfig());
-    }
-
-    public DefaultSockJsChannelConfig(final Channel channel, final SockJsConfig sockJsConfig) {
-        super(channel);
-        config = sockJsConfig;
+    public DefaultSockJsSocketChannelConfig(final SocketChannel channel, final Socket socket) {
+        super(channel, socket);
+        config = new DefaultSockJsConfig();
     }
 
     @Override
@@ -69,14 +66,10 @@ public class DefaultSockJsChannelConfig extends DefaultChannelConfig implements 
             config.setHeartbeatInterval((Long) value);
         } else if (option == MAX_STREAMING_BYTES_SIZE) {
             config.setMaxStreamingBytesSize((Integer) value);
-        } else if (option == TLS) {
-            config.setTls((Boolean) value);
-        } else if (option == KEYSTORE) {
-            config.setKeyStore((String) value);
-        } else if (option == KEYSTORE_PASSWORD) {
-            config.setKeyStorePassword((String) value);
         } else if (option == CORS_CONFIG) {
             config.setCorsConfig((CorsConfig) value);
+        } else if (option == TLS) {
+            config.setTls((Boolean) value);
         } else {
             return super.setOption(option, value);
         }
@@ -113,17 +106,11 @@ public class DefaultSockJsChannelConfig extends DefaultChannelConfig implements 
         if (option == MAX_STREAMING_BYTES_SIZE) {
             return (T) Integer.valueOf(config.maxStreamingBytesSize());
         }
-        if (option == TLS) {
-            return (T) Boolean.valueOf(isTls());
-        }
-        if (option == KEYSTORE) {
-            return (T) config.keyStore();
-        }
-        if (option == KEYSTORE_PASSWORD) {
-            return (T) config.keyStorePassword();
-        }
         if (option == CORS_CONFIG) {
             return (T) config.corsConfig();
+        }
+        if (option == TLS) {
+            return (T) Boolean.valueOf(isTls());
         }
         return super.getOption(option);
     }
@@ -141,8 +128,6 @@ public class DefaultSockJsChannelConfig extends DefaultChannelConfig implements 
                 HEARTBEAT_INTERVAL,
                 MAX_STREAMING_BYTES_SIZE,
                 TLS,
-                KEYSTORE,
-                KEYSTORE_PASSWORD,
                 CORS_CONFIG);
     }
 
@@ -242,36 +227,6 @@ public class DefaultSockJsChannelConfig extends DefaultChannelConfig implements 
     }
 
     @Override
-    public boolean isTls() {
-        return config.isTls();
-    }
-
-    @Override
-    public SockJsConfig setTls(boolean tls) {
-        return config.setTls(tls);
-    }
-
-    @Override
-    public String keyStore() {
-        return config.keyStore();
-    }
-
-    @Override
-    public SockJsConfig setKeyStore(String keyStore) {
-        return config.setKeyStore(keyStore);
-    }
-
-    @Override
-    public String keyStorePassword() {
-        return config.keyStorePassword();
-    }
-
-    @Override
-    public SockJsConfig setKeyStorePassword(String password) {
-        return config.setKeyStorePassword(password);
-    }
-
-    @Override
     public CorsConfig corsConfig() {
         return config.corsConfig();
     }
@@ -279,6 +234,16 @@ public class DefaultSockJsChannelConfig extends DefaultChannelConfig implements 
     @Override
     public SockJsConfig setCorsConfig(CorsConfig corsConfig) {
         return config.setCorsConfig(corsConfig);
+    }
+
+    @Override
+    public boolean isTls() {
+        return config.isTls();
+    }
+
+    @Override
+    public SockJsConfig setTls(boolean tls) {
+        return config.setTls(tls);
     }
 
     public static void addDefaultSockJsHandlers(final ChannelPipeline pipeline) {

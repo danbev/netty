@@ -22,37 +22,26 @@ import io.netty.util.internal.StringUtil;
 
 public class SockJsService {
 
-    private final SockJsChannelConfig config;
     private final ChannelHandler childInitializer;
+    private final String prefix;
 
-    public SockJsService(final SockJsChannelConfig config, final ChannelHandler childInitializer) {
-        this.config = config;
+    public SockJsService(final String prefix, final ChannelHandler childInitializer) {
+        this.prefix = prefix;
         this.childInitializer = childInitializer;
-    }
-
-    public SockJsChannelConfig config() {
-        return config;
     }
 
     public ChannelHandler childChannelInitializer() {
         return childInitializer;
     }
 
-    public CorsHandler corsHandler() {
-        return new CorsHandler(config.corsConfig());
-    }
-
-    public SockJsHandler sockJsHandler() {
-        return new SockJsHandler(config);
+    public String prefix() {
+        return prefix;
     }
 
     @Override
     public String toString() {
         return StringUtil.simpleClassName(SockJsService.class) +
-                "[config=" + config +
-                ", corsHandler=" + corsHandler() +
-                ", sockJsHandler=" + sockJsHandler() +
-                ", childInitializer=" + childInitializer + "]";
+                "[prefix=" + prefix + ", childInitializer=" + childInitializer + ']';
     }
 
 }

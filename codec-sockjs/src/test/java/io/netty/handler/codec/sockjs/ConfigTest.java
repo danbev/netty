@@ -57,7 +57,7 @@ public class ConfigTest {
     public void keystore() {
         final String keystore = "/somepath/keystore.jks";
         final String keystorePassword = "changme";
-        final SockJsConfig config = new DefaultSockJsConfig("/echo")
+        final SockJsServerConfig config = new DefaultSockJsServerConfig("/echo")
                 .setTls(true)
                 .setKeyStore(keystore)
                 .setKeyStorePassword(keystorePassword);

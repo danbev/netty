@@ -22,6 +22,7 @@ import io.netty.channel.DefaultMessageSizeEstimator;
 import io.netty.channel.embedded.EmbeddedChannel;
 import io.netty.channel.socket.ServerSocketChannel;
 import io.netty.channel.socket.ServerSocketChannelConfig;
+import io.netty.channel.socket.SocketChannel;
 import io.netty.handler.codec.http.HttpObjectAggregator;
 import io.netty.handler.codec.http.HttpResponseEncoder;
 import io.netty.handler.codec.http.cors.CorsConfig;
@@ -29,16 +30,22 @@ import io.netty.handler.codec.http.websocketx.WebSocket00FrameEncoder;
 import io.netty.handler.codec.http.websocketx.WebSocket07FrameEncoder;
 import io.netty.handler.codec.http.websocketx.WebSocket08FrameEncoder;
 import io.netty.handler.codec.http.websocketx.WebSocket13FrameEncoder;
-import io.netty.handler.codec.sockjs.DefaultSockJsChannelConfig;
-import io.netty.handler.codec.sockjs.SockJsChannelConfig;
+import io.netty.handler.codec.sockjs.DefaultSockJsServerChannelConfig;
+import io.netty.handler.codec.sockjs.DefaultSockJsServerConfig;
+import io.netty.handler.codec.sockjs.DefaultSockJsSocketChannelConfig;
 import io.netty.handler.codec.sockjs.SockJsChannelOption;
 import io.netty.handler.codec.sockjs.SockJsCloseHandler;
 import io.netty.handler.codec.sockjs.SockJsEchoHandler;
 import io.netty.handler.codec.sockjs.SockJsServerChannel;
+import io.netty.handler.codec.sockjs.SockJsServerChannelConfig;
+import io.netty.handler.codec.sockjs.SockJsServerConfig;
 import io.netty.handler.codec.sockjs.SockJsServerSocketChannelAdapter;
 import io.netty.handler.codec.sockjs.SockJsService;
+import io.netty.handler.codec.sockjs.SockJsSocketChannelConfig;
 
-import static io.netty.handler.codec.sockjs.DefaultSockJsChannelConfig.*;
+import java.net.Socket;
+
+import static io.netty.handler.codec.sockjs.DefaultSockJsSocketChannelConfig.*;
 import static org.mockito.Matchers.any;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
@@ -54,8 +61,8 @@ public final class ChannelUtil {
 
     public static EmbeddedChannel wsSockJsChannel(final String prefix,
                                                   final ChannelHandler handler,
-                                                  final SockJsChannelConfig config) {
-        final TestEmbeddedChannel ch = new TestEmbeddedChannel(sockJsServerChannel(handler, config));
+                                                  final SockJsSocketChannelConfig config) {
+        final TestEmbeddedChannel ch = newTestEmbeddedChannel(prefix, handler, config);
         addDefaultSockJsHandlers(ch.pipeline());
 
         // just add a mock to simulate a ServerBootstrap childhandler
@@ -73,8 +80,8 @@ public final class ChannelUtil {
 
     public static TestEmbeddedChannel sockJsChannel(final String prefix,
                                                     final ChannelHandler handler,
-                                                    final SockJsChannelConfig config) {
-        final TestEmbeddedChannel ch = new TestEmbeddedChannel(sockJsServerChannel(handler, config));
+                                                    final SockJsSocketChannelConfig config) {
+        final TestEmbeddedChannel ch = newTestEmbeddedChannel(prefix, handler, config);
         addDefaultSockJsHandlers(ch.pipeline());
 
         // just add a mock to simulate a ServerBootstrap childhandler
@@ -85,23 +92,34 @@ public final class ChannelUtil {
         setDefaultSockJsChannelOptions(ch, prefix);
         return ch;
     }
-
-    public static SockJsChannelConfig sockJsChannelConfig() {
-        return new DefaultSockJsChannelConfig(mock(Channel.class));
+    private static TestEmbeddedChannel newTestEmbeddedChannel(final String prefix,
+                                                       final ChannelHandler handler,
+                                                       final SockJsSocketChannelConfig config) {
+        config.setPrefix(prefix);
+        return new TestEmbeddedChannel(sockJsServerChannel(handler, config), config);
     }
 
-    public static SockJsChannelConfig sockJsChannelConfig(final CorsConfig corsConfig) {
-        final SockJsChannelConfig channelConfig = sockJsChannelConfig();
+    public static SockJsSocketChannelConfig sockJsChannelConfig() {
+        return new DefaultSockJsSocketChannelConfig(mock(SocketChannel.class), mock(Socket.class));
+    }
+
+    public static SockJsSocketChannelConfig sockJsChannelConfig(final CorsConfig corsConfig) {
+        final SockJsSocketChannelConfig channelConfig = sockJsChannelConfig();
         channelConfig.setCorsConfig(corsConfig);
         return channelConfig;
     }
 
     private static SockJsServerSocketChannelAdapter sockJsServerChannel(final ChannelHandler handler,
-                                                           final SockJsChannelConfig config) {
-        final SockJsService sockJsService = new SockJsService(config, handler);
+                                                           final SockJsSocketChannelConfig config) {
+
+        final SockJsService sockJsService = new SockJsService(config.getPrefix(), handler);
+
+        final SockJsServerConfig sockJsServerConfig = new DefaultSockJsServerConfig(config.getPrefix());
+        final SockJsServerChannelConfig sockJsServerChannelConfig =
+                new DefaultSockJsServerChannelConfig(mock(Channel.class), sockJsServerConfig);
 
         final SockJsServerChannel sockJsServerChannel = mock(SockJsServerChannel.class);
-        when(sockJsServerChannel.config()).thenReturn(config);
+        when(sockJsServerChannel.config()).thenReturn(sockJsServerChannelConfig);
         when(sockJsServerChannel.serviceFor(any(String.class))).thenReturn(sockJsService);
 
         final ServerSocketChannel serverSocketChannel = mock(ServerSocketChannel.class);
@@ -111,10 +129,7 @@ public final class ChannelUtil {
         when(serverSocketChannelConfig.getAllocator()).thenReturn(ByteBufAllocator.DEFAULT);
         when(serverSocketChannel.config()).thenReturn(serverSocketChannelConfig);
 
-        final SockJsServerSocketChannelAdapter serverSocketChannelAdapter = new SockJsServerSocketChannelAdapter(
-                sockJsServerChannel,
-                serverSocketChannel);
-        return serverSocketChannelAdapter;
+        return new SockJsServerSocketChannelAdapter(sockJsServerChannel, serverSocketChannel);
     }
 
     public static void setDefaultSockJsChannelOptions(final EmbeddedChannel ch, final String prefix) {
@@ -126,15 +141,19 @@ public final class ChannelUtil {
         return sockJsChannel("/echo", new SockJsEchoHandler());
     }
 
+    public static EmbeddedChannel echoChannel(final String prefix) {
+        return sockJsChannel(prefix, new SockJsEchoHandler());
+    }
+
     public static EmbeddedChannel webSocketEchoChannel() {
         return wsSockJsChannel("/echo", new SockJsEchoHandler());
     }
 
-    public static EmbeddedChannel webSocketEchoChannel(final SockJsChannelConfig config) {
+    public static EmbeddedChannel webSocketEchoChannel(final SockJsSocketChannelConfig config) {
         return wsSockJsChannel("/echo", new SockJsEchoHandler(), config);
     }
 
-    public static EmbeddedChannel echoChannel(final SockJsChannelConfig config) {
+    public static EmbeddedChannel echoChannel(final SockJsSocketChannelConfig config) {
         return sockJsChannel("/echo", new SockJsEchoHandler(), config);
     }
 
@@ -142,7 +161,7 @@ public final class ChannelUtil {
         return sockJsChannel("/close", new SockJsCloseHandler());
     }
 
-    public static EmbeddedChannel closeChannel(final SockJsChannelConfig config) {
+    public static EmbeddedChannel closeChannel(final SockJsSocketChannelConfig config) {
         return sockJsChannel("/close", new SockJsCloseHandler(), config);
     }
 
@@ -150,7 +169,7 @@ public final class ChannelUtil {
         return wsSockJsChannel("/close", new SockJsCloseHandler());
     }
 
-    public static EmbeddedChannel webSocketCloseChannel(final SockJsChannelConfig config) {
+    public static EmbeddedChannel webSocketCloseChannel(final SockJsSocketChannelConfig config) {
         return wsSockJsChannel("/close", new SockJsCloseHandler(), config);
     }
 

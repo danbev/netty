@@ -17,31 +17,42 @@ package io.netty.handler.codec.sockjs.nio;
 
 import io.netty.channel.Channel;
 import io.netty.channel.EventLoop;
-import io.netty.channel.socket.ServerSocketChannel;
 import io.netty.channel.socket.nio.NioSocketChannel;
 import io.netty.handler.codec.http.HttpObjectAggregator;
 import io.netty.handler.codec.http.HttpRequestDecoder;
 import io.netty.handler.codec.http.HttpResponseEncoder;
+import io.netty.handler.codec.sockjs.DefaultSockJsSocketChannelConfig;
 import io.netty.handler.codec.sockjs.SockJsMultiplexer;
+import io.netty.handler.codec.sockjs.SockJsServerSocketChannelConfig;
+import io.netty.handler.codec.sockjs.SockJsSocketChannelConfig;
 
 import java.nio.channels.SocketChannel;
 
 public class NioSockJsSocketChannel extends NioSocketChannel {
 
     private boolean registered;
-    public NioSockJsSocketChannel(final Channel parent, final EventLoop eventLoop, final SocketChannel socket) {
-        super(parent, eventLoop, socket);
+    private SockJsSocketChannelConfig config;
+
+    public NioSockJsSocketChannel(final Channel parent, final EventLoop eventLoop, final SocketChannel socketChannel) {
+        super(parent, eventLoop, socketChannel);
+        config = new DefaultSockJsSocketChannelConfig(this, socketChannel.socket());
+        final SockJsServerSocketChannelConfig parentConfig = (SockJsServerSocketChannelConfig) parent.config();
+        config.setTls(parentConfig.isTls());
     }
 
     @Override
-    public ServerSocketChannel parent() {
-        return super.parent();
+    public SockJsSocketChannelConfig config() {
+        return config;
     }
 
     @Override
     protected void doRegister() throws Exception {
         if (!registered) {
             super.doRegister();
+            final SockJsServerSocketChannelConfig config = (SockJsServerSocketChannelConfig) parent().config();
+            if (config.isTls()) {
+                //TODO: add TLS support
+            }
             pipeline().addLast("decoder", new HttpRequestDecoder());
             pipeline().addLast("encoder", new HttpResponseEncoder());
             pipeline().addLast("chucked", new HttpObjectAggregator(1048576));

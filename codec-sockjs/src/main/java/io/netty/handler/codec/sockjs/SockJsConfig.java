@@ -19,6 +19,9 @@ import io.netty.handler.codec.http.cors.CorsConfig;
 
 import java.util.Set;
 
+/**
+ * The configuration for a SockJS service in Netty.
+ */
 public interface SockJsConfig {
 
     /**
@@ -181,55 +184,6 @@ public interface SockJsConfig {
     SockJsConfig setMaxStreamingBytesSize(int max);
 
     /**
-     * Determines whether transport layer security (TLS) should be used.
-     *
-     * @return {@code true} if transport layer security should be used.
-     */
-    boolean isTls();
-
-    /**
-     * Enables/disables Transport Layer Security (TLS)
-     *
-     * @param tls if true TLS will be enabled.
-     * @return SockJsConfig to support method chaining.
-     */
-    SockJsConfig setTls(boolean tls);
-
-    /**
-     * Returns the keystore to be used if transport layer security is enabled.
-     * TODO: This should probably be moved into the SockJsServerChannel and not be per service.
-     *
-     * @return {@code String} the path to the keystore to be used
-     */
-    String keyStore();
-
-    /**
-     * Sets the keystore to be used.
-     * TODO: This should probably be moved into the SockJsServerChannel and not be per service.
-     *
-     * @param keyStore the keystore to be used.
-     * @return SockJsConfig to support method chaining.
-     */
-    SockJsConfig setKeyStore(String keyStore);
-
-    /**
-     * Returns the keystore password to be used if transport layer security is enabled.
-     * TODO: This should probably be moved into the SockJsServerChannel and not be per service.
-     *
-     * @return {@code String} the password to the configured keystore
-     */
-    String keyStorePassword();
-
-    /**
-     * Sets the keystore password.
-     * TODO: This should probably be moved into the SockJsServerChannel and not be per service.
-     *
-     * @param password the password for the keystore.
-     * @return SockJsConfig to support method chaining.
-     */
-    SockJsConfig setKeyStorePassword(String password);
-
-    /**
      * Returns the CORS configuration for this SockJS configuration
      *
      * @return CorsConfiguration the CORS configuration for this SockJS config.
@@ -242,5 +196,20 @@ public interface SockJsConfig {
      * @return SockJsConfig to support method chaining.
      */
     SockJsConfig setCorsConfig(CorsConfig corsConfig);
+
+    /**
+     * Determines whether transport layer security (TLS) should be used.
+     *
+     * @return {@code true} if transport layer security should be used.
+     */
+    boolean isTls();
+
+    /**
+     * Enables/disables Transport Layer Security (TLS)
+     *
+     * @param tls if true TLS will be enabled.
+     * @return SockJsServerConfig to support method chaining.
+     */
+    SockJsConfig setTls(boolean tls);
 
 }

@@ -29,67 +29,69 @@ public final class SockJsChannelOption {
     private static final Class<SockJsChannelOption> T = SockJsChannelOption.class;
 
     /**
-     * SockJS prefix option. See {@link SockJsChannelConfig#getPrefix()} for details.
+     * SockJS prefix option. See {@link SockJsSocketChannelConfig#getPrefix()} for details.
      */
     public static final ChannelOption<String> PREFIX = valueOf(T, "PREFIX");
 
     /**
-     * SockJS WebSocket enabled option. See {@link SockJsChannelConfig#isWebSocketEnabled()} for details.
+     * SockJS WebSocket enabled option. See {@link SockJsSocketChannelConfig#isWebSocketEnabled()} for details.
      */
     public static final ChannelOption<Boolean> WEBSOCKET_ENABLED = valueOf(T, "WEBSOCKET_ENABLED");
 
     /**
-     * SockJS WebSocket heartbeat option. See {@link SockJsChannelConfig#webSocketHeartbeatInterval()} for details.
+     * SockJS WebSocket heartbeat option. See {@link SockJsSocketChannelConfig#webSocketHeartbeatInterval()}
+     * for details.
      */
     public static final ChannelOption<Long> WEBSOCKET_HEARTBEAT_INTERVAL = valueOf(T, "WEBSOCKET_HEARTBEAT_INTERVAL");
 
     /**
-     * SockJS WebSocket protocols option. See {@link SockJsChannelConfig#webSocketProtocol()} for details.
+     * SockJS WebSocket protocols option. See {@link SockJsSocketChannelConfig#webSocketProtocol()} for details.
      */
     public static final ChannelOption<Set<String>> WEBSOCKET_PROTOCOLS = valueOf(T, "WEBSOCKET_PROTOCOLS");
 
     /**
-     * SockJS cookies neeeded option. See {@link SockJsChannelConfig#areCookiesNeeded()} for details.
+     * SockJS cookies neeeded option. See {@link SockJsSocketChannelConfig#areCookiesNeeded()} for details.
      */
     public static final ChannelOption<Boolean> COOKIES_NEEDED = valueOf(T, "COOKIES_NEEDED");
 
     /**
-     * SockJS URL option. See {@link SockJsChannelConfig#sockJsUrl()} for details.
+     * SockJS URL option. See {@link SockJsSocketChannelConfig#sockJsUrl()} for details.
      */
     public static final ChannelOption<String> SOCKJS_URL = valueOf(T, "SOCKJS_URL");
 
     /**
-     * SockJS session timeout option. See {@link SockJsChannelConfig#sessionTimeout()} for details.
+     * SockJS session timeout option. See {@link SockJsSocketChannelConfig#sessionTimeout()} for details.
      */
     public static final ChannelOption<Long> SESSION_TIMEOUT = valueOf(T, "SESSION_TIMEOUT");
 
     /**
-     * SockJS heartbeat interval option. See {@link SockJsChannelConfig#heartbeatInterval()} for details.
+     * SockJS heartbeat interval option. See {@link SockJsSocketChannelConfig#heartbeatInterval()} for details.
      */
     public static final ChannelOption<Long> HEARTBEAT_INTERVAL = valueOf(T, "HEARTBEAT_INTERVAL");
 
     /**
-     * SockJS max streaming bytes size option. See {@link SockJsChannelConfig#maxStreamingBytesSize()} for details.
+     * SockJS max streaming bytes size option. See {@link SockJsSocketChannelConfig#maxStreamingBytesSize()}
+     * for details.
      */
     public static final ChannelOption<Integer> MAX_STREAMING_BYTES_SIZE = valueOf(T, "MAX_STREAMING_BYTES_SIZE");
 
     /**
-     * SockJS TLS option. See {@link SockJsChannelConfig#isTls()} for details.
+     * SockJS TLS option. See {@link SockJsServerSocketChannelConfig#isTls()} for details.
      */
     public static final ChannelOption<Boolean> TLS = valueOf(T, "TLS");
 
     /**
-     * SockJS keystore option. See {@link SockJsChannelConfig#keyStore()} for details.
+     * SockJS keystore option. See {@link SockJsServerSocketChannelConfig#keyStore()} for details.
      */
     public static final ChannelOption<String> KEYSTORE = valueOf(T, "KEYSTORE");
 
     /**
-     * SockJS keystore password option. See {@link SockJsChannelConfig#keyStorePassword()} for details.
+     * SockJS keystore password option. See {@link SockJsServerSocketChannelConfig#keyStorePassword()} for details.
      */
     public static final ChannelOption<String> KEYSTORE_PASSWORD = valueOf(T, "KEYSTORE_PASSWORD");
 
     /**
-     * SockJS CORS configuration option. See {@link SockJsChannelConfig#corsConfig()} for details.
+     * SockJS CORS configuration option. See {@link SockJsSocketChannelConfig#corsConfig()} for details.
      */
     public static final ChannelOption<CorsConfig> CORS_CONFIG = valueOf(T, "CORS_CONFIG");
 

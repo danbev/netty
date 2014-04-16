@@ -44,10 +44,8 @@ public class DefaultSockJsConfig implements SockJsConfig {
     private long sessionTimeout = 5000;
     private long heartbeatInterval = 25000;
     private int maxStreamingBytesSize = 128 * 1024;
-    private boolean tls;
-    private String keyStore;
-    private String keystorePassword;
     private CorsConfig corsConfig = defaultCorsConfig().build();
+    private boolean tls;
 
     public DefaultSockJsConfig() {
     }
@@ -172,39 +170,6 @@ public class DefaultSockJsConfig implements SockJsConfig {
     }
 
     @Override
-    public boolean isTls() {
-        return tls;
-    }
-
-    @Override
-    public SockJsConfig setTls(boolean tls) {
-        this.tls = tls;
-        return this;
-    }
-
-    @Override
-    public String keyStore() {
-        return keyStore;
-    }
-
-    @Override
-    public SockJsConfig setKeyStore(String keyStore) {
-        this.keyStore = keyStore;
-        return this;
-    }
-
-    @Override
-    public String keyStorePassword() {
-        return keystorePassword;
-    }
-
-    @Override
-    public SockJsConfig setKeyStorePassword(String password) {
-        keystorePassword = password;
-        return this;
-    }
-
-    @Override
     public CorsConfig corsConfig() {
         return corsConfig;
     }
@@ -212,6 +177,17 @@ public class DefaultSockJsConfig implements SockJsConfig {
     @Override
     public SockJsConfig setCorsConfig(final CorsConfig corsConfig) {
         this.corsConfig = corsConfig;
+        return this;
+    }
+
+    @Override
+    public boolean isTls() {
+        return tls;
+    }
+
+    @Override
+    public SockJsConfig setTls(boolean tls) {
+        this.tls = tls;
         return this;
     }
 
@@ -225,8 +201,6 @@ public class DefaultSockJsConfig implements SockJsConfig {
                 ", sessionTimeout=" + sessionTimeout +
                 ", heartbeatInterval=" + heartbeatInterval +
                 ", maxStreamingBytesSize=" + maxStreamingBytesSize +
-                ", tls=" + tls +
-                ", keyStore=" + keyStore +
                 ", corsConfig=" + corsConfig +
                 ']';
     }

@@ -24,6 +24,6 @@ public interface SockJsServerChannel extends ServerChannel {
 
     SockJsService serviceFor(String prefix);
 
-    SockJsChannelConfig config();
+    SockJsServerChannelConfig config();
 
 }
