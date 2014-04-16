@@ -16,8 +16,6 @@
 package io.netty.handler.codec.sockjs;
 
 import io.netty.channel.ChannelHandler;
-import io.netty.handler.codec.http.cors.CorsHandler;
-import io.netty.handler.codec.sockjs.handler.SockJsHandler;
 import io.netty.util.internal.StringUtil;
 
 public class SockJsService {

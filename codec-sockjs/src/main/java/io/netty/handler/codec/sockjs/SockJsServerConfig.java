@@ -15,6 +15,9 @@
  */
 package io.netty.handler.codec.sockjs;
 
+/**
+ * The configuration properties for the SockJS server.
+ */
 public interface SockJsServerConfig {
 
     /**
