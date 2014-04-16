@@ -19,7 +19,7 @@ import static org.hamcrest.CoreMatchers.equalTo;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.is;
 
-import io.netty.handler.codec.sockjs.DefaultSockJsConfig;
+import io.netty.handler.codec.sockjs.DefaultSockJsServiceConfig;
 import io.netty.handler.codec.sockjs.handler.SessionState.State;
 
 import org.junit.Test;
@@ -30,34 +30,34 @@ public class SockJsSessionTest {
 
     @Test
     public void setState() throws Exception {
-        final SockJsSession session = new SockJsSession("123", new DefaultSockJsConfig("/echo"));
+        final SockJsSession session = new SockJsSession("123", new DefaultSockJsServiceConfig("/echo"));
         session.setState(State.OPEN);
         assertThat(session.getState(), is(State.OPEN));
     }
 
     @Test
     public void onOpen() throws Exception {
-        final SockJsSession sockJSSession = new SockJsSession("123", new DefaultSockJsConfig("/echo"));
+        final SockJsSession sockJSSession = new SockJsSession("123", new DefaultSockJsServiceConfig("/echo"));
         sockJSSession.onOpen();
         assertThat(sockJSSession.getState(), is(State.OPEN));
     }
 
     @Test
     public void onClose() throws Exception {
-        final SockJsSession sockJSSession = new SockJsSession("123", new DefaultSockJsConfig("/echo"));
+        final SockJsSession sockJSSession = new SockJsSession("123", new DefaultSockJsServiceConfig("/echo"));
         sockJSSession.onClose();
     }
 
     @Test
     public void addMessage() throws Exception {
-        final SockJsSession sockJSSession = new SockJsSession("123", new DefaultSockJsConfig("/echo"));
+        final SockJsSession sockJSSession = new SockJsSession("123", new DefaultSockJsServiceConfig("/echo"));
         sockJSSession.addMessage("hello");
         assertThat(sockJSSession.getAllMessages().size(), is(1));
     }
 
     @Test
     public void addMessages() throws Exception {
-        final SockJsSession sockJSSession = new SockJsSession("123", new DefaultSockJsConfig("/echo"));
+        final SockJsSession sockJSSession = new SockJsSession("123", new DefaultSockJsServiceConfig("/echo"));
         sockJSSession.addMessages(new String[]{"hello", "world"});
         final List<String> messages = sockJSSession.getAllMessages();
         assertThat(messages.size(), is(2));

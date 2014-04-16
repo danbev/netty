@@ -23,7 +23,7 @@ import io.netty.channel.ChannelHandlerContext;
 import io.netty.handler.codec.http.FullHttpRequest;
 import io.netty.handler.codec.http.FullHttpResponse;
 import io.netty.handler.codec.http.HttpHeaders;
-import io.netty.handler.codec.sockjs.SockJsConfig;
+import io.netty.handler.codec.sockjs.SockJsServiceConfig;
 import io.netty.util.internal.StringUtil;
 
 /**
@@ -37,7 +37,7 @@ import io.netty.util.internal.StringUtil;
  */
 public class JsonpSendTransport extends AbstractSendTransport {
 
-    public JsonpSendTransport(final SockJsConfig config) {
+    public JsonpSendTransport(final SockJsServiceConfig config) {
         super(config);
     }
 

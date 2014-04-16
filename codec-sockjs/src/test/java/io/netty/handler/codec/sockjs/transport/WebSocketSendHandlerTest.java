@@ -20,8 +20,8 @@ import static org.hamcrest.Matchers.equalTo;
 import io.netty.channel.embedded.EmbeddedChannel;
 import io.netty.handler.codec.http.websocketx.TextWebSocketFrame;
 import io.netty.handler.codec.http.websocketx.WebSocket13FrameDecoder;
-import io.netty.handler.codec.sockjs.DefaultSockJsConfig;
-import io.netty.handler.codec.sockjs.SockJsConfig;
+import io.netty.handler.codec.sockjs.DefaultSockJsServiceConfig;
+import io.netty.handler.codec.sockjs.SockJsServiceConfig;
 import io.netty.handler.codec.sockjs.protocol.MessageFrame;
 import io.netty.util.CharsetUtil;
 
@@ -31,14 +31,14 @@ public class WebSocketSendHandlerTest {
 
     @Test
     public void messageReceived() throws Exception {
-        final EmbeddedChannel ch = createWebsocketChannel(new DefaultSockJsConfig("/echo"));
+        final EmbeddedChannel ch = createWebsocketChannel(new DefaultSockJsServiceConfig("/echo"));
         ch.writeOutbound(new MessageFrame("testing"));
         final TextWebSocketFrame textFrame = ch.readOutbound();
         assertThat(textFrame.content().toString(CharsetUtil.UTF_8), equalTo("a[\"testing\"]"));
         textFrame.release();
     }
 
-    private static EmbeddedChannel createWebsocketChannel(final SockJsConfig config) {
+    private static EmbeddedChannel createWebsocketChannel(final SockJsServiceConfig config) {
         return new EmbeddedChannel(
                 new WebSocket13FrameDecoder(true, false, 2048),
                 new WebSocketTransport(config),

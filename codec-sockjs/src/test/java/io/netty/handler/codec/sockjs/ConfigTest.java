@@ -31,7 +31,7 @@ public class ConfigTest {
 
     @Test
     public void webSocketProtocols() {
-        final SockJsConfig config = new DefaultSockJsConfig("/echo")
+        final SockJsServiceConfig config = new DefaultSockJsServiceConfig("/echo")
                 .setWebSocketProtocol(new HashSet<String>(Arrays.asList("one", "two")));
         assertThat(config.webSocketProtocol().size(), is(2));
         assertThat(config.webSocketProtocol(), hasItems("one", "two"));
@@ -39,7 +39,7 @@ public class ConfigTest {
 
     @Test
     public void webSocketProtocolsAsCSV() {
-        final SockJsConfig config = new DefaultSockJsConfig("/echo")
+        final SockJsServiceConfig config = new DefaultSockJsServiceConfig("/echo")
                 .setWebSocketProtocol(new HashSet<String>(Arrays.asList("one", "two")));
         assertThat(config.webSocketProtocol().size(), is(2));
         assertThat(config.webSocketProtocolCSV(), containsString("one"));
@@ -48,7 +48,7 @@ public class ConfigTest {
 
     @Test
     public void webSocketProtocolsAsCSVNoProtocols() {
-        final SockJsConfig config = new DefaultSockJsConfig("/echo");
+        final SockJsServiceConfig config = new DefaultSockJsServiceConfig("/echo");
         assertThat(config.webSocketProtocol().size(), is(0));
         assertThat(config.webSocketProtocolCSV(), is(nullValue()));
     }

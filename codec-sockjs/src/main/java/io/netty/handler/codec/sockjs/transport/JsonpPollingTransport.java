@@ -23,7 +23,7 @@ import io.netty.channel.ChannelHandlerContext;
 import io.netty.channel.ChannelPromise;
 import io.netty.handler.codec.http.HttpRequest;
 import io.netty.handler.codec.http.QueryStringDecoder;
-import io.netty.handler.codec.sockjs.SockJsConfig;
+import io.netty.handler.codec.sockjs.SockJsServiceConfig;
 import io.netty.handler.codec.sockjs.handler.SessionHandler.Event;
 import io.netty.handler.codec.sockjs.protocol.Frame;
 import io.netty.handler.codec.sockjs.util.JsonUtil;
@@ -52,10 +52,10 @@ import static io.netty.util.CharsetUtil.*;
 public class JsonpPollingTransport extends ChannelHandlerAdapter {
 
     private final HttpRequest request;
-    private final SockJsConfig config;
+    private final SockJsServiceConfig config;
     private String callback;
 
-    public JsonpPollingTransport(final SockJsConfig config, final HttpRequest request) {
+    public JsonpPollingTransport(final SockJsServiceConfig config, final HttpRequest request) {
         this.request = request;
         this.config = config;
     }

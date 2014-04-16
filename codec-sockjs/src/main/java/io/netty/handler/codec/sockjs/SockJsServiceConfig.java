@@ -22,7 +22,7 @@ import java.util.Set;
 /**
  * The configuration for a SockJS service in Netty.
  */
-public interface SockJsConfig {
+public interface SockJsServiceConfig {
 
     /**
      * The getPrefix/name, of the SockJS service.
@@ -38,7 +38,7 @@ public interface SockJsConfig {
      * @param prefix the prefix for the SockJS service.
      * @return SockJsConfig to support method chaining.
      */
-    SockJsConfig setPrefix(String prefix);
+    SockJsServiceConfig setPrefix(String prefix);
 
     /**
      * Determines whether WebSocket support will not be enabled.
@@ -53,7 +53,7 @@ public interface SockJsConfig {
      * @param enable if true then WebSocket support will be enabled.
      * @return SockJsConfig to support method chaining.
      */
-    SockJsConfig setWebSocketEnabled(boolean enable);
+    SockJsServiceConfig setWebSocketEnabled(boolean enable);
 
     /**
      * The WebSocket heartbeat interval.
@@ -73,7 +73,7 @@ public interface SockJsConfig {
      * @param ms the interval in milliseconds.
      * @return SockJsConfig to support method chaining.
      */
-    SockJsConfig setWebSocketHeartbeatInterval(long ms);
+    SockJsServiceConfig setWebSocketHeartbeatInterval(long ms);
 
     /**
      * If WebSockets are in use the this give the oppertunity to specify
@@ -90,7 +90,7 @@ public interface SockJsConfig {
      * @param protocols the WebSocket protocols that are supported.
      * @return SockJsConfig to support method chaining.
      */
-    SockJsConfig setWebSocketProtocol(Set<String> protocols);
+    SockJsServiceConfig setWebSocketProtocol(Set<String> protocols);
 
     /**
      * If WebSockets are in use the this give the oppertunity to specify
@@ -115,7 +115,7 @@ public interface SockJsConfig {
      * @param needed if true then a JSESSIONID will be set.
      * @return SockJsConfig to support method chaining.
      */
-    SockJsConfig setCookiesNeeded(boolean needed);
+    SockJsServiceConfig setCookiesNeeded(boolean needed);
 
     /**
      * The url to the sock-js-<version>.json. This is used by the 'getPrefix/iframe' protocol and
@@ -132,7 +132,7 @@ public interface SockJsConfig {
      * @param url the url.
      * @return SockJsConfig to support method chaining.
      */
-    SockJsConfig setSockJsUrl(String url);
+    SockJsServiceConfig setSockJsUrl(String url);
 
     /**
      * A time out for inactive sessions.
@@ -147,7 +147,7 @@ public interface SockJsConfig {
      * @param ms the timeout in milliseconds.
      * @return SockJsConfig to support method chaining.
      */
-    SockJsConfig setSessionTimeout(long ms);
+    SockJsServiceConfig setSessionTimeout(long ms);
 
     /**
      * A heartbeat interval.
@@ -162,7 +162,7 @@ public interface SockJsConfig {
      * @param ms the heartbeat interval in milliseconds.
      * @return SockJsConfig to support method chaining.
      */
-    SockJsConfig setHeartbeatInterval(long ms);
+    SockJsServiceConfig setHeartbeatInterval(long ms);
 
     /**
      * The max number of types that a streaming transport protocol should allow to be returned
@@ -181,7 +181,7 @@ public interface SockJsConfig {
      * @param max the maximum size for streaming bytes, after which a new connection will be foreced.
      * @return SockJsConfig to support method chaining.
      */
-    SockJsConfig setMaxStreamingBytesSize(int max);
+    SockJsServiceConfig setMaxStreamingBytesSize(int max);
 
     /**
      * Returns the CORS configuration for this SockJS configuration
@@ -195,7 +195,7 @@ public interface SockJsConfig {
      *
      * @return SockJsConfig to support method chaining.
      */
-    SockJsConfig setCorsConfig(CorsConfig corsConfig);
+    SockJsServiceConfig setCorsConfig(CorsConfig corsConfig);
 
     /**
      * Determines whether transport layer security (TLS) should be used.
@@ -210,6 +210,6 @@ public interface SockJsConfig {
      * @param tls if true TLS will be enabled.
      * @return SockJsServerConfig to support method chaining.
      */
-    SockJsConfig setTls(boolean tls);
+    SockJsServiceConfig setTls(boolean tls);
 
 }

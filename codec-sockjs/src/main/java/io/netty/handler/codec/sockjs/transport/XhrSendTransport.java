@@ -23,7 +23,7 @@ import io.netty.channel.ChannelHandlerContext;
 import io.netty.handler.codec.http.FullHttpRequest;
 import io.netty.handler.codec.http.FullHttpResponse;
 import io.netty.handler.codec.http.HttpHeaders;
-import io.netty.handler.codec.sockjs.SockJsConfig;
+import io.netty.handler.codec.sockjs.SockJsServiceConfig;
 import io.netty.util.internal.StringUtil;
 
 /**
@@ -38,7 +38,7 @@ import io.netty.util.internal.StringUtil;
  */
 public class XhrSendTransport extends AbstractSendTransport {
 
-    public XhrSendTransport(final SockJsConfig config) {
+    public XhrSendTransport(final SockJsServiceConfig config) {
         super(config);
     }
 

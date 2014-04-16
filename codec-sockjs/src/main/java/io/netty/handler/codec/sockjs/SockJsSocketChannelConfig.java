@@ -17,6 +17,6 @@ package io.netty.handler.codec.sockjs;
 
 import io.netty.channel.socket.SocketChannelConfig;
 
-public interface SockJsSocketChannelConfig extends SocketChannelConfig, SockJsConfig {
+public interface SockJsSocketChannelConfig extends SocketChannelConfig, SockJsServiceConfig {
 
 }

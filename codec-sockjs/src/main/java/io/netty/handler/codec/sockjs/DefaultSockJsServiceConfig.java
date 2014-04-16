@@ -33,7 +33,7 @@ import static io.netty.handler.codec.http.HttpHeaders.Names.SET_COOKIE;
  * Represents a configuration options for a SockJs Channel.
  *
  */
-public class DefaultSockJsConfig implements SockJsConfig {
+public class DefaultSockJsServiceConfig implements SockJsServiceConfig {
 
     private String prefix;
     private boolean webSocketEnabled = true;
@@ -47,10 +47,10 @@ public class DefaultSockJsConfig implements SockJsConfig {
     private CorsConfig corsConfig = defaultCorsConfig().build();
     private boolean tls;
 
-    public DefaultSockJsConfig() {
+    public DefaultSockJsServiceConfig() {
     }
 
-    public DefaultSockJsConfig(final String prefix) {
+    public DefaultSockJsServiceConfig(final String prefix) {
         this.prefix = prefix;
     }
 
@@ -60,7 +60,7 @@ public class DefaultSockJsConfig implements SockJsConfig {
     }
 
     @Override
-    public SockJsConfig setPrefix(final String prefix) {
+    public SockJsServiceConfig setPrefix(final String prefix) {
         this.prefix = prefix;
         return this;
     }
@@ -71,7 +71,7 @@ public class DefaultSockJsConfig implements SockJsConfig {
     }
 
     @Override
-    public SockJsConfig setWebSocketEnabled(boolean enable) {
+    public SockJsServiceConfig setWebSocketEnabled(boolean enable) {
         webSocketEnabled = enable;
         return this;
     }
@@ -82,7 +82,7 @@ public class DefaultSockJsConfig implements SockJsConfig {
     }
 
     @Override
-    public SockJsConfig setWebSocketHeartbeatInterval(long ms) {
+    public SockJsServiceConfig setWebSocketHeartbeatInterval(long ms) {
         webSocketHeartbeatInterval = ms;
         return this;
     }
@@ -93,7 +93,7 @@ public class DefaultSockJsConfig implements SockJsConfig {
     }
 
     @Override
-    public SockJsConfig setWebSocketProtocol(Set<String> protocols) {
+    public SockJsServiceConfig setWebSocketProtocol(Set<String> protocols) {
         webSocketProtocols.addAll(protocols);
         return this;
     }
@@ -120,7 +120,7 @@ public class DefaultSockJsConfig implements SockJsConfig {
     }
 
     @Override
-    public SockJsConfig setCookiesNeeded(boolean needed) {
+    public SockJsServiceConfig setCookiesNeeded(boolean needed) {
         cookiesNeeded = needed;
         return this;
     }
@@ -131,7 +131,7 @@ public class DefaultSockJsConfig implements SockJsConfig {
     }
 
     @Override
-    public SockJsConfig setSockJsUrl(String url) {
+    public SockJsServiceConfig setSockJsUrl(String url) {
         sockjsUrl = url;
         return this;
     }
@@ -142,7 +142,7 @@ public class DefaultSockJsConfig implements SockJsConfig {
     }
 
     @Override
-    public SockJsConfig setSessionTimeout(long ms) {
+    public SockJsServiceConfig setSessionTimeout(long ms) {
         sessionTimeout = ms;
         return this;
     }
@@ -153,7 +153,7 @@ public class DefaultSockJsConfig implements SockJsConfig {
     }
 
     @Override
-    public SockJsConfig setHeartbeatInterval(long ms) {
+    public SockJsServiceConfig setHeartbeatInterval(long ms) {
         heartbeatInterval = ms;
         return this;
     }
@@ -164,7 +164,7 @@ public class DefaultSockJsConfig implements SockJsConfig {
     }
 
     @Override
-    public SockJsConfig setMaxStreamingBytesSize(int max) {
+    public SockJsServiceConfig setMaxStreamingBytesSize(int max) {
         maxStreamingBytesSize = max;
         return this;
     }
@@ -175,7 +175,7 @@ public class DefaultSockJsConfig implements SockJsConfig {
     }
 
     @Override
-    public SockJsConfig setCorsConfig(final CorsConfig corsConfig) {
+    public SockJsServiceConfig setCorsConfig(final CorsConfig corsConfig) {
         this.corsConfig = corsConfig;
         return this;
     }
@@ -186,7 +186,7 @@ public class DefaultSockJsConfig implements SockJsConfig {
     }
 
     @Override
-    public SockJsConfig setTls(boolean tls) {
+    public SockJsServiceConfig setTls(boolean tls) {
         this.tls = tls;
         return this;
     }

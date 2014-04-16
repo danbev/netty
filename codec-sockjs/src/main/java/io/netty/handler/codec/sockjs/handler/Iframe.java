@@ -21,7 +21,7 @@ import io.netty.handler.codec.http.HttpHeaders;
 import io.netty.handler.codec.http.HttpRequest;
 import io.netty.handler.codec.http.HttpResponse;
 import io.netty.handler.codec.http.QueryStringDecoder;
-import io.netty.handler.codec.sockjs.SockJsConfig;
+import io.netty.handler.codec.sockjs.SockJsServiceConfig;
 import io.netty.handler.codec.sockjs.transport.HttpResponseBuilder;
 
 import java.security.MessageDigest;
@@ -69,7 +69,7 @@ final class Iframe {
         return path.startsWith("/iframe");
     }
 
-    public static HttpResponse response(final SockJsConfig config,
+    public static HttpResponse response(final SockJsServiceConfig config,
                                         final HttpRequest request,
                                         final ByteBufAllocator alloc) throws Exception {
         final QueryStringDecoder qsd = new QueryStringDecoder(request.getUri());

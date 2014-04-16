@@ -35,7 +35,7 @@ import io.netty.handler.codec.http.websocketx.WebSocketFrame;
 import io.netty.handler.codec.http.websocketx.WebSocketHandshakeException;
 import io.netty.handler.codec.http.websocketx.WebSocketServerHandshaker;
 import io.netty.handler.codec.http.websocketx.WebSocketServerHandshakerFactory;
-import io.netty.handler.codec.sockjs.SockJsConfig;
+import io.netty.handler.codec.sockjs.SockJsServiceConfig;
 import io.netty.handler.codec.sockjs.handler.SessionHandler.Event;
 import io.netty.handler.codec.sockjs.handler.SockJsHandler;
 import io.netty.handler.codec.sockjs.util.JsonUtil;
@@ -51,10 +51,10 @@ public class WebSocketTransport extends SimpleChannelInboundHandler<Object> {
 
     private static final InternalLogger logger = InternalLoggerFactory.getInstance(WebSocketTransport.class);
     private static final AttributeKey<HttpRequest> REQUEST_KEY = AttributeKey.valueOf("request.key");
-    private final SockJsConfig config;
+    private final SockJsServiceConfig config;
     private WebSocketServerHandshaker handshaker;
 
-    public WebSocketTransport(final SockJsConfig config) {
+    public WebSocketTransport(final SockJsServiceConfig config) {
         this.config = config;
     }
 

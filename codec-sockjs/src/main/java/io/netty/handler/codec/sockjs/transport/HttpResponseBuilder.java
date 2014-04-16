@@ -30,7 +30,7 @@ import io.netty.handler.codec.http.HttpResponse;
 import io.netty.handler.codec.http.HttpResponseStatus;
 import io.netty.handler.codec.http.HttpVersion;
 import io.netty.handler.codec.http.ServerCookieEncoder;
-import io.netty.handler.codec.sockjs.SockJsConfig;
+import io.netty.handler.codec.sockjs.SockJsServiceConfig;
 
 import java.nio.CharBuffer;
 import java.util.Set;
@@ -223,13 +223,13 @@ public final class HttpResponseBuilder {
     }
 
     /**
-     * Sets the HTTP header {@link HttpHeaders.Names#SET_COOKIE} if {@link SockJsConfig#areCookiesNeeded()}
+     * Sets the HTTP header {@link HttpHeaders.Names#SET_COOKIE} if {@link SockJsServiceConfig#areCookiesNeeded()}
      * is true.
      *
-     * @param config the {@link SockJsConfig}
+     * @param config the {@link SockJsServiceConfig}
      * @return {@link HttpResponseBuilder} to support method chaining.
      */
-    public HttpResponseBuilder setCookie(final SockJsConfig config) {
+    public HttpResponseBuilder setCookie(final SockJsServiceConfig config) {
         if (config.areCookiesNeeded()) {
             header(HttpHeaders.Names.SET_COOKIE, encodeSessionIdCookie(request));
         }

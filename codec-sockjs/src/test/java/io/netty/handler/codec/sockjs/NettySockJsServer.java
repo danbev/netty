@@ -52,7 +52,7 @@ public class NettySockJsServer {
             //sb.option(KEYSTORE, "path");
             //sb.option(KEYSTORE_PASSWORD, "path");
 
-            final CorsConfig corsConfig = DefaultSockJsConfig.defaultCorsConfig("test", "*", "localhost:8081")
+            final CorsConfig corsConfig = DefaultSockJsServiceConfig.defaultCorsConfig("test", "*", "localhost:8081")
                     .allowedRequestHeaders("a", "b", "c")
                     .allowNullOrigin()
                     .allowedRequestMethods(POST, GET, OPTIONS)

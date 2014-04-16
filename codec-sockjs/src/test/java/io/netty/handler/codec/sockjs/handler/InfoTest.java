@@ -30,8 +30,8 @@ import io.netty.handler.codec.http.HttpHeaders;
 import io.netty.handler.codec.http.HttpMethod;
 import io.netty.handler.codec.http.HttpRequest;
 import io.netty.handler.codec.http.HttpVersion;
-import io.netty.handler.codec.sockjs.DefaultSockJsConfig;
-import io.netty.handler.codec.sockjs.SockJsConfig;
+import io.netty.handler.codec.sockjs.DefaultSockJsServiceConfig;
+import io.netty.handler.codec.sockjs.SockJsServiceConfig;
 import io.netty.util.CharsetUtil;
 
 import org.junit.Test;
@@ -42,7 +42,7 @@ public class InfoTest {
 
     @Test
     public void webSocketSupported() throws Exception {
-        final SockJsConfig config = new DefaultSockJsConfig("/simplepush");
+        final SockJsServiceConfig config = new DefaultSockJsServiceConfig("/simplepush");
         final FullHttpResponse response = Info.response(config, createHttpRequest("/simplepush"),
                 ByteBufAllocator.DEFAULT);
         assertThat(infoAsJson(response).get("websocket").asBoolean(), is(true));
@@ -51,7 +51,7 @@ public class InfoTest {
 
     @Test
     public void webSocketNotSupported() throws Exception {
-        final SockJsConfig config = new DefaultSockJsConfig("/simplepush").setWebSocketEnabled(false);
+        final SockJsServiceConfig config = new DefaultSockJsServiceConfig("/simplepush").setWebSocketEnabled(false);
         final FullHttpResponse response = Info.response(config, createHttpRequest("/simplepush"),
                 ByteBufAllocator.DEFAULT);
         assertThat(infoAsJson(response).get("websocket").asBoolean(), is(false));
@@ -60,7 +60,7 @@ public class InfoTest {
 
     @Test
     public void cookiesNeeded() throws Exception {
-        final SockJsConfig config = new DefaultSockJsConfig("/simplepush")
+        final SockJsServiceConfig config = new DefaultSockJsServiceConfig("/simplepush")
                 .setWebSocketEnabled(false)
                 .setCookiesNeeded(true);
         final FullHttpResponse response = Info.response(config, createHttpRequest("/simplepush"),
@@ -71,7 +71,7 @@ public class InfoTest {
 
     @Test
     public void cookiesNotNeeded() throws Exception {
-        final SockJsConfig config = new DefaultSockJsConfig("/simplepush").setWebSocketEnabled(false);
+        final SockJsServiceConfig config = new DefaultSockJsServiceConfig("/simplepush").setWebSocketEnabled(false);
         final FullHttpResponse response = Info.response(config, createHttpRequest("/simplepush"),
                 ByteBufAllocator.DEFAULT);
         assertThat(infoAsJson(response).get("cookie_needed").asBoolean(), is(false));
@@ -80,7 +80,7 @@ public class InfoTest {
 
     @Test
     public void origins() throws Exception {
-        final SockJsConfig config = new DefaultSockJsConfig("/simplepush").setWebSocketEnabled(false);
+        final SockJsServiceConfig config = new DefaultSockJsServiceConfig("/simplepush").setWebSocketEnabled(false);
         final FullHttpResponse response = Info.response(config, createHttpRequest("/simplepush"),
                 ByteBufAllocator.DEFAULT);
         assertThat(infoAsJson(response).get("origins").get(0).asText(), is("*:*"));
@@ -89,7 +89,7 @@ public class InfoTest {
 
     @Test
     public void entropy() throws Exception {
-        final SockJsConfig config = new DefaultSockJsConfig("/simplepush").setWebSocketEnabled(true);
+        final SockJsServiceConfig config = new DefaultSockJsServiceConfig("/simplepush").setWebSocketEnabled(true);
         final FullHttpResponse response = Info.response(config, createHttpRequest("/simplepush"),
                 ByteBufAllocator.DEFAULT);
         assertThat(infoAsJson(response).get("entropy").asLong(), is(notNullValue()));
@@ -131,7 +131,7 @@ public class InfoTest {
     }
 
     private static HttpHeaders headersFromInfo() throws Exception {
-        final SockJsConfig config = new DefaultSockJsConfig("/simplepush").setWebSocketEnabled(false);
+        final SockJsServiceConfig config = new DefaultSockJsServiceConfig("/simplepush").setWebSocketEnabled(false);
         final FullHttpResponse response = Info.response(config, createHttpRequest("/simplepush"),
                 ByteBufAllocator.DEFAULT);
         final HttpHeaders headers = response.headers();

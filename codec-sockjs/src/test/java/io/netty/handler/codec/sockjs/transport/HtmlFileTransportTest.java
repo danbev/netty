@@ -21,8 +21,8 @@ import io.netty.handler.codec.http.DefaultHttpRequest;
 import io.netty.handler.codec.http.HttpContent;
 import io.netty.handler.codec.http.HttpRequest;
 import io.netty.handler.codec.http.HttpResponse;
-import io.netty.handler.codec.sockjs.DefaultSockJsConfig;
-import io.netty.handler.codec.sockjs.SockJsConfig;
+import io.netty.handler.codec.sockjs.DefaultSockJsServiceConfig;
+import io.netty.handler.codec.sockjs.SockJsServiceConfig;
 import io.netty.handler.codec.sockjs.protocol.MessageFrame;
 import io.netty.handler.codec.sockjs.protocol.OpenFrame;
 
@@ -84,10 +84,10 @@ public class HtmlFileTransportTest {
     }
 
     private static EmbeddedChannel newHtmlFileChannel(final String path) {
-        return newStreamingChannel(new DefaultSockJsConfig("/test").setCookiesNeeded(true), path);
+        return newStreamingChannel(new DefaultSockJsServiceConfig("/test").setCookiesNeeded(true), path);
     }
 
-    private static EmbeddedChannel newStreamingChannel(final SockJsConfig config, final String path) {
+    private static EmbeddedChannel newStreamingChannel(final SockJsServiceConfig config, final String path) {
         final HttpRequest request = new DefaultFullHttpRequest(HTTP_1_1, GET, path);
         final HtmlFileTransport transport = new HtmlFileTransport(config, request);
         return new EmbeddedChannel(transport);

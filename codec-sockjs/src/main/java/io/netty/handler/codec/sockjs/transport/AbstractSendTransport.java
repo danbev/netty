@@ -21,7 +21,7 @@ import io.netty.channel.ChannelHandlerContext;
 import io.netty.channel.SimpleChannelInboundHandler;
 import io.netty.handler.codec.http.FullHttpRequest;
 import io.netty.handler.codec.http.QueryStringDecoder;
-import io.netty.handler.codec.sockjs.SockJsConfig;
+import io.netty.handler.codec.sockjs.SockJsServiceConfig;
 import io.netty.handler.codec.sockjs.util.ArgumentUtil;
 import io.netty.handler.codec.sockjs.util.JsonUtil;
 import io.netty.util.internal.logging.InternalLogger;
@@ -38,9 +38,9 @@ public abstract class AbstractSendTransport extends SimpleChannelInboundHandler<
 
     private static final InternalLogger logger = InternalLoggerFactory.getInstance(AbstractSendTransport.class);
 
-    protected final SockJsConfig config;
+    protected final SockJsServiceConfig config;
 
-    protected AbstractSendTransport(final SockJsConfig config) {
+    protected AbstractSendTransport(final SockJsServiceConfig config) {
         ArgumentUtil.checkNotNull(config, "config");
         this.config = config;
     }

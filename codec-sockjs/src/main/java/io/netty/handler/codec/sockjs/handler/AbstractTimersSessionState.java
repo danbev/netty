@@ -16,7 +16,7 @@
 package io.netty.handler.codec.sockjs.handler;
 
 import io.netty.channel.ChannelHandlerContext;
-import io.netty.handler.codec.sockjs.SockJsConfig;
+import io.netty.handler.codec.sockjs.SockJsServiceConfig;
 import io.netty.handler.codec.sockjs.protocol.HeartbeatFrame;
 import io.netty.handler.codec.sockjs.util.ArgumentUtil;
 import io.netty.util.concurrent.ScheduledFuture;
@@ -77,7 +77,7 @@ abstract class AbstractTimersSessionState implements SessionState {
     }
 
     private void startSessionTimer(final ChannelHandlerContext ctx, final SockJsSession session) {
-        final SockJsConfig config = session.config();
+        final SockJsServiceConfig config = session.config();
         if (sessionTimer == null) {
             sessionTimer = ctx.executor().scheduleAtFixedRate(new Runnable() {
                 @Override

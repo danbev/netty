@@ -18,7 +18,7 @@ package io.netty.handler.codec.sockjs.handler;
 import io.netty.buffer.ByteBufAllocator;
 import io.netty.handler.codec.http.FullHttpResponse;
 import io.netty.handler.codec.http.HttpRequest;
-import io.netty.handler.codec.sockjs.SockJsConfig;
+import io.netty.handler.codec.sockjs.SockJsServiceConfig;
 import io.netty.handler.codec.sockjs.transport.HttpResponseBuilder;
 
 import java.util.Random;
@@ -35,7 +35,7 @@ final class Info {
         return path.startsWith("/info");
     }
 
-    public static FullHttpResponse response(final SockJsConfig config, final HttpRequest request,
+    public static FullHttpResponse response(final SockJsServiceConfig config, final HttpRequest request,
                                             final ByteBufAllocator alloc) throws Exception {
         return HttpResponseBuilder.responseFor(request).ok()
                 .content(infoContent(config))
@@ -44,7 +44,7 @@ final class Info {
                 .buildFullResponse(alloc);
     }
 
-    private static String infoContent(final SockJsConfig config) {
+    private static String infoContent(final SockJsServiceConfig config) {
         final StringBuilder sb = new StringBuilder("{\"websocket\": ").append(config.isWebSocketEnabled());
         sb.append(", \"origins\": [\"*:*\"]");
         sb.append(", \"cookie_needed\": ").append(config.areCookiesNeeded());

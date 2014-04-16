@@ -27,7 +27,7 @@ import io.netty.handler.codec.http.HttpRequest;
 import io.netty.handler.codec.http.HttpResponse;
 import io.netty.handler.codec.http.LastHttpContent;
 import io.netty.handler.codec.http.QueryStringDecoder;
-import io.netty.handler.codec.sockjs.SockJsConfig;
+import io.netty.handler.codec.sockjs.SockJsServiceConfig;
 import io.netty.handler.codec.sockjs.handler.SessionHandler.Event;
 import io.netty.handler.codec.sockjs.protocol.Frame;
 import io.netty.handler.codec.sockjs.util.JsonUtil;
@@ -77,13 +77,13 @@ public class HtmlFileTransport extends ChannelHandlerAdapter {
     private static final ByteBuf POSTFIX = unreleasableBuffer(copiedBuffer("\");\n</script>\r\n", UTF_8));
     private static final ByteBuf END_HEADER = unreleasableBuffer(copiedBuffer(new byte[] {CR, LF, CR, LF}));
 
-    private final SockJsConfig config;
+    private final SockJsServiceConfig config;
     private final HttpRequest request;
     private boolean headerSent;
     private int bytesSent;
     private String callback;
 
-    public HtmlFileTransport(final SockJsConfig config, final HttpRequest request) {
+    public HtmlFileTransport(final SockJsServiceConfig config, final HttpRequest request) {
         this.config = config;
         this.request = request;
     }

@@ -30,8 +30,8 @@ import io.netty.handler.codec.http.HttpRequest;
 import io.netty.handler.codec.http.HttpResponse;
 import io.netty.handler.codec.http.HttpResponseStatus;
 import io.netty.handler.codec.http.HttpVersion;
-import io.netty.handler.codec.sockjs.DefaultSockJsConfig;
-import io.netty.handler.codec.sockjs.SockJsConfig;
+import io.netty.handler.codec.sockjs.DefaultSockJsServiceConfig;
+import io.netty.handler.codec.sockjs.SockJsServiceConfig;
 
 import org.junit.Test;
 
@@ -39,7 +39,7 @@ public class IframeTest {
 
     @Test
     public void iframeHtm() throws Exception {
-        final SockJsConfig config = config();
+        final SockJsServiceConfig config = config();
         final String path = config.getPrefix() + "/iframe.htm";
         final FullHttpResponse response = (FullHttpResponse) Iframe.response(config, createHttpRequest(path),
                 ByteBufAllocator.DEFAULT);
@@ -49,7 +49,7 @@ public class IframeTest {
 
     @Test
     public void iframeHTML() throws Exception {
-        final SockJsConfig config = config();
+        final SockJsServiceConfig config = config();
         final String path = config.getPrefix() + "/iframe.HTML";
         final FullHttpResponse response = (FullHttpResponse) Iframe.response(config, createHttpRequest(path),
                 ByteBufAllocator.DEFAULT);
@@ -59,7 +59,7 @@ public class IframeTest {
 
     @Test
     public void iframeHtmlUppercase() throws Exception {
-        final SockJsConfig config = config();
+        final SockJsServiceConfig config = config();
         final String path = config.getPrefix() + "/IFRAME.HTML";
         final FullHttpResponse response = (FullHttpResponse) Iframe.response(config, createHttpRequest(path),
                 ByteBufAllocator.DEFAULT);
@@ -69,7 +69,7 @@ public class IframeTest {
 
     @Test
     public void iframeXml() throws Exception {
-        final SockJsConfig config = config();
+        final SockJsServiceConfig config = config();
         final String path = config.getPrefix() + "/iframe.xml";
         final FullHttpResponse response = (FullHttpResponse) Iframe.response(config, createHttpRequest(path),
                 ByteBufAllocator.DEFAULT);
@@ -79,7 +79,7 @@ public class IframeTest {
 
     @Test
     public void iframeUppercase() throws Exception {
-        final SockJsConfig config = config();
+        final SockJsServiceConfig config = config();
         final String path = config.getPrefix() + "/IFRAME";
         final FullHttpResponse response = (FullHttpResponse) Iframe.response(config, createHttpRequest(path),
                 ByteBufAllocator.DEFAULT);
@@ -89,7 +89,7 @@ public class IframeTest {
 
     @Test
     public void ifNoneMatchHeader() throws Exception {
-        final SockJsConfig config = config();
+        final SockJsServiceConfig config = config();
         final String path = config.getPrefix() + "/iframe.html";
         final HttpRequest httpRequest = createHttpRequest(path);
         httpRequest.headers().set(HttpHeaders.Names.IF_NONE_MATCH, "*");
@@ -100,7 +100,7 @@ public class IframeTest {
 
     @Test
     public void iframeHtml() throws Exception {
-        final SockJsConfig config = config();
+        final SockJsServiceConfig config = config();
         final String path = config.getPrefix() + "/iframe.html";
         final FullHttpResponse response = (FullHttpResponse) Iframe.response(config, createHttpRequest(path),
                 ByteBufAllocator.DEFAULT);
@@ -113,8 +113,8 @@ public class IframeTest {
         response.release();
     }
 
-    private static SockJsConfig config() {
-        return new DefaultSockJsConfig("/simplepush").setSockJsUrl("http://cdn.sockjs.org/sockjs-0.3.4.min.js");
+    private static SockJsServiceConfig config() {
+        return new DefaultSockJsServiceConfig("/simplepush").setSockJsUrl("http://cdn.sockjs.org/sockjs-0.3.4.min.js");
     }
 
     private static HttpRequest createHttpRequest(final String path) {

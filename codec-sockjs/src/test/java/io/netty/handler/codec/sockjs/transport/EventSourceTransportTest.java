@@ -28,8 +28,8 @@ import io.netty.handler.codec.http.DefaultHttpContent;
 import io.netty.handler.codec.http.HttpRequest;
 import io.netty.handler.codec.http.HttpResponse;
 import io.netty.handler.codec.http.HttpResponseStatus;
-import io.netty.handler.codec.sockjs.DefaultSockJsConfig;
-import io.netty.handler.codec.sockjs.SockJsConfig;
+import io.netty.handler.codec.sockjs.DefaultSockJsServiceConfig;
+import io.netty.handler.codec.sockjs.SockJsServiceConfig;
 import io.netty.handler.codec.sockjs.protocol.OpenFrame;
 
 import org.junit.Test;
@@ -56,10 +56,10 @@ public class EventSourceTransportTest {
     }
 
     private static EmbeddedChannel newEventSourceChannel() {
-        return newStreamingChannel(new DefaultSockJsConfig("/test").setCookiesNeeded(true));
+        return newStreamingChannel(new DefaultSockJsServiceConfig("/test").setCookiesNeeded(true));
     }
 
-    private static EmbeddedChannel newStreamingChannel(final SockJsConfig config) {
+    private static EmbeddedChannel newStreamingChannel(final SockJsServiceConfig config) {
         final HttpRequest request = new DefaultFullHttpRequest(HTTP_1_1, GET, TransportType.EVENTSOURCE.path());
         final EventSourceTransport transport = new EventSourceTransport(config, request);
         return new EmbeddedChannel(transport);

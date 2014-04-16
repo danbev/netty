@@ -16,7 +16,7 @@
 package io.netty.handler.codec.sockjs.handler;
 
 import io.netty.channel.ChannelHandlerContext;
-import io.netty.handler.codec.sockjs.SockJsConfig;
+import io.netty.handler.codec.sockjs.SockJsServiceConfig;
 import io.netty.handler.codec.sockjs.handler.SessionState.State;
 import io.netty.util.internal.StringUtil;
 
@@ -53,9 +53,9 @@ final class SockJsSession {
     private final AtomicReference<State> state = new AtomicReference<State>(State.CONNECTING);
     private final AtomicReference<ChannelHandlerContext> connectionCtx = new AtomicReference<ChannelHandlerContext>();
     private final AtomicReference<ChannelHandlerContext> openCtx = new AtomicReference<ChannelHandlerContext>();
-    private final SockJsConfig config;
+    private final SockJsServiceConfig config;
 
-    SockJsSession(final String sessionId, final SockJsConfig config) {
+    SockJsSession(final String sessionId, final SockJsServiceConfig config) {
         this.sessionId = sessionId;
         this.config = config;
     }
@@ -132,7 +132,7 @@ final class SockJsSession {
         inuse.set(use);
     }
 
-    public SockJsConfig config() {
+    public SockJsServiceConfig config() {
         return config;
     }
 

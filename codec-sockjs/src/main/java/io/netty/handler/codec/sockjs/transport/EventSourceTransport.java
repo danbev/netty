@@ -25,7 +25,7 @@ import io.netty.handler.codec.http.DefaultHttpContent;
 import io.netty.handler.codec.http.HttpRequest;
 import io.netty.handler.codec.http.HttpResponse;
 import io.netty.handler.codec.http.LastHttpContent;
-import io.netty.handler.codec.sockjs.SockJsConfig;
+import io.netty.handler.codec.sockjs.SockJsServiceConfig;
 import io.netty.handler.codec.sockjs.protocol.Frame;
 import io.netty.util.internal.logging.InternalLogger;
 import io.netty.util.internal.logging.InternalLoggerFactory;
@@ -55,12 +55,12 @@ public class EventSourceTransport extends ChannelHandlerAdapter {
     private static final ByteBuf CRLF = unreleasableBuffer(copiedBuffer(new byte[] {CR, LF}));
     private static final ByteBuf FRAME_END = unreleasableBuffer(copiedBuffer(new byte[] {CR, LF, CR, LF}));
 
-    private final SockJsConfig config;
+    private final SockJsServiceConfig config;
     private final HttpRequest request;
     private boolean headerSent;
     private int bytesSent;
 
-    public EventSourceTransport(final SockJsConfig config, final HttpRequest request) {
+    public EventSourceTransport(final SockJsServiceConfig config, final HttpRequest request) {
         this.config = config;
         this.request = request;
     }

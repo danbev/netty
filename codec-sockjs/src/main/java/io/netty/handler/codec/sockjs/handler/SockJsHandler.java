@@ -21,7 +21,7 @@ import io.netty.channel.SimpleChannelInboundHandler;
 import io.netty.handler.codec.http.HttpMethod;
 import io.netty.handler.codec.http.HttpRequest;
 import io.netty.handler.codec.http.QueryStringDecoder;
-import io.netty.handler.codec.sockjs.SockJsConfig;
+import io.netty.handler.codec.sockjs.SockJsServiceConfig;
 import io.netty.handler.codec.sockjs.transport.EventSourceTransport;
 import io.netty.handler.codec.sockjs.transport.HtmlFileTransport;
 import io.netty.handler.codec.sockjs.transport.JsonpPollingTransport;
@@ -59,9 +59,9 @@ public class SockJsHandler extends SimpleChannelInboundHandler<HttpRequest> {
     private static final ConcurrentMap<String, SockJsSession> sessions = new ConcurrentHashMap<String, SockJsSession>();
     private static final PathParams NON_SUPPORTED_PATH = new NonSupportedPath();
     private static final Pattern SERVER_SESSION_PATTERN = Pattern.compile("^/([^/.]+)/([^/.]+)/([^/.]+)");
-    private final SockJsConfig config;
+    private final SockJsServiceConfig config;
 
-    public SockJsHandler(final SockJsConfig config) {
+    public SockJsHandler(final SockJsServiceConfig config) {
         this.config = config;
     }
 
@@ -102,17 +102,17 @@ public class SockJsHandler extends SimpleChannelInboundHandler<HttpRequest> {
         writeNotFoundResponse(request, ctx);
     }
 
-    private static String extractPath(final HttpRequest request, final SockJsConfig config) {
+    private static String extractPath(final HttpRequest request, final SockJsServiceConfig config) {
         final String pathWithoutPrefix = request.getUri().replaceFirst(config.getPrefix(), "");
         return new QueryStringDecoder(pathWithoutPrefix).path();
     }
 
-    private static boolean requestPathMatchesPrefix(final HttpRequest request, SockJsConfig config) {
+    private static boolean requestPathMatchesPrefix(final HttpRequest request, SockJsServiceConfig config) {
         final String path = new QueryStringDecoder(request.getUri()).path();
         return path.startsWith(config.getPrefix());
     }
 
-    private static void handleSession(final SockJsConfig config,
+    private static void handleSession(final SockJsServiceConfig config,
                                       final HttpRequest request,
                                       final ChannelHandlerContext ctx,
                                       final PathParams pathParams) throws Exception {
@@ -170,7 +170,7 @@ public class SockJsHandler extends SimpleChannelInboundHandler<HttpRequest> {
         }
     }
 
-    private static SockJsSession getSession(final String sessionId, final SockJsConfig config) {
+    private static SockJsSession getSession(final String sessionId, final SockJsServiceConfig config) {
         SockJsSession session = sessions.get(sessionId);
         if (session == null) {
             final SockJsSession newSession = new SockJsSession(sessionId, config);

@@ -30,8 +30,8 @@ import io.netty.handler.codec.http.FullHttpResponse;
 import io.netty.handler.codec.http.HttpMethod;
 import io.netty.handler.codec.http.HttpResponseStatus;
 import io.netty.handler.codec.http.HttpVersion;
-import io.netty.handler.codec.sockjs.DefaultSockJsConfig;
-import io.netty.handler.codec.sockjs.SockJsConfig;
+import io.netty.handler.codec.sockjs.DefaultSockJsServiceConfig;
+import io.netty.handler.codec.sockjs.SockJsServiceConfig;
 import io.netty.handler.codec.sockjs.protocol.OpenFrame;
 import io.netty.util.CharsetUtil;
 
@@ -46,12 +46,12 @@ public class XhrPollingTransportTest {
 
     @Test (expected = NullPointerException.class)
     public void constructWithNullRequest() {
-        new XhrPollingTransport(new DefaultSockJsConfig("/test"), null);
+        new XhrPollingTransport(new DefaultSockJsServiceConfig("/test"), null);
     }
 
     @Test
     public void flush() {
-        final SockJsConfig config = new DefaultSockJsConfig("/test").setCookiesNeeded(true);
+        final SockJsServiceConfig config = new DefaultSockJsServiceConfig("/test").setCookiesNeeded(true);
         final XhrPollingTransport transport = new XhrPollingTransport(config, request("", HttpVersion.HTTP_1_1));
         final EmbeddedChannel channel = new EmbeddedChannel(transport);
         channel.writeOutbound(new OpenFrame());
