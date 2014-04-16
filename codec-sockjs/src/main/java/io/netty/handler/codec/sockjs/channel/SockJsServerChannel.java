@@ -19,12 +19,21 @@ import io.netty.channel.ServerChannel;
 import io.netty.handler.codec.sockjs.SockJsService;
 
 /**
- *
+ * A {@link ServerChannel} for a SockJS server.
  */
 public interface SockJsServerChannel extends ServerChannel {
 
+    /**
+     * Returns the {@link SockJsService} for the passed-in SockJS service
+     * prefix.
+     * The 'prefix' is the part of the URL used to access the service.
+     *
+     * @param prefix the SockJS prefix
+     * @return {@link SockJsService} the service matching the passed-in prefix or null if no match was found.
+     */
     SockJsService serviceFor(String prefix);
 
+    @Override
     SockJsServerChannelConfig config();
 
 }

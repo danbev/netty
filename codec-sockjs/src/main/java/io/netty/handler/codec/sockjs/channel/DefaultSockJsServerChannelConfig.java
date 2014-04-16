@@ -28,9 +28,6 @@ import static io.netty.handler.codec.sockjs.channel.SockJsChannelOption.KEYSTORE
 import static io.netty.handler.codec.sockjs.channel.SockJsChannelOption.KEYSTORE_PASSWORD;
 import static io.netty.handler.codec.sockjs.channel.SockJsChannelOption.TLS;
 
-/**
- * Represents a configuration options for a SockJS ServerChannel.
- */
 public class DefaultSockJsServerChannelConfig extends DefaultChannelConfig implements SockJsServerChannelConfig {
 
     private final SockJsServerConfig config;

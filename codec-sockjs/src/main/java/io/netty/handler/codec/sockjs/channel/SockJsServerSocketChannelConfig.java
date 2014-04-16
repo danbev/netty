@@ -18,6 +18,9 @@ package io.netty.handler.codec.sockjs.channel;
 import io.netty.channel.socket.ServerSocketChannelConfig;
 import io.netty.handler.codec.sockjs.SockJsServerConfig;
 
-public interface SockJsServerSocketChannelConfig extends ServerSocketChannelConfig, SockJsServerConfig {
 
+/**
+ * Represents configuration options for a SockJS ServerSocketChannel.
+ */
+public interface SockJsServerSocketChannelConfig extends ServerSocketChannelConfig, SockJsServerConfig {
 }
