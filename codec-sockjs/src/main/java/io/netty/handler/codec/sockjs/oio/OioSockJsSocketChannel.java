@@ -21,7 +21,7 @@ import io.netty.channel.socket.oio.OioSocketChannel;
 import io.netty.handler.codec.http.HttpObjectAggregator;
 import io.netty.handler.codec.http.HttpRequestDecoder;
 import io.netty.handler.codec.http.HttpResponseEncoder;
-import io.netty.handler.codec.sockjs.SockJsMultiplexer;
+import io.netty.handler.codec.sockjs.handler.SockJsMultiplexer;
 
 import java.net.Socket;
 

@@ -250,7 +250,7 @@ public class DefaultSockJsSocketChannelConfig extends DefaultSocketChannelConfig
         pipeline.addLast("decoder", new HttpRequestDecoder());
         pipeline.addLast("encoder", new HttpResponseEncoder());
         pipeline.addLast("chucked", new HttpObjectAggregator(1048576));
-        pipeline.addLast("mux", new SockJsMultiplexer());
+        pipeline.addLast("mux", new io.netty.handler.codec.sockjs.handler.SockJsMultiplexer());
     }
 
     public static Builder defaultCorsConfig() {

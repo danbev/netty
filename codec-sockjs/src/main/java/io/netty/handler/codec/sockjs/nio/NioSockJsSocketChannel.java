@@ -22,7 +22,7 @@ import io.netty.handler.codec.http.HttpObjectAggregator;
 import io.netty.handler.codec.http.HttpRequestDecoder;
 import io.netty.handler.codec.http.HttpResponseEncoder;
 import io.netty.handler.codec.sockjs.DefaultSockJsSocketChannelConfig;
-import io.netty.handler.codec.sockjs.SockJsMultiplexer;
+import io.netty.handler.codec.sockjs.handler.SockJsMultiplexer;
 import io.netty.handler.codec.sockjs.SockJsServerSocketChannelConfig;
 import io.netty.handler.codec.sockjs.SockJsSocketChannelConfig;
 

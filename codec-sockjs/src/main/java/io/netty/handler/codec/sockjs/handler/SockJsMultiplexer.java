@@ -13,14 +13,16 @@
  * License for the specific language governing permissions and limitations under
  * the License.
  */
-package io.netty.handler.codec.sockjs;
+package io.netty.handler.codec.sockjs.handler;
 
 import io.netty.channel.ChannelHandlerAdapter;
 import io.netty.channel.ChannelHandlerContext;
 import io.netty.handler.codec.http.HttpRequest;
 import io.netty.handler.codec.http.QueryStringDecoder;
 import io.netty.handler.codec.http.cors.CorsHandler;
-import io.netty.handler.codec.sockjs.handler.SockJsHandler;
+import io.netty.handler.codec.sockjs.SockJsServerSocketChannelAdapter;
+import io.netty.handler.codec.sockjs.SockJsService;
+import io.netty.handler.codec.sockjs.SockJsSocketChannelConfig;
 import io.netty.util.internal.logging.InternalLogger;
 import io.netty.util.internal.logging.InternalLoggerFactory;
 
