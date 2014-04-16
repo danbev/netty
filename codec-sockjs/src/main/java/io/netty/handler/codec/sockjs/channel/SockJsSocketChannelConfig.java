@@ -13,9 +13,10 @@
  * License for the specific language governing permissions and limitations under
  * the License.
  */
-package io.netty.handler.codec.sockjs;
+package io.netty.handler.codec.sockjs.channel;
 
 import io.netty.channel.socket.SocketChannelConfig;
+import io.netty.handler.codec.sockjs.SockJsServiceConfig;
 
 public interface SockJsSocketChannelConfig extends SocketChannelConfig, SockJsServiceConfig {
 

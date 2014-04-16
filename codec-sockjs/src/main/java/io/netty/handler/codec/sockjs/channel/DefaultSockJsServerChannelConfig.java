@@ -13,18 +13,20 @@
  * License for the specific language governing permissions and limitations under
  * the License.
  */
-package io.netty.handler.codec.sockjs;
+package io.netty.handler.codec.sockjs.channel;
 
 import io.netty.channel.Channel;
 import io.netty.channel.ChannelOption;
 import io.netty.channel.DefaultChannelConfig;
+import io.netty.handler.codec.sockjs.DefaultSockJsServerConfig;
+import io.netty.handler.codec.sockjs.SockJsServerConfig;
 
 import java.util.Map;
 
-import static io.netty.handler.codec.sockjs.SockJsChannelOption.PREFIX;
-import static io.netty.handler.codec.sockjs.SockJsChannelOption.KEYSTORE;
-import static io.netty.handler.codec.sockjs.SockJsChannelOption.KEYSTORE_PASSWORD;
-import static io.netty.handler.codec.sockjs.SockJsChannelOption.TLS;
+import static io.netty.handler.codec.sockjs.channel.SockJsChannelOption.PREFIX;
+import static io.netty.handler.codec.sockjs.channel.SockJsChannelOption.KEYSTORE;
+import static io.netty.handler.codec.sockjs.channel.SockJsChannelOption.KEYSTORE_PASSWORD;
+import static io.netty.handler.codec.sockjs.channel.SockJsChannelOption.TLS;
 
 /**
  * Represents a configuration options for a SockJS ServerChannel.

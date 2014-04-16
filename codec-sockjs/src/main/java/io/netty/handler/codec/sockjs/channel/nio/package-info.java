@@ -19,4 +19,4 @@
 /**
  * NIO classes for <a href="https://github.com/sockjs/sockjs-protocol">SockJS</a>.
  */
-package io.netty.handler.codec.sockjs.nio;
+package io.netty.handler.codec.sockjs.channel.nio;

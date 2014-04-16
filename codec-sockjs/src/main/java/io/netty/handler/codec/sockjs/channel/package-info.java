@@ -1,5 +1,4 @@
 /*
-
  * Copyright 2013 The Netty Project
  *
  * The Netty Project licenses this file to you under the Apache License,
@@ -16,6 +15,6 @@
  */
 
 /**
- * Old I/O classes for <a href="https://github.com/sockjs/sockjs-protocol">SockJS</a>.
+ * Channel related classes for SockJS.
  */
-package io.netty.handler.codec.sockjs.oio;
+package io.netty.handler.codec.sockjs.channel;

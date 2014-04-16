@@ -44,7 +44,7 @@ import io.netty.handler.codec.http.HttpResponse;
 import io.netty.handler.codec.http.HttpResponseStatus;
 import io.netty.handler.codec.http.websocketx.TextWebSocketFrame;
 import io.netty.handler.codec.http.websocketx.WebSocketVersion;
-import io.netty.handler.codec.sockjs.SockJsChannelOption;
+import io.netty.handler.codec.sockjs.channel.SockJsChannelOption;
 import io.netty.handler.codec.sockjs.SockJsEchoHandler;
 import io.netty.util.CharsetUtil;
 

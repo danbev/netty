@@ -22,10 +22,10 @@ import io.netty.channel.EventLoopGroup;
 import io.netty.channel.nio.NioEventLoopGroup;
 import io.netty.channel.socket.SocketChannel;
 import io.netty.handler.codec.http.cors.CorsConfig;
-import io.netty.handler.codec.sockjs.nio.NioSockJsServerChannel;
+import io.netty.handler.codec.sockjs.channel.nio.NioSockJsServerChannel;
 
 import static io.netty.handler.codec.http.HttpMethod.*;
-import static io.netty.handler.codec.sockjs.SockJsChannelOption.*;
+import static io.netty.handler.codec.sockjs.channel.SockJsChannelOption.*;
 
 /**
  * A SockJS server that will start the services required for the

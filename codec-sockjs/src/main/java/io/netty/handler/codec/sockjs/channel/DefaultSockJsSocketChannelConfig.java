@@ -13,7 +13,7 @@
  * License for the specific language governing permissions and limitations under
  * the License.
  */
-package io.netty.handler.codec.sockjs;
+package io.netty.handler.codec.sockjs.channel;
 
 import io.netty.channel.ChannelOption;
 import io.netty.channel.ChannelPipeline;
@@ -25,6 +25,8 @@ import io.netty.handler.codec.http.HttpRequestDecoder;
 import io.netty.handler.codec.http.HttpResponseEncoder;
 import io.netty.handler.codec.http.cors.CorsConfig;
 import io.netty.handler.codec.http.cors.CorsConfig.Builder;
+import io.netty.handler.codec.sockjs.DefaultSockJsServiceConfig;
+import io.netty.handler.codec.sockjs.SockJsServiceConfig;
 
 import java.net.Socket;
 import java.util.Date;
@@ -32,7 +34,7 @@ import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.Callable;
 
-import static io.netty.handler.codec.sockjs.SockJsChannelOption.*;
+import static io.netty.handler.codec.sockjs.channel.SockJsChannelOption.*;
 
 /**
  * Represents a configuration options for a SockJS Channel.

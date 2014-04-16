@@ -13,7 +13,7 @@
  * License for the specific language governing permissions and limitations under
  * the License.
  */
-package io.netty.handler.codec.sockjs.nio;
+package io.netty.handler.codec.sockjs.channel.nio;
 
 import io.netty.channel.AbstractServerChannel;
 import io.netty.channel.Channel;
@@ -23,10 +23,10 @@ import io.netty.channel.EventLoop;
 import io.netty.channel.EventLoopGroup;
 import io.netty.channel.ServerChannel;
 import io.netty.channel.socket.nio.NioServerSocketChannel;
-import io.netty.handler.codec.sockjs.DefaultSockJsServerChannelConfig;
-import io.netty.handler.codec.sockjs.SockJsServerChannel;
-import io.netty.handler.codec.sockjs.SockJsServerChannelConfig;
-import io.netty.handler.codec.sockjs.SockJsServerSocketChannelAdapter;
+import io.netty.handler.codec.sockjs.channel.DefaultSockJsServerChannelConfig;
+import io.netty.handler.codec.sockjs.channel.SockJsServerChannel;
+import io.netty.handler.codec.sockjs.channel.SockJsServerChannelConfig;
+import io.netty.handler.codec.sockjs.channel.SockJsServerSocketChannelAdapter;
 import io.netty.handler.codec.sockjs.SockJsService;
 import io.netty.util.internal.logging.InternalLogger;
 import io.netty.util.internal.logging.InternalLoggerFactory;

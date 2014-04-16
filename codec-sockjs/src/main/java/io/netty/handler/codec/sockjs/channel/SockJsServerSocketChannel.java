@@ -13,9 +13,10 @@
  * License for the specific language governing permissions and limitations under
  * the License.
  */
-package io.netty.handler.codec.sockjs;
+package io.netty.handler.codec.sockjs.channel;
 
 import io.netty.channel.socket.ServerSocketChannel;
+import io.netty.handler.codec.sockjs.SockJsService;
 
 /**
  * Extends {@link ServerSocketChannel} enabling lookup of {@link SockJsService}s.

@@ -1,5 +1,5 @@
 /*
- * Copyright 2014 The Netty Project
+ * Copyright 2013 The Netty Project
  *
  * The Netty Project licenses this file to you under the Apache License, version
  * 2.0 (the "License"); you may not use this file except in compliance with the
@@ -13,17 +13,10 @@
  * License for the specific language governing permissions and limitations under
  * the License.
  */
-package io.netty.handler.codec.sockjs;
+package io.netty.handler.codec.sockjs.channel;
 
-import io.netty.channel.ServerChannel;
+import io.netty.channel.ChannelConfig;
+import io.netty.handler.codec.sockjs.SockJsServerConfig;
 
-/**
- *
- */
-public interface SockJsServerChannel extends ServerChannel {
-
-    SockJsService serviceFor(String prefix);
-
-    SockJsServerChannelConfig config();
-
+public interface SockJsServerChannelConfig extends ChannelConfig, SockJsServerConfig {
 }
