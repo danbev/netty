@@ -22,12 +22,12 @@ import io.netty.channel.DefaultChannelConfig;
 import io.netty.handler.codec.sockjs.DefaultSockJsServerConfig;
 import io.netty.handler.codec.sockjs.SockJsServerConfig;
 
+import javax.net.ssl.SSLContext;
 import java.util.Map;
 
 import static io.netty.handler.codec.sockjs.channel.SockJsChannelOption.CHANNEL_INITIALIZER;
 import static io.netty.handler.codec.sockjs.channel.SockJsChannelOption.PREFIX;
-import static io.netty.handler.codec.sockjs.channel.SockJsChannelOption.KEYSTORE;
-import static io.netty.handler.codec.sockjs.channel.SockJsChannelOption.KEYSTORE_PASSWORD;
+import static io.netty.handler.codec.sockjs.channel.SockJsChannelOption.SSL_CONTEXT;
 import static io.netty.handler.codec.sockjs.channel.SockJsChannelOption.TLS;
 
 public class DefaultSockJsServerChannelConfig extends DefaultChannelConfig implements SockJsServerChannelConfig {
@@ -47,14 +47,11 @@ public class DefaultSockJsServerChannelConfig extends DefaultChannelConfig imple
     public <T> boolean setOption(ChannelOption<T> option, T value) {
         if (option == PREFIX) {
             config.setPrefix((String) value);
-        } else if (option == TLS) {
-            config.setTls((Boolean) value);
-        } else if (option == KEYSTORE) {
-            config.setKeyStore((String) value);
-        } else if (option == KEYSTORE_PASSWORD) {
-            config.setKeyStorePassword((String) value);
+        } else if (option == SSL_CONTEXT) {
+            config.setSslContext((SSLContext) value);
+            config.setTls(true);
         } else if (option == CHANNEL_INITIALIZER) {
-            config.setChannelInitilizer((ChannelInitializer) value);
+            config.setChannelInitilizer((ChannelInitializer<?>) value);
         } else {
             return super.setOption(option, value);
         }
@@ -70,11 +67,8 @@ public class DefaultSockJsServerChannelConfig extends DefaultChannelConfig imple
         if (option == TLS) {
             return (T) Boolean.valueOf(isTls());
         }
-        if (option == KEYSTORE) {
-            return (T) config.keyStore();
-        }
-        if (option == KEYSTORE_PASSWORD) {
-            return (T) config.keyStorePassword();
+        if (option == SSL_CONTEXT) {
+            return (T) config.getSslContext();
         }
         if (option == CHANNEL_INITIALIZER) {
             return (T) config.getChannelInitializer();
@@ -87,8 +81,7 @@ public class DefaultSockJsServerChannelConfig extends DefaultChannelConfig imple
         return getOptions(super.getOptions(),
                 PREFIX,
                 TLS,
-                KEYSTORE,
-                KEYSTORE_PASSWORD,
+                SSL_CONTEXT,
                 CHANNEL_INITIALIZER);
     }
 
@@ -113,23 +106,13 @@ public class DefaultSockJsServerChannelConfig extends DefaultChannelConfig imple
     }
 
     @Override
-    public String keyStore() {
-        return config.keyStore();
+    public SSLContext getSslContext() {
+        return config.getSslContext();
     }
 
     @Override
-    public SockJsServerConfig setKeyStore(final String keyStore) {
-        return config.setKeyStore(keyStore);
-    }
-
-    @Override
-    public String keyStorePassword() {
-        return config.keyStorePassword();
-    }
-
-    @Override
-    public SockJsServerConfig setKeyStorePassword(final String password) {
-        return config.setKeyStorePassword(password);
+    public SockJsServerConfig setSslContext(final SSLContext sslContext) {
+        return config.setSslContext(sslContext);
     }
 
     @Override

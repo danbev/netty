@@ -19,6 +19,8 @@ import io.netty.channel.ChannelInitializer;
 import io.netty.handler.codec.sockjs.handler.SockJsChannelInitializer;
 import io.netty.util.internal.StringUtil;
 
+import javax.net.ssl.SSLContext;
+
 /**
  * Represents a configuration options for a SockJS ServerChannel.
  */
@@ -26,8 +28,7 @@ public class DefaultSockJsServerConfig implements SockJsServerConfig {
 
     private String prefix;
     private boolean tls;
-    private String keyStore;
-    private String keystorePassword;
+    private SSLContext sslContext;
     private ChannelInitializer<?> channelInitializer;
 
     public DefaultSockJsServerConfig() {
@@ -61,24 +62,13 @@ public class DefaultSockJsServerConfig implements SockJsServerConfig {
     }
 
     @Override
-    public String keyStore() {
-        return keyStore;
+    public SSLContext getSslContext() {
+        return sslContext;
     }
 
     @Override
-    public SockJsServerConfig setKeyStore(String keyStore) {
-        this.keyStore = keyStore;
-        return this;
-    }
-
-    @Override
-    public String keyStorePassword() {
-        return keystorePassword;
-    }
-
-    @Override
-    public SockJsServerConfig setKeyStorePassword(String password) {
-        keystorePassword = password;
+    public SockJsServerConfig setSslContext(final SSLContext sslContext) {
+        this.sslContext = sslContext;
         return this;
     }
 
@@ -95,7 +85,7 @@ public class DefaultSockJsServerConfig implements SockJsServerConfig {
 
     public String toString() {
         return StringUtil.simpleClassName(this) + "[tls=" + tls +
-                ", keyStore=" + keyStore +
+                ", sslContext=" + sslContext +
                 ", channelInitializer=" + channelInitializer +
                 ']';
     }

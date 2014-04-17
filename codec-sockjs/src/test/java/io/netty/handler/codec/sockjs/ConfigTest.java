@@ -16,7 +16,6 @@
 package io.netty.handler.codec.sockjs;
 
 import static org.hamcrest.CoreMatchers.containsString;
-import static org.hamcrest.CoreMatchers.equalTo;
 import static org.hamcrest.CoreMatchers.nullValue;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.hasItems;
@@ -51,18 +50,6 @@ public class ConfigTest {
         final SockJsServiceConfig config = new DefaultSockJsServiceConfig("/echo");
         assertThat(config.webSocketProtocol().size(), is(0));
         assertThat(config.webSocketProtocolCSV(), is(nullValue()));
-    }
-
-    @Test
-    public void keystore() {
-        final String keystore = "/somepath/keystore.jks";
-        final String keystorePassword = "changme";
-        final SockJsServerConfig config = new DefaultSockJsServerConfig("/echo")
-                .setTls(true)
-                .setKeyStore(keystore)
-                .setKeyStorePassword(keystorePassword);
-        assertThat(config.keyStore(), equalTo(keystore));
-        assertThat(config.keyStorePassword(), equalTo(keystorePassword));
     }
 
 }

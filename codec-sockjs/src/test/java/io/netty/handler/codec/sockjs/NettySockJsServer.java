@@ -48,10 +48,6 @@ public class NettySockJsServer {
             sb.channel(NioSockJsServerChannel.class);
             sb.group(bossGroup, workerGroup);
 
-            //sb.option(TLS, true);
-            //sb.option(KEYSTORE, "path");
-            //sb.option(KEYSTORE_PASSWORD, "path");
-
             final CorsConfig corsConfig = DefaultSockJsServiceConfig.defaultCorsConfig("test", "*", "localhost:8081")
                     .allowedRequestHeaders("a", "b", "c")
                     .allowNullOrigin()

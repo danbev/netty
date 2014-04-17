@@ -23,6 +23,9 @@ import io.netty.handler.codec.http.HttpRequestDecoder;
 import io.netty.handler.codec.http.HttpResponseEncoder;
 import io.netty.handler.codec.sockjs.SockJsServerConfig;
 import io.netty.handler.codec.sockjs.channel.SockJsChannelOption;
+import io.netty.handler.ssl.SslHandler;
+
+import javax.net.ssl.SSLEngine;
 
 /**
  * A default {@link ChannelInitializer} for SockJS that sets up HTTP/HTTPS.
@@ -40,10 +43,12 @@ public class SockJsChannelInitializer extends ChannelInitializer<SocketChannel> 
 
     @Override
     protected void initChannel(final SocketChannel ch) throws Exception {
-        if (sockjsServerConfig.isTls()) {
-            //TODO: add TLS support
-        }
         final ChannelPipeline pipeline = ch.pipeline();
+        if (sockjsServerConfig.isTls()) {
+            final SSLEngine sslEngine = sockjsServerConfig.getSslContext().createSSLEngine();
+            sslEngine.setUseClientMode(false);
+            pipeline.addLast("ssl", new SslHandler(sslEngine));
+        }
         pipeline.addLast("decoder", new HttpRequestDecoder());
         pipeline.addLast("encoder", new HttpResponseEncoder());
         pipeline.addLast("chucked", new HttpObjectAggregator(1048576));

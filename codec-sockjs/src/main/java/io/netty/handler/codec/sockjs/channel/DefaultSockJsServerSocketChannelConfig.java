@@ -24,6 +24,7 @@ import io.netty.channel.RecvByteBufAllocator;
 import io.netty.channel.socket.ServerSocketChannelConfig;
 import io.netty.handler.codec.sockjs.SockJsServerConfig;
 
+import javax.net.ssl.SSLContext;
 import java.util.Map;
 
 public class DefaultSockJsServerSocketChannelConfig implements SockJsServerSocketChannelConfig {
@@ -215,23 +216,13 @@ public class DefaultSockJsServerSocketChannelConfig implements SockJsServerSocke
     }
 
     @Override
-    public String keyStore() {
-        return sockJsConfig.keyStore();
+    public SSLContext getSslContext() {
+        return sockJsConfig.getSslContext();
     }
 
     @Override
-    public SockJsServerConfig setKeyStore(String keyStore) {
-        return sockJsConfig.setKeyStore(keyStore);
-    }
-
-    @Override
-    public String keyStorePassword() {
-        return sockJsConfig.keyStorePassword();
-    }
-
-    @Override
-    public SockJsServerConfig setKeyStorePassword(String password) {
-        return sockJsConfig.setKeyStorePassword(password);
+    public SockJsServerConfig setSslContext(final SSLContext sslContext) {
+        return sockJsConfig.setSslContext(sslContext);
     }
 
     @Override

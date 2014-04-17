@@ -17,6 +17,9 @@ package io.netty.handler.codec.sockjs;
 
 import io.netty.channel.ChannelInitializer;
 
+import javax.net.ssl.SSLContext;
+import javax.net.ssl.SSLEngine;
+
 /**
  * The configuration properties for the SockJS server.
  */
@@ -54,34 +57,19 @@ public interface SockJsServerConfig {
     SockJsServerConfig setTls(boolean tls);
 
     /**
-     * Returns the keystore to be used if transport layer security is enabled.
+     * Returns the {@link SSLContext} to be used if transport layer security is enabled.
      *
-     * @return {@code String} the path to the keystore to be used
+     * @return {@code SSLContext} to be used with the {@link SSLEngine}.
      */
-    String keyStore();
+    SSLContext getSslContext();
 
     /**
-     * Sets the keystore to be used.
+     * Sets the {@link SSLContext} to be used if transport layer security is enabled.
      *
-     * @param keyStore the keystore to be used.
+     * @param sslContext the {@link SSLContext} to be used with the {@link SSLEngine}.
      * @return SockJsServerConfig to support method chaining.
      */
-    SockJsServerConfig setKeyStore(String keyStore);
-
-    /**
-     * Returns the keystore password to be used if transport layer security is enabled.
-     *
-     * @return {@code String} the password to the configured keystore
-     */
-    String keyStorePassword();
-
-    /**
-     * Sets the keystore password.
-     *
-     * @param password the password for the keystore.
-     * @return SockJsServerConfig to support method chaining.
-     */
-    SockJsServerConfig setKeyStorePassword(String password);
+    SockJsServerConfig setSslContext(SSLContext sslContext);
 
     /**
      * Gets the {@link ChannelInitializer} used to set up HTTP/HTTP handlers for SockJS.

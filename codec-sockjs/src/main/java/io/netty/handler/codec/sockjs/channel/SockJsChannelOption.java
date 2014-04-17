@@ -20,6 +20,8 @@ import io.netty.channel.ChannelInitializer;
 import io.netty.channel.ChannelOption;
 import io.netty.handler.codec.http.cors.CorsConfig;
 
+import javax.net.ssl.SSLContext;
+import javax.net.ssl.SSLEngine;
 import java.util.Set;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
@@ -78,21 +80,6 @@ public final class SockJsChannelOption {
     public static final ChannelOption<Integer> MAX_STREAMING_BYTES_SIZE = valueOf(T, "MAX_STREAMING_BYTES_SIZE");
 
     /**
-     * SockJS TLS option. See {@link SockJsServerSocketChannelConfig#isTls()} for details.
-     */
-    public static final ChannelOption<Boolean> TLS = valueOf(T, "TLS");
-
-    /**
-     * SockJS keystore option. See {@link SockJsServerSocketChannelConfig#keyStore()} for details.
-     */
-    public static final ChannelOption<String> KEYSTORE = valueOf(T, "KEYSTORE");
-
-    /**
-     * SockJS keystore password option. See {@link SockJsServerSocketChannelConfig#keyStorePassword()} for details.
-     */
-    public static final ChannelOption<String> KEYSTORE_PASSWORD = valueOf(T, "KEYSTORE_PASSWORD");
-
-    /**
      * SockJS CORS configuration option. See {@link SockJsSocketChannelConfig#corsConfig()} for details.
      */
     public static final ChannelOption<CorsConfig> CORS_CONFIG = valueOf(T, "CORS_CONFIG");
@@ -102,6 +89,16 @@ public final class SockJsChannelOption {
      * required for HTTP/HTTPS.
      */
     public static final ChannelOption<ChannelInitializer> CHANNEL_INITIALIZER = valueOf(T, "CHANNEL_INITIALIZER");
+
+    /**
+     * SockJS TLS option. See {@link SockJsServerSocketChannelConfig#isTls()} for details.
+     */
+    public static final ChannelOption<Boolean> TLS = valueOf(T, "TLS");
+
+    /**
+     * SockJS {@link SSLContext} for usage with the {@link SSLEngine} when TLS is enabled.
+     */
+    public static final ChannelOption<SSLContext> SSL_CONTEXT = valueOf(T, "SSL_CONTEXT");
 
     private SockJsChannelOption() {
     }
