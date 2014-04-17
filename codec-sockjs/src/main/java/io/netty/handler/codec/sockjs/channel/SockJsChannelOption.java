@@ -23,8 +23,6 @@ import io.netty.handler.codec.http.cors.CorsConfig;
 import javax.net.ssl.SSLContext;
 import javax.net.ssl.SSLEngine;
 import java.util.Set;
-import java.util.regex.Matcher;
-import java.util.regex.Pattern;
 
 import static io.netty.channel.ChannelOption.valueOf;
 
@@ -88,7 +86,7 @@ public final class SockJsChannelOption {
      * SockJS {@link ChannelInitializer} which sets up the base {@link ChannelHandler}s
      * required for HTTP/HTTPS.
      */
-    public static final ChannelOption<ChannelInitializer> CHANNEL_INITIALIZER = valueOf(T, "CHANNEL_INITIALIZER");
+    public static final ChannelOption<ChannelInitializer<?>> CHANNEL_INITIALIZER = valueOf(T, "CHANNEL_INITIALIZER");
 
     /**
      * SockJS TLS option. See {@link SockJsServerSocketChannelConfig#isTls()} for details.
@@ -103,47 +101,4 @@ public final class SockJsChannelOption {
     private SockJsChannelOption() {
     }
 
-    /**
-     * Enables the creation of ChannelOption for a specific SockJs service.
-     * A SockJs service is identified by its 'getPrefix'.
-     *
-     * @param prefix the getPrefix for the SockJs service
-     * @param option the option to be set for the SockJs service.
-     * @return ChannelOption for the passed original option plus a SockJs service prefix.
-     */
-    public static ChannelOption<?> forPrefix(final String prefix, ChannelOption<?> option) {
-        return valueOf(option.name() + '#' + prefix);
-    }
-
-    private static final Pattern PREFIX_PATTERN = Pattern.compile('(' + SockJsChannelOption.class.getName() +
-            "#.+)#(.+)$");
-
-    public static PrefixOptionMetadata extractPrefix(final ChannelOption<?> option) {
-        final Matcher m = PREFIX_PATTERN.matcher(option.name());
-        if (m.find()) {
-            final String optionName = m.group(1);
-            final ChannelOption<Object> baseOption = valueOf(optionName);
-            return new PrefixOptionMetadata(m.group(2), baseOption);
-        }
-        return null;
-    }
-
-    public static class PrefixOptionMetadata {
-
-        private final String prefix;
-        private final ChannelOption<?> option;
-
-        public PrefixOptionMetadata(final String prefix, final ChannelOption<?> option) {
-            this.prefix = prefix;
-            this.option = option;
-        }
-
-        public String prefix() {
-            return prefix;
-        }
-
-        public ChannelOption<?> option() {
-            return option;
-        }
-    }
 }
