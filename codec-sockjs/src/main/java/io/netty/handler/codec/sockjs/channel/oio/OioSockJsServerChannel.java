@@ -118,8 +118,8 @@ public class OioSockJsServerChannel extends AbstractServerChannel implements Soc
             @Override
             public void channelRead(final ChannelHandlerContext ctx, final Object msg) throws Exception {
                 final OioSockJsSocketChannel channel = (OioSockJsSocketChannel) msg;
-                channel.doRegister();
-                channel.doBeginRead();
+                channel.pipeline().addLast(config.getChannelInitializer());
+                channel.unsafe().register(channel.newPromise());
             }
         });
         oio.bind(localAddress);

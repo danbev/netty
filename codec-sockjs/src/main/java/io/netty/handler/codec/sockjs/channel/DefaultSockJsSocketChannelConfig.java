@@ -16,13 +16,9 @@
 package io.netty.handler.codec.sockjs.channel;
 
 import io.netty.channel.ChannelOption;
-import io.netty.channel.ChannelPipeline;
 import io.netty.channel.socket.DefaultSocketChannelConfig;
 import io.netty.channel.socket.SocketChannel;
 import io.netty.handler.codec.http.HttpHeaders.Names;
-import io.netty.handler.codec.http.HttpObjectAggregator;
-import io.netty.handler.codec.http.HttpRequestDecoder;
-import io.netty.handler.codec.http.HttpResponseEncoder;
 import io.netty.handler.codec.http.cors.CorsConfig;
 import io.netty.handler.codec.http.cors.CorsConfig.Builder;
 import io.netty.handler.codec.sockjs.DefaultSockJsServiceConfig;
@@ -246,13 +242,6 @@ public class DefaultSockJsSocketChannelConfig extends DefaultSocketChannelConfig
     @Override
     public SockJsServiceConfig setTls(boolean tls) {
         return config.setTls(tls);
-    }
-
-    public static void addDefaultSockJsHandlers(final ChannelPipeline pipeline) {
-        pipeline.addLast("decoder", new HttpRequestDecoder());
-        pipeline.addLast("encoder", new HttpResponseEncoder());
-        pipeline.addLast("chucked", new HttpObjectAggregator(1048576));
-        pipeline.addLast("mux", new io.netty.handler.codec.sockjs.handler.SockJsMultiplexer());
     }
 
     public static Builder defaultCorsConfig() {

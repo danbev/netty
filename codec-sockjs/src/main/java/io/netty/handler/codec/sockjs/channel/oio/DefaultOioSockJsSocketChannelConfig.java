@@ -16,24 +16,15 @@
 package io.netty.handler.codec.sockjs.channel.oio;
 
 import io.netty.channel.ChannelOption;
-import io.netty.channel.ChannelPipeline;
 import io.netty.channel.socket.SocketChannel;
 import io.netty.channel.socket.oio.DefaultOioSocketChannelConfig;
-import io.netty.handler.codec.http.HttpHeaders.Names;
-import io.netty.handler.codec.http.HttpObjectAggregator;
-import io.netty.handler.codec.http.HttpRequestDecoder;
-import io.netty.handler.codec.http.HttpResponseEncoder;
 import io.netty.handler.codec.http.cors.CorsConfig;
-import io.netty.handler.codec.http.cors.CorsConfig.Builder;
 import io.netty.handler.codec.sockjs.DefaultSockJsServiceConfig;
 import io.netty.handler.codec.sockjs.SockJsServiceConfig;
-import io.netty.handler.codec.sockjs.handler.SockJsMultiplexer;
 
 import java.net.Socket;
-import java.util.Date;
 import java.util.Map;
 import java.util.Set;
-import java.util.concurrent.Callable;
 
 import static io.netty.handler.codec.sockjs.channel.SockJsChannelOption.*;
 
@@ -247,30 +238,6 @@ public class DefaultOioSockJsSocketChannelConfig extends DefaultOioSocketChannel
     @Override
     public SockJsServiceConfig setTls(boolean tls) {
         return config.setTls(tls);
-    }
-
-    public static void addDefaultSockJsHandlers(final ChannelPipeline pipeline) {
-        pipeline.addLast("decoder", new HttpRequestDecoder());
-        pipeline.addLast("encoder", new HttpResponseEncoder());
-        pipeline.addLast("chucked", new HttpObjectAggregator(1048576));
-        pipeline.addLast("mux", new SockJsMultiplexer());
-    }
-
-    public static Builder defaultCorsConfig() {
-        return CorsConfig.withAnyOrigin()
-                .allowCredentials()
-                .preflightResponseHeader(Names.CACHE_CONTROL, "public, max-age=31536000")
-                .preflightResponseHeader(Names.SET_COOKIE, "JSESSIONID=dummy;path=/")
-                .preflightResponseHeader(Names.EXPIRES, new Callable<Date>() {
-                    @Override
-                    public Date call() throws Exception {
-                        final Date date = new Date();
-                        date.setTime(date.getTime() + 3600 * 1000);
-                        return date;
-                    }
-                })
-                .allowedRequestHeaders(Names.CONTENT_TYPE.toString())
-                .maxAge(31536000);
     }
 
 }

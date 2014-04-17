@@ -15,6 +15,8 @@
  */
 package io.netty.handler.codec.sockjs;
 
+import io.netty.channel.ChannelInitializer;
+
 /**
  * The configuration properties for the SockJS server.
  */
@@ -80,5 +82,20 @@ public interface SockJsServerConfig {
      * @return SockJsServerConfig to support method chaining.
      */
     SockJsServerConfig setKeyStorePassword(String password);
+
+    /**
+     * Gets the {@link ChannelInitializer} used to set up HTTP/HTTP handlers for SockJS.
+     *
+     * @return channelInitilizer the {@link ChannelInitializer} used to set up HTTP/HTTPS for SockJS.
+     */
+    ChannelInitializer<?> getChannelInitializer();
+
+    /**
+     * Sets the {@link ChannelInitializer} used to set up HTTP/HTTP handlers for SockJS.
+     *
+     * @param channelInitilizer the {@link ChannelInitializer} used to set up HTTP/HTTPS for SockJS.
+     * @return SockJsServerConfig to support method chaining.
+     */
+    SockJsServerConfig setChannelInitilizer(ChannelInitializer<?> channelInitilizer);
 
 }

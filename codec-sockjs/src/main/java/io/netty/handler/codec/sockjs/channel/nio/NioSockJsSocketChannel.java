@@ -18,11 +18,7 @@ package io.netty.handler.codec.sockjs.channel.nio;
 import io.netty.channel.Channel;
 import io.netty.channel.EventLoop;
 import io.netty.channel.socket.nio.NioSocketChannel;
-import io.netty.handler.codec.http.HttpObjectAggregator;
-import io.netty.handler.codec.http.HttpRequestDecoder;
-import io.netty.handler.codec.http.HttpResponseEncoder;
 import io.netty.handler.codec.sockjs.channel.DefaultSockJsSocketChannelConfig;
-import io.netty.handler.codec.sockjs.handler.SockJsMultiplexer;
 import io.netty.handler.codec.sockjs.channel.SockJsServerSocketChannelConfig;
 import io.netty.handler.codec.sockjs.channel.SockJsSocketChannelConfig;
 
@@ -30,12 +26,13 @@ import java.nio.channels.SocketChannel;
 
 public class NioSockJsSocketChannel extends NioSocketChannel {
 
-    private boolean registered;
-    private SockJsSocketChannelConfig config;
+    private final SockJsSocketChannelConfig config;
 
     public NioSockJsSocketChannel(final Channel parent, final EventLoop eventLoop, final SocketChannel socketChannel) {
         super(parent, eventLoop, socketChannel);
         config = new DefaultSockJsSocketChannelConfig(this, socketChannel.socket());
+        // Some SockJS transports need to know if TLS is in use, we set this pass this setting along
+        // to the SocketChannel config.
         final SockJsServerSocketChannelConfig parentConfig = (SockJsServerSocketChannelConfig) parent.config();
         config.setTls(parentConfig.isTls());
     }
@@ -43,22 +40,6 @@ public class NioSockJsSocketChannel extends NioSocketChannel {
     @Override
     public SockJsSocketChannelConfig config() {
         return config;
-    }
-
-    @Override
-    protected void doRegister() throws Exception {
-        if (!registered) {
-            super.doRegister();
-            final SockJsServerSocketChannelConfig config = (SockJsServerSocketChannelConfig) parent().config();
-            if (config.isTls()) {
-                //TODO: add TLS support
-            }
-            pipeline().addLast("decoder", new HttpRequestDecoder());
-            pipeline().addLast("encoder", new HttpResponseEncoder());
-            pipeline().addLast("chucked", new HttpObjectAggregator(1048576));
-            pipeline().addLast("mux", new SockJsMultiplexer());
-            registered = true;
-        }
     }
 
 }

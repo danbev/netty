@@ -15,6 +15,8 @@
  */
 package io.netty.handler.codec.sockjs;
 
+import io.netty.channel.ChannelInitializer;
+import io.netty.handler.codec.sockjs.handler.SockJsChannelInitializer;
 import io.netty.util.internal.StringUtil;
 
 /**
@@ -26,8 +28,10 @@ public class DefaultSockJsServerConfig implements SockJsServerConfig {
     private boolean tls;
     private String keyStore;
     private String keystorePassword;
+    private ChannelInitializer<?> channelInitializer;
 
     public DefaultSockJsServerConfig() {
+        channelInitializer = new SockJsChannelInitializer(this);
     }
 
     public DefaultSockJsServerConfig(final String prefix) {
@@ -78,9 +82,21 @@ public class DefaultSockJsServerConfig implements SockJsServerConfig {
         return this;
     }
 
+    @Override
+    public ChannelInitializer<?> getChannelInitializer() {
+        return channelInitializer;
+    }
+
+    @Override
+    public SockJsServerConfig setChannelInitilizer(ChannelInitializer<?> channelInitializer) {
+        this.channelInitializer = channelInitializer;
+        return this;
+    }
+
     public String toString() {
         return StringUtil.simpleClassName(this) + "[tls=" + tls +
                 ", keyStore=" + keyStore +
+                ", channelInitializer=" + channelInitializer +
                 ']';
     }
 

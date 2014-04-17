@@ -17,6 +17,7 @@ import io.netty.channel.Channel;
 import io.netty.channel.ChannelHandler;
 import io.netty.channel.ChannelHandlerAdapter;
 import io.netty.channel.ChannelHandlerContext;
+import io.netty.channel.ChannelPipeline;
 import io.netty.channel.ChannelPromise;
 import io.netty.channel.DefaultMessageSizeEstimator;
 import io.netty.channel.embedded.EmbeddedChannel;
@@ -24,6 +25,7 @@ import io.netty.channel.socket.ServerSocketChannel;
 import io.netty.channel.socket.ServerSocketChannelConfig;
 import io.netty.channel.socket.SocketChannel;
 import io.netty.handler.codec.http.HttpObjectAggregator;
+import io.netty.handler.codec.http.HttpRequestDecoder;
 import io.netty.handler.codec.http.HttpResponseEncoder;
 import io.netty.handler.codec.http.cors.CorsConfig;
 import io.netty.handler.codec.http.websocketx.WebSocket00FrameEncoder;
@@ -42,10 +44,10 @@ import io.netty.handler.codec.sockjs.SockJsServerConfig;
 import io.netty.handler.codec.sockjs.channel.SockJsServerSocketChannelAdapter;
 import io.netty.handler.codec.sockjs.SockJsService;
 import io.netty.handler.codec.sockjs.channel.SockJsSocketChannelConfig;
+import io.netty.handler.codec.sockjs.handler.SockJsMultiplexer;
 
 import java.net.Socket;
 
-import static io.netty.handler.codec.sockjs.channel.DefaultSockJsSocketChannelConfig.*;
 import static org.mockito.Matchers.any;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
@@ -196,6 +198,13 @@ public final class ChannelUtil {
             }
             ctx.writeAndFlush(msg, channelPromise);
         }
+    }
+
+    public static void addDefaultSockJsHandlers(final ChannelPipeline pipeline) {
+        pipeline.addLast("decoder", new HttpRequestDecoder());
+        pipeline.addLast("encoder", new HttpResponseEncoder());
+        pipeline.addLast("chucked", new HttpObjectAggregator(1048576));
+        pipeline.addLast("mux", new SockJsMultiplexer());
     }
 
 }

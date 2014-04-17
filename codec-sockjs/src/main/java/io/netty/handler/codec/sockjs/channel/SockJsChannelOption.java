@@ -15,6 +15,8 @@
  */
 package io.netty.handler.codec.sockjs.channel;
 
+import io.netty.channel.ChannelHandler;
+import io.netty.channel.ChannelInitializer;
 import io.netty.channel.ChannelOption;
 import io.netty.handler.codec.http.cors.CorsConfig;
 
@@ -94,6 +96,12 @@ public final class SockJsChannelOption {
      * SockJS CORS configuration option. See {@link SockJsSocketChannelConfig#corsConfig()} for details.
      */
     public static final ChannelOption<CorsConfig> CORS_CONFIG = valueOf(T, "CORS_CONFIG");
+
+    /**
+     * SockJS {@link ChannelInitializer} which sets up the base {@link ChannelHandler}s
+     * required for HTTP/HTTPS.
+     */
+    public static final ChannelOption<ChannelInitializer> CHANNEL_INITIALIZER = valueOf(T, "CHANNEL_INITIALIZER");
 
     private SockJsChannelOption() {
     }

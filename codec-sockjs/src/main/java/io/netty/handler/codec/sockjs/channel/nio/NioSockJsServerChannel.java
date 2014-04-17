@@ -110,6 +110,7 @@ public class NioSockJsServerChannel extends AbstractServerChannel implements Soc
                 // childhandler or register the channel. We will take over the responsibility to
                 // register the channel.
                 final Channel channel = (Channel) msg;
+                channel.pipeline().addLast(config.getChannelInitializer());
                 channel.unsafe().register(channel.newPromise());
             }
         });

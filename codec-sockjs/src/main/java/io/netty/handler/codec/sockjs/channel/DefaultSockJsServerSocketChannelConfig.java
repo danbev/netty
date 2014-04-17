@@ -17,6 +17,7 @@ package io.netty.handler.codec.sockjs.channel;
 
 import io.netty.buffer.ByteBufAllocator;
 import io.netty.channel.ChannelConfig;
+import io.netty.channel.ChannelInitializer;
 import io.netty.channel.ChannelOption;
 import io.netty.channel.MessageSizeEstimator;
 import io.netty.channel.RecvByteBufAllocator;
@@ -202,93 +203,6 @@ public class DefaultSockJsServerSocketChannelConfig implements SockJsServerSocke
     public SockJsServerConfig setPrefix(String prefix) {
         return sockJsConfig.setPrefix(prefix);
     }
-    /*
-
-    @Override
-    public boolean isWebSocketEnabled() {
-        return sockJsConfig.isWebSocketEnabled();
-    }
-
-    @Override
-    public SockJsConfig setWebSocketEnabled(boolean enable) {
-        return sockJsConfig.setWebSocketEnabled(enable);
-    }
-
-    @Override
-    public long webSocketHeartbeatInterval() {
-        return sockJsConfig.webSocketHeartbeatInterval();
-    }
-
-    @Override
-    public SockJsConfig setWebSocketHeartbeatInterval(long ms) {
-        return sockJsConfig.setWebSocketHeartbeatInterval(ms);
-    }
-
-    @Override
-    public Set<String> webSocketProtocol() {
-        return sockJsConfig.webSocketProtocol();
-    }
-
-    @Override
-    public SockJsConfig setWebSocketProtocol(Set<String> protocols) {
-        return sockJsConfig.setWebSocketProtocol(protocols);
-    }
-
-    @Override
-    public String webSocketProtocolCSV() {
-        return sockJsConfig.webSocketProtocolCSV();
-    }
-
-    @Override
-    public boolean areCookiesNeeded() {
-        return sockJsConfig.areCookiesNeeded();
-    }
-
-    @Override
-    public SockJsConfig setCookiesNeeded(boolean needed) {
-        return sockJsConfig.setCookiesNeeded(needed);
-    }
-
-    @Override
-    public String sockJsUrl() {
-        return sockJsConfig.sockJsUrl();
-    }
-
-    @Override
-    public SockJsConfig setSockJsUrl(String url) {
-        return sockJsConfig.setSockJsUrl(url);
-    }
-
-    @Override
-    public long sessionTimeout() {
-        return sockJsConfig.sessionTimeout();
-    }
-
-    @Override
-    public SockJsConfig setSessionTimeout(long ms) {
-        return sockJsConfig.setSessionTimeout(ms);
-    }
-
-    @Override
-    public long heartbeatInterval() {
-        return sockJsConfig.heartbeatInterval();
-    }
-
-    @Override
-    public SockJsConfig setHeartbeatInterval(long ms) {
-        return sockJsConfig.setHeartbeatInterval(ms);
-    }
-
-    @Override
-    public int maxStreamingBytesSize() {
-        return sockJsConfig.maxStreamingBytesSize();
-    }
-
-    @Override
-    public SockJsConfig setMaxStreamingBytesSize(int max) {
-        return sockJsConfig.setMaxStreamingBytesSize(max);
-    }
-    */
 
     @Override
     public boolean isTls() {
@@ -320,15 +234,14 @@ public class DefaultSockJsServerSocketChannelConfig implements SockJsServerSocke
         return sockJsConfig.setKeyStorePassword(password);
     }
 
-    /*
     @Override
-    public CorsConfig corsConfig() {
-        return sockJsConfig.corsConfig();
+    public ChannelInitializer<?> getChannelInitializer() {
+        return sockJsConfig.getChannelInitializer();
     }
 
     @Override
-    public SockJsConfig setCorsConfig(CorsConfig corsConfig) {
-        return sockJsConfig.setCorsConfig(corsConfig);
+    public SockJsServerConfig setChannelInitilizer(ChannelInitializer<?> channelInitilizer) {
+        return sockJsConfig.setChannelInitilizer(channelInitilizer);
     }
-    */
+
 }

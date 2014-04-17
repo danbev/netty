@@ -16,6 +16,7 @@
 package io.netty.handler.codec.sockjs.channel;
 
 import io.netty.channel.Channel;
+import io.netty.channel.ChannelInitializer;
 import io.netty.channel.ChannelOption;
 import io.netty.channel.DefaultChannelConfig;
 import io.netty.handler.codec.sockjs.DefaultSockJsServerConfig;
@@ -23,6 +24,7 @@ import io.netty.handler.codec.sockjs.SockJsServerConfig;
 
 import java.util.Map;
 
+import static io.netty.handler.codec.sockjs.channel.SockJsChannelOption.CHANNEL_INITIALIZER;
 import static io.netty.handler.codec.sockjs.channel.SockJsChannelOption.PREFIX;
 import static io.netty.handler.codec.sockjs.channel.SockJsChannelOption.KEYSTORE;
 import static io.netty.handler.codec.sockjs.channel.SockJsChannelOption.KEYSTORE_PASSWORD;
@@ -51,6 +53,8 @@ public class DefaultSockJsServerChannelConfig extends DefaultChannelConfig imple
             config.setKeyStore((String) value);
         } else if (option == KEYSTORE_PASSWORD) {
             config.setKeyStorePassword((String) value);
+        } else if (option == CHANNEL_INITIALIZER) {
+            config.setChannelInitilizer((ChannelInitializer) value);
         } else {
             return super.setOption(option, value);
         }
@@ -72,6 +76,9 @@ public class DefaultSockJsServerChannelConfig extends DefaultChannelConfig imple
         if (option == KEYSTORE_PASSWORD) {
             return (T) config.keyStorePassword();
         }
+        if (option == CHANNEL_INITIALIZER) {
+            return (T) config.getChannelInitializer();
+        }
         return super.getOption(option);
     }
 
@@ -81,7 +88,8 @@ public class DefaultSockJsServerChannelConfig extends DefaultChannelConfig imple
                 PREFIX,
                 TLS,
                 KEYSTORE,
-                KEYSTORE_PASSWORD);
+                KEYSTORE_PASSWORD,
+                CHANNEL_INITIALIZER);
     }
 
     @Override
@@ -100,7 +108,7 @@ public class DefaultSockJsServerChannelConfig extends DefaultChannelConfig imple
     }
 
     @Override
-    public SockJsServerConfig setTls(boolean tls) {
+    public SockJsServerConfig setTls(final boolean tls) {
         return config.setTls(tls);
     }
 
@@ -110,7 +118,7 @@ public class DefaultSockJsServerChannelConfig extends DefaultChannelConfig imple
     }
 
     @Override
-    public SockJsServerConfig setKeyStore(String keyStore) {
+    public SockJsServerConfig setKeyStore(final String keyStore) {
         return config.setKeyStore(keyStore);
     }
 
@@ -120,7 +128,17 @@ public class DefaultSockJsServerChannelConfig extends DefaultChannelConfig imple
     }
 
     @Override
-    public SockJsServerConfig setKeyStorePassword(String password) {
+    public SockJsServerConfig setKeyStorePassword(final String password) {
         return config.setKeyStorePassword(password);
+    }
+
+    @Override
+    public ChannelInitializer<?> getChannelInitializer() {
+        return config.getChannelInitializer();
+    }
+
+    @Override
+    public SockJsServerConfig setChannelInitilizer(final ChannelInitializer<?> channelInitilizer) {
+        return config.setChannelInitilizer(channelInitilizer);
     }
 }

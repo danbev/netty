@@ -18,43 +18,26 @@ package io.netty.handler.codec.sockjs.channel.oio;
 import io.netty.channel.Channel;
 import io.netty.channel.EventLoop;
 import io.netty.channel.socket.oio.OioSocketChannel;
-import io.netty.handler.codec.http.HttpObjectAggregator;
-import io.netty.handler.codec.http.HttpRequestDecoder;
-import io.netty.handler.codec.http.HttpResponseEncoder;
-import io.netty.handler.codec.sockjs.handler.SockJsMultiplexer;
+import io.netty.handler.codec.sockjs.channel.SockJsServerSocketChannelConfig;
 
 import java.net.Socket;
 
 public class OioSockJsSocketChannel extends OioSocketChannel {
 
-    private boolean registered;
     private final OioSockJsSocketChannelConfig config;
 
     public OioSockJsSocketChannel(Channel parent, EventLoop eventLoop, Socket socket) {
         super(parent, eventLoop, socket);
         config = new DefaultOioSockJsSocketChannelConfig(this, socket);
-    }
-
-    @Override
-    protected void doBeginRead() throws Exception {
-        super.doBeginRead();
+        // Some SockJS transports need to know if TLS is in use, we set this pass this setting along
+        // to the SocketChannel config.
+        final SockJsServerSocketChannelConfig parentConfig = (SockJsServerSocketChannelConfig) parent.config();
+        config.setTls(parentConfig.isTls());
     }
 
     @Override
     public OioSockJsSocketChannelConfig config() {
         return config;
-    }
-
-    @Override
-    protected void doRegister() throws Exception {
-        if (!registered) {
-            super.doRegister();
-            pipeline().addLast("decoder", new HttpRequestDecoder());
-            pipeline().addLast("encoder", new HttpResponseEncoder());
-            pipeline().addLast("chucked", new HttpObjectAggregator(1048576));
-            pipeline().addLast("mux", new SockJsMultiplexer());
-            registered = true;
-        }
     }
 
 }
