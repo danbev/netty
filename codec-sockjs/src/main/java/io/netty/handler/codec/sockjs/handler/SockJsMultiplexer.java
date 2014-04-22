@@ -26,6 +26,9 @@ import io.netty.handler.codec.sockjs.SockJsService;
 import io.netty.util.internal.logging.InternalLogger;
 import io.netty.util.internal.logging.InternalLoggerFactory;
 
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
+
 import static io.netty.handler.codec.sockjs.util.TransportUtil.writeNotFoundResponse;
 
 /**
@@ -39,6 +42,7 @@ public class SockJsMultiplexer extends ChannelHandlerAdapter {
     private static final String CORS_HANDLER_NAME = "cors";
     private static final String SOCKJS_HANDLER_NAME = "sockjs";
     private static final String BOOTSTRAP_ACCEPTOR_HANDLER_NAME = "ServerBootstrap$ServerBootstrapAcceptor#0";
+    private static final Pattern PREFIX = Pattern.compile("/?([^/]*)");
 
     @Override
     public void channelRead(final ChannelHandlerContext ctx, final Object msg) throws Exception {
@@ -86,14 +90,9 @@ public class SockJsMultiplexer extends ChannelHandlerAdapter {
         return sockJsServerChannel.serviceFor(requestPrefix(request));
     }
 
-    private static String requestPrefix(final HttpRequest request) {
-        final String path = new QueryStringDecoder(request.getUri()).path();
-        final String[] split = path.split("/");
-        if (path.charAt(0) == '/') {
-            return '/' + split[1];
-        } else {
-            return '/' + split[0];
-        }
+    static String requestPrefix(final HttpRequest request) {
+        final Matcher m = PREFIX.matcher(new QueryStringDecoder(request.getUri()).path());
+        return m.find() ? '/' + m.group(1) : "not found";
     }
 
     @Override
