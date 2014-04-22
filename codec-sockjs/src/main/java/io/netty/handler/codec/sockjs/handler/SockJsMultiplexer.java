@@ -23,7 +23,6 @@ import io.netty.handler.codec.http.cors.CorsHandler;
 import io.netty.handler.codec.sockjs.SockJsServiceConfig;
 import io.netty.handler.codec.sockjs.channel.SockJsServerSocketChannelAdapter;
 import io.netty.handler.codec.sockjs.SockJsService;
-import io.netty.handler.codec.sockjs.channel.SockJsSocketChannelConfig;
 import io.netty.util.internal.logging.InternalLogger;
 import io.netty.util.internal.logging.InternalLoggerFactory;
 
@@ -37,35 +36,54 @@ import static io.netty.handler.codec.sockjs.util.TransportUtil.writeNotFoundResp
 public class SockJsMultiplexer extends ChannelHandlerAdapter {
 
     private static final InternalLogger logger = InternalLoggerFactory.getInstance(SockJsMultiplexer.class);
+    private static final String CORS_HANDLER_NAME = "cors";
+    private static final String SOCKJS_HANDLER_NAME = "sockjs";
+    private static final String BOOTSTRAP_ACCEPTOR_HANDLER_NAME = "ServerBootstrap$ServerBootstrapAcceptor#0";
 
     @Override
     public void channelRead(final ChannelHandlerContext ctx, final Object msg) throws Exception {
         if (msg instanceof HttpRequest) {
             final HttpRequest request = (HttpRequest) msg;
-            final SockJsServerSocketChannelAdapter sockJsServerChannel =
-                    (SockJsServerSocketChannelAdapter) ctx.channel().parent();
-            final SockJsService sockJsService = sockJsServerChannel.serviceFor(requestPrefix(request));
+            final SockJsService sockJsService = sockJsServiceFor(request, ctx);
             if (sockJsService == null) {
                 writeNotFoundResponse(request, ctx);
                 return;
             }
-
-            ctx.pipeline().addAfter(ctx.name(), "acceptor", sockJsService.childChannelInitializer());
-            ctx.fireChannelRegistered();
-            ctx.fireChannelRead(ctx.channel());
-            ctx.pipeline().remove("ServerBootstrap$ServerBootstrapAcceptor#0");
-            final SockJsServiceConfig sockJsConfig = (SockJsServiceConfig) ctx.channel().config();
-            sockJsConfig.setPrefix(sockJsService.prefix());
-
-            if (ctx.pipeline().get("sockjs") == null) {
-                ctx.pipeline().addAfter(ctx.name(), "sockjs", new SockJsHandler(sockJsConfig));
-                ctx.pipeline().addAfter(ctx.name(), "cors", new CorsHandler(sockJsConfig.corsConfig()));
-            } else {
-                ctx.pipeline().replace("sockjs", "sockjs", new SockJsHandler(sockJsConfig));
-                ctx.pipeline().replace("cors", "cors", new CorsHandler(sockJsConfig.corsConfig()));
-            }
+            addHandlerForSockJsService(sockJsService, ctx);
+            addCorsAndSockJsHandler(sockJsService, ctx);
         }
         ctx.fireChannelRead(msg);
+    }
+
+    private static void addCorsAndSockJsHandler(final SockJsService sockJsService, final ChannelHandlerContext ctx) {
+        // The 'prefix' of a SockJS service is configured using the 'option' method of ServerBootstrap in contrast
+        // to the rest of the options that use the 'childOption' method call. The SockJsHandler
+        // needs to access the prefix so we set it here.
+        final SockJsServiceConfig sockJsConfig = (SockJsServiceConfig) ctx.channel().config();
+        sockJsConfig.setPrefix(sockJsService.prefix());
+
+        // If the connection is using 'keep-alive' a second request may come in on the the same
+        // channel, in which case the handlers below would already have been added.
+        if (ctx.pipeline().get(SOCKJS_HANDLER_NAME) != null) {
+            ctx.pipeline().replace(SOCKJS_HANDLER_NAME, SOCKJS_HANDLER_NAME, new SockJsHandler(sockJsConfig));
+            ctx.pipeline().replace(CORS_HANDLER_NAME, CORS_HANDLER_NAME, new CorsHandler(sockJsConfig.corsConfig()));
+        } else {
+            ctx.pipeline().addAfter(ctx.name(), SOCKJS_HANDLER_NAME, new SockJsHandler(sockJsConfig));
+            ctx.pipeline().addAfter(ctx.name(), CORS_HANDLER_NAME, new CorsHandler(sockJsConfig.corsConfig()));
+        }
+    }
+
+    private static void addHandlerForSockJsService(SockJsService sockJsService, ChannelHandlerContext ctx) {
+        ctx.pipeline().addAfter(ctx.name(), "childHandler", sockJsService.childChannelInitializer());
+        ctx.fireChannelRegistered();
+        ctx.fireChannelRead(ctx.channel());
+        ctx.pipeline().remove(BOOTSTRAP_ACCEPTOR_HANDLER_NAME);
+    }
+
+    private static SockJsService sockJsServiceFor(final HttpRequest request, final ChannelHandlerContext ctx) {
+        final SockJsServerSocketChannelAdapter sockJsServerChannel =
+                (SockJsServerSocketChannelAdapter) ctx.channel().parent();
+        return sockJsServerChannel.serviceFor(requestPrefix(request));
     }
 
     private static String requestPrefix(final HttpRequest request) {
