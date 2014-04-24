@@ -35,12 +35,15 @@ import io.netty.handler.codec.http.websocketx.WebSocketHandshakeException;
 import io.netty.handler.codec.http.websocketx.WebSocketServerHandshaker;
 import io.netty.handler.codec.http.websocketx.WebSocketServerHandshakerFactory;
 import io.netty.handler.codec.sockjs.SockJsServiceConfig;
+import io.netty.handler.codec.sockjs.handler.SessionHandler;
 import io.netty.handler.codec.sockjs.handler.SessionHandler.Event;
 import io.netty.handler.codec.sockjs.handler.SockJsHandler;
 import io.netty.handler.codec.sockjs.protocol.MessageFrame;
 import io.netty.util.AttributeKey;
 import io.netty.util.internal.logging.InternalLogger;
 import io.netty.util.internal.logging.InternalLoggerFactory;
+
+import java.util.UUID;
 
 /**
  * WebSocketTransport is responsible for the WebSocket handshake and
@@ -54,6 +57,14 @@ public class RawWebSocketTransport extends SimpleChannelInboundHandler<Object> {
 
     public RawWebSocketTransport(final SockJsServiceConfig config) {
         this.config = config;
+    }
+
+    @Override
+    public void handlerAdded(ChannelHandlerContext ctx) throws Exception {
+        // Even if a RawWebSocket does not use the normal SockJS session handling
+        // a SockJS handler/service might depend on a sessionId which is what the
+        // code below allows.
+        ctx.channel().attr(SessionHandler.SESSION_ID).set(UUID.randomUUID().toString());
     }
 
     @Override
