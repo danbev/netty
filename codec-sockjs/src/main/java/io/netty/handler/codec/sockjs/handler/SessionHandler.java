@@ -26,6 +26,7 @@ import io.netty.handler.codec.sockjs.protocol.CloseFrame;
 import io.netty.handler.codec.sockjs.protocol.MessageFrame;
 import io.netty.handler.codec.sockjs.protocol.OpenFrame;
 import io.netty.handler.codec.sockjs.util.ArgumentUtil;
+import io.netty.util.AttributeKey;
 import io.netty.util.ReferenceCountUtil;
 import io.netty.util.internal.logging.InternalLogger;
 import io.netty.util.internal.logging.InternalLoggerFactory;
@@ -42,6 +43,8 @@ import io.netty.util.internal.logging.InternalLoggerFactory;
  */
 public class SessionHandler extends ChannelHandlerAdapter {
 
+    public static final AttributeKey<String> SESSION_ID = AttributeKey.valueOf(SockJsHandler.class, "SESSION_ID");
+
     public enum Event { ON_SESSION_OPEN, HANDLE_SESSION, CLOSE_CONTEXT, CLOSE_SESSION }
 
     private static final InternalLogger logger = InternalLoggerFactory.getInstance(SessionHandler.class);
@@ -51,6 +54,11 @@ public class SessionHandler extends ChannelHandlerAdapter {
     public SessionHandler(final SessionState sessionState) {
         ArgumentUtil.checkNotNull(sessionState, "sessionState");
         this.sessionState = sessionState;
+    }
+
+    @Override
+    public void handlerAdded(ChannelHandlerContext ctx) throws Exception {
+        ctx.channel().attr(SESSION_ID).set(sessionState.sessionId());
     }
 
     @Override

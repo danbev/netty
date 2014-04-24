@@ -34,6 +34,13 @@ interface SessionState {
         INTERRUPTED }
 
     /**
+     * Returns the session id for the underlying session
+     *
+     * @return {@code String} the session identifier for the session
+     */
+    String sessionId();
+
+    /**
      * Returns the current session state.
      *
      * @return {@code State} the {@link State} of the session

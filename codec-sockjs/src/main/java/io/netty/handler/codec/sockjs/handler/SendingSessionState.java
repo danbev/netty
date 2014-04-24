@@ -41,6 +41,11 @@ class SendingSessionState implements SessionState {
     }
 
     @Override
+    public String sessionId() {
+        return session.sessionId();
+    }
+
+    @Override
     public State getState() {
         return session.getState();
     }

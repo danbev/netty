@@ -19,6 +19,7 @@ import io.netty.channel.ChannelHandler;
 import io.netty.channel.ChannelHandlerContext;
 import io.netty.channel.ChannelPromise;
 import io.netty.channel.SimpleChannelInboundHandler;
+import io.netty.handler.codec.sockjs.handler.SessionHandler;
 import io.netty.handler.codec.sockjs.handler.SessionHandler.Event;
 import io.netty.util.internal.logging.InternalLogger;
 import io.netty.util.internal.logging.InternalLoggerFactory;
@@ -31,6 +32,7 @@ public class SockJsEchoHandler extends SimpleChannelInboundHandler<String> {
     @Override
     public void userEventTriggered(final ChannelHandlerContext ctx, final Object evt) throws Exception {
         if (evt == Event.ON_SESSION_OPEN) {
+            logger.info("sessionId = " + ctx.channel().attr(SessionHandler.SESSION_ID).get());
             //logger.info(ctx.channel().parent().config().getOption(SockJsChannelOption.PREFIX) + " Connected");
         } else {
             super.userEventTriggered(ctx, evt);
