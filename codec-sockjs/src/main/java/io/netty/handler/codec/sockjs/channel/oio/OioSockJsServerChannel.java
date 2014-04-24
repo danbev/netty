@@ -69,7 +69,7 @@ public class OioSockJsServerChannel extends AbstractServerChannel implements Soc
 
     @Override
     public boolean isOpen() {
-        return true;
+        return oio != null ? oio.isOpen() : true;
     }
 
     @Override

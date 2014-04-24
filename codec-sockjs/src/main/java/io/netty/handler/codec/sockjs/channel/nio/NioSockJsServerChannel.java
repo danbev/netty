@@ -136,7 +136,7 @@ public class NioSockJsServerChannel extends AbstractServerChannel implements Soc
 
     @Override
     public boolean isOpen() {
-        return true;
+        return socketChannel != null ? socketChannel.isOpen() : true;
     }
 
     @Override
