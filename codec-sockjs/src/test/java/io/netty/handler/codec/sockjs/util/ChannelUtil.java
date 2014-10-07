@@ -24,6 +24,7 @@ import io.netty.channel.embedded.EmbeddedChannel;
 import io.netty.channel.socket.ServerSocketChannel;
 import io.netty.channel.socket.ServerSocketChannelConfig;
 import io.netty.channel.socket.SocketChannel;
+import io.netty.handler.codec.http.HttpMethod;
 import io.netty.handler.codec.http.HttpObjectAggregator;
 import io.netty.handler.codec.http.HttpRequestDecoder;
 import io.netty.handler.codec.http.HttpResponseEncoder;
@@ -32,6 +33,7 @@ import io.netty.handler.codec.http.websocketx.WebSocket00FrameEncoder;
 import io.netty.handler.codec.http.websocketx.WebSocket07FrameEncoder;
 import io.netty.handler.codec.http.websocketx.WebSocket08FrameEncoder;
 import io.netty.handler.codec.http.websocketx.WebSocket13FrameEncoder;
+import io.netty.handler.codec.sockjs.DefaultSockJsServiceConfig;
 import io.netty.handler.codec.sockjs.channel.DefaultSockJsServerChannelConfig;
 import io.netty.handler.codec.sockjs.DefaultSockJsServerConfig;
 import io.netty.handler.codec.sockjs.channel.DefaultSockJsSocketChannelConfig;
@@ -65,6 +67,7 @@ public final class ChannelUtil {
                                                   final ChannelHandler handler,
                                                   final SockJsSocketChannelConfig config) {
         final TestEmbeddedChannel ch = newTestEmbeddedChannel(prefix, handler, config);
+        ch.removeLastInboundHandler();
         addDefaultSockJsHandlers(ch.pipeline());
 
         // just add a mock to simulate a ServerBootstrap childhandler
@@ -84,6 +87,7 @@ public final class ChannelUtil {
                                                     final ChannelHandler handler,
                                                     final SockJsSocketChannelConfig config) {
         final TestEmbeddedChannel ch = newTestEmbeddedChannel(prefix, handler, config);
+        ch.removeLastInboundHandler();
         addDefaultSockJsHandlers(ch.pipeline());
 
         // just add a mock to simulate a ServerBootstrap childhandler
@@ -94,6 +98,7 @@ public final class ChannelUtil {
         setDefaultSockJsChannelOptions(ch, prefix);
         return ch;
     }
+
     private static TestEmbeddedChannel newTestEmbeddedChannel(final String prefix,
                                                        final ChannelHandler handler,
                                                        final SockJsSocketChannelConfig config) {

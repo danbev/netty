@@ -19,6 +19,7 @@ import io.netty.channel.ChannelHandler;
 import io.netty.channel.ChannelHandlerContext;
 import io.netty.channel.ChannelPromise;
 import io.netty.channel.SimpleChannelInboundHandler;
+import io.netty.handler.codec.sockjs.channel.SockJsChannelOption;
 import io.netty.handler.codec.sockjs.handler.SessionHandler;
 import io.netty.handler.codec.sockjs.handler.SessionHandler.Event;
 import io.netty.util.internal.logging.InternalLogger;
@@ -33,7 +34,7 @@ public class SockJsEchoHandler extends SimpleChannelInboundHandler<String> {
     public void userEventTriggered(final ChannelHandlerContext ctx, final Object evt) throws Exception {
         if (evt == Event.ON_SESSION_OPEN) {
             logger.info("sessionId = " + ctx.channel().attr(SessionHandler.SESSION_ID).get());
-            //logger.info(ctx.channel().parent().config().getOption(SockJsChannelOption.PREFIX) + " Connected");
+            logger.info(ctx.channel().parent().config().getOption(SockJsChannelOption.PREFIX) + " Connected");
         } else {
             super.userEventTriggered(ctx, evt);
         }
@@ -41,13 +42,13 @@ public class SockJsEchoHandler extends SimpleChannelInboundHandler<String> {
 
     @Override
     protected void messageReceived(final ChannelHandlerContext ctx, final String msg) throws Exception {
-        //logger.info(ctx.channel().parent().config().getOption(SockJsChannelOption.PREFIX) + " Echoing: " + msg);
+        logger.info(ctx.channel().parent().config().getOption(SockJsChannelOption.PREFIX) + " Echoing: " + msg);
         ctx.writeAndFlush(msg);
     }
 
     @Override
     public void close(final ChannelHandlerContext ctx, final ChannelPromise promise) throws Exception {
-        //logger.info(ctx.channel().parent().config().getOption(SockJsChannelOption.PREFIX) + " closing");
+        logger.info(ctx.channel().parent().config().getOption(SockJsChannelOption.PREFIX) + " closing");
         super.close(ctx, promise);
     }
 }

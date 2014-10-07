@@ -62,6 +62,7 @@ public class NettySockJsServer {
             });
             sb.option(PREFIX, "/echo");
             sb.childOption(MAX_STREAMING_BYTES_SIZE, 4096);
+            //sb.childOption(SESSION_TIMEOUT, 100000L);
             sb.childOption(CORS_CONFIG, corsConfig);
             sb.childOption(HEARTBEAT_INTERVAL, 60000L);
             sb.register();

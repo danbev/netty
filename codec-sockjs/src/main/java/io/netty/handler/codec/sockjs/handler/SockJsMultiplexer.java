@@ -72,6 +72,11 @@ public class SockJsMultiplexer extends ChannelHandlerAdapter {
         ctx.pipeline().addAfter(ctx.name(), "childHandler", sockJsService.childChannelInitializer());
         ctx.fireChannelRegistered();
         ctx.fireChannelRead(ctx.channel());
+
+        // If the channel handler that that the user configured is a ChannelInitializer then it must be
+        // invoked to actually be added to the pipeline.
+        ctx.fireChannelRegistered();
+
         // The childChannelInitializer added above is an instance of ChannelInitializer added by the ServerBootstrap
         // While the childHandler is removed by the normal ChannelInitialier's init method, the
         // ServerBootstrap.BootstrapAcceptor does not remove itself from the pipeline so we explicitely remove

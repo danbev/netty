@@ -45,10 +45,12 @@ import io.netty.handler.codec.sockjs.transport.HttpResponseBuilder;
 import io.netty.handler.codec.sockjs.transport.TransportType;
 import io.netty.handler.codec.sockjs.util.HttpUtil;
 import io.netty.handler.codec.sockjs.util.JsonUtil;
+import io.netty.util.CharsetUtil;
 import io.netty.util.ReferenceCountUtil;
 import org.junit.Test;
 
 import java.util.Arrays;
+
 import java.util.UUID;
 import java.util.regex.Pattern;
 
@@ -202,7 +204,7 @@ public class SockJsProtocolTest {
         verifyContentType(response, "application/json; charset=UTF-8");
         verifyNoSET_COOKIE(response);
         verifyNotCached(response);
-        assertCORSHeaders(response, "*");
+        assertCORSHeaders(response, "http://localhost");
 
         final JsonNode json = contentAsJson(response);
         assertThat(json.get("websocket").asBoolean(), is(true));
@@ -240,7 +242,7 @@ public class SockJsProtocolTest {
         final HttpResponse response = ch.readOutbound();
         assertThat(response.status(), is(OK));
         assertCORSPreflightResponseHeaders(response);
-        assertCORSHeaders(response, "*");
+        assertCORSHeaders(response, "http://localhost");
     }
 
     /*
@@ -262,6 +264,7 @@ public class SockJsProtocolTest {
     @Test
     public void infoTestOptionsNullOrigin() throws Exception {
         final SockJsSocketChannelConfig config = sockJsChannelConfig(defaultCorsConfig()
+                .allowNullOrigin()
                 .allowedRequestHeaders(Names.CONTENT_TYPE.toString())
                 .preflightResponseHeader(Names.CONTENT_TYPE, "text/plain; charset=UTF-8")
                 .build());
@@ -436,7 +439,6 @@ public class SockJsProtocolTest {
         assertThat(upgradeResponse.content().toString(UTF_8), equalTo("8jKS'y:G*Co,Wxa-"));
         upgradeResponse.release();
         ch.readOutbound();
-        ch.readOutbound();
 
         final TextWebSocketFrame openFrame = ch.readOutbound();
         assertThat(openFrame.content().toString(UTF_8), equalTo("o"));
@@ -467,7 +469,6 @@ public class SockJsProtocolTest {
         upgradeResponse.release();
 
         ch.readOutbound();
-        ch.readOutbound();
         final TextWebSocketFrame openFrame = ch.readOutbound();
         assertThat(openFrame.content().toString(UTF_8), equalTo("o"));
         openFrame.release();
@@ -493,7 +494,6 @@ public class SockJsProtocolTest {
         final FullHttpResponse upgradeResponse = HttpUtil.decodeFullHttpResponse(ch);
         assertThat(upgradeResponse.content().toString(UTF_8), equalTo("8jKS'y:G*Co,Wxa-"));
         upgradeResponse.release();
-        ch.readOutbound();
         ch.readOutbound();
 
         final TextWebSocketFrame openFrame = ch.readOutbound();
@@ -536,12 +536,10 @@ public class SockJsProtocolTest {
         upgradeResponse2.release();
 
         ch1.readOutbound();
-        ch1.readOutbound();
         final ByteBufHolder open1 = ch1.readOutbound();
         assertThat(open1.content().toString(UTF_8), equalTo("o"));
         open1.release();
 
-        ch2.readOutbound();
         ch2.readOutbound();
         final ByteBufHolder open2 = ch2.readOutbound();
         assertThat(open2.content().toString(UTF_8), equalTo("o"));
@@ -635,7 +633,6 @@ public class SockJsProtocolTest {
         final FullHttpResponse upgradeResponse = HttpUtil.decodeFullHttpResponse(ch);
         assertThat(upgradeResponse.status(), equalTo(SWITCHING_PROTOCOLS));
         assertThat(upgradeResponse.content().toString(UTF_8), equalTo("8jKS'y:G*Co,Wxa-"));
-        ch.readOutbound();
         ch.readOutbound();
 
         final ByteBufHolder open = ch.readOutbound();
@@ -747,16 +744,22 @@ public class SockJsProtocolTest {
     public void xhrPollingTestTransport() throws Exception {
         final String sessionUrl = "/echo/abc/" + UUID.randomUUID();
 
-        final FullHttpResponse response = xhrRequest(sessionUrl, echoChannel());
+        final EmbeddedChannel ch = echoChannel(sockJsChannelConfig(CorsConfig.withOrigin("http://localhost")
+                .allowCredentials()
+                .allowedRequestHeaders(Names.CONTENT_TYPE.toString())
+                .preflightResponseHeader(Names.CONTENT_TYPE, "text/plain; charset=UTF-8")
+                .build()));
+
+        final FullHttpResponse response = xhrRequest(sessionUrl, ch);
         assertOpenFrameResponse(response);
         assertThat(response.headers().get(CONTENT_TYPE), equalTo(CONTENT_TYPE_JAVASCRIPT));
-        assertCORSHeaders(response, "*");
+        assertCORSHeaders(response, "http://localhost");
         verifyNotCached(response);
 
         final FullHttpResponse xhrSendResponse = xhrSendRequest(sessionUrl, "[\"x\"]", echoChannel());
         assertNoContent(xhrSendResponse);
         assertThat(xhrSendResponse.headers().get(CONTENT_TYPE), equalTo(CONTENT_TYPE_PLAIN));
-        assertCORSHeaders(response, "*");
+        assertCORSHeaders(response, "http://localhost");
         verifyNotCached(xhrSendResponse);
         xhrSendResponse.release();
 
@@ -873,7 +876,7 @@ public class SockJsProtocolTest {
         okRequest.headers().set(ACCESS_CONTROL_REQUEST_HEADERS, Arrays.asList("a", "b", "c", CONTENT_TYPE));
         final HttpResponse response = xhrRequest(okRequest, echoChannel(config));
         assertThat(response.status(), is(OK));
-        assertCORSHeaders(response, "*");
+        assertCORSHeaders(response, "https://localhost:8081");
         assertThat(response.headers().getAll(ACCESS_CONTROL_ALLOW_HEADERS), hasItems("a", "b", "c"));
 
         final String emptySessionUrl = "/echo/abc/" + UUID.randomUUID();
@@ -882,14 +885,14 @@ public class SockJsProtocolTest {
         config.setCorsConfig(defaultCorsConfig().allowedRequestHeaders("").build());
         final HttpResponse emptyHeaderResponse = xhrRequest(emptyHeaderRequest, echoChannel(config));
         assertThat(emptyHeaderResponse.status(), is(OK));
-        assertCORSHeaders(response, "*");
+        assertCORSHeaders(response, "https://localhost:8081");
         assertThat(emptyHeaderResponse.headers().get(ACCESS_CONTROL_ALLOW_HEADERS), equalTo(""));
 
         final String noHeaderSessionUrl = "/echo/abc/" + UUID.randomUUID();
         final FullHttpRequest noHeaderRequest = httpRequest(noHeaderSessionUrl + "/xhr", POST);
         final HttpResponse noHeaderResponse = xhrRequest(noHeaderRequest, echoChannel(config));
         assertThat(noHeaderResponse.status(), is(OK));
-        assertCORSHeaders(response, "*");
+        assertCORSHeaders(response, "https://localhost:8081");
         assertThat(noHeaderResponse.headers().get(ACCESS_CONTROL_ALLOW_HEADERS), is(nullValue()));
     }
 
@@ -907,7 +910,7 @@ public class SockJsProtocolTest {
         final HttpResponse response = ch.readOutbound();
         assertThat(response.status(), equalTo(OK));
         assertThat(response.headers().get(CONTENT_TYPE), equalTo(CONTENT_TYPE_JAVASCRIPT));
-        assertCORSHeaders(response, "*");
+        assertCORSHeaders(response, "http://localhost");
         verifyNoCacheHeaders(response);
 
         final DefaultHttpContent prelude = ch.readOutbound();
@@ -944,7 +947,7 @@ public class SockJsProtocolTest {
         final HttpResponse response = ch.readOutbound();
         assertThat(response.status(), equalTo(OK));
         assertThat(response.headers().get(CONTENT_TYPE), equalTo(CONTENT_TYPE_JAVASCRIPT));
-        assertCORSHeaders(response, "*");
+        assertCORSHeaders(response, "http://localhost");
         verifyNoCacheHeaders(response);
 
         final DefaultHttpContent prelude = ch.readOutbound();

@@ -17,38 +17,53 @@ package io.netty.handler.codec.sockjs.util;
 
 import io.netty.channel.Channel;
 import io.netty.channel.ChannelConfig;
-import io.netty.channel.ChannelHandlerInvoker;
-import io.netty.channel.ChannelOutboundBuffer;
-import io.netty.channel.ChannelPromise;
-import io.netty.channel.EventLoop;
-import io.netty.channel.RecvByteBufAllocator.Handle;
-import io.netty.channel.embedded.EmbeddedChannel;
+import io.netty.channel.ChannelHandler;
+import io.netty.handler.codec.sockjs.util.StubEmbeddedEventLoop.SchedulerExecutor;
 
-import java.net.SocketAddress;
+public class TestEmbeddedChannel extends AbstractTestEmbeddedChannel {
 
-
-public class TestEmbeddedChannel extends EmbeddedChannel {
-
-    private final Channel parent;
     private final ChannelConfig config;
 
-    /**
-     * Sole constructor.
-     *
-     * @param parent the parent channel.
-     * @param config the configuration for this channel.
-     */
+    public TestEmbeddedChannel(final Channel parent, ChannelConfig config) {
+        super(parent);
+        this.config = config;
+    }
+
+    public TestEmbeddedChannel(ChannelConfig config, ChannelHandler... handlers) {
+        super(handlers);
+        this.config = config;
+    }
+
+    @Override
+    protected AbstractTestUnsafe createTestUnsafe(AbstractUnsafe delegate) {
+        return new AbstractTestUnsafe(delegate) {
+            @Override
+            public SchedulerExecutor createSchedulerExecutor() {
+                return new SuccessSchedulerExecutor();
+            }
+        };
+    }
+
+    @Override
+    public ChannelConfig config() {
+        if (config == null) {
+            return super.config();
+        }
+        return config;
+    }
+
+    public void removeLastInboundHandler() {
+        pipeline().remove("EmbeddedChannel$LastInboundHandler#0");
+    }
+
+}
+
+    /*
     public TestEmbeddedChannel(final Channel parent, final ChannelConfig config) {
         this.parent = parent;
         this.config = config;
         // remove EmbeddedChannels LastInboundHandler channel handler or it will simply store all messages written.
         pipeline().remove("EmbeddedChannel$LastInboundHandler#0");
-    }
-
-    @Override
-    public Unsafe unsafe() {
-        final AbstractUnsafe delegate = newUnsafe();
-        return new TestUnsafe(delegate, new StubEmbeddedEventLoop(eventLoop()));
     }
 
     @Override
@@ -61,96 +76,5 @@ public class TestEmbeddedChannel extends EmbeddedChannel {
         return parent;
     }
 
-    private static final class TestUnsafe implements Unsafe {
-
-        private final Unsafe delegate;
-        private final ChannelHandlerInvoker invoker;
-
-        private TestUnsafe(final Unsafe delegate, final ChannelHandlerInvoker invoker) {
-            this.delegate = delegate;
-            this.invoker = invoker;
-        }
-
-        @Override
-        public Handle recvBufAllocHandle() {
-            return delegate.recvBufAllocHandle();
-        }
-
-        @Override
-        public ChannelHandlerInvoker invoker() {
-            return invoker;
-        }
-
-        @Override
-        public SocketAddress localAddress() {
-            return delegate.localAddress();
-        }
-
-        @Override
-        public SocketAddress remoteAddress() {
-            return delegate.remoteAddress();
-        }
-
-        @Override
-        public void register(EventLoop eventLoop, ChannelPromise promise) {
-            delegate.register(eventLoop, promise);
-        }
-
-        @Override
-        public void bind(SocketAddress localAddress, ChannelPromise promise) {
-            delegate.bind(localAddress, promise);
-        }
-
-        @Override
-        public void connect(SocketAddress remoteAddress, SocketAddress localAddress, ChannelPromise promise) {
-            delegate.connect(remoteAddress, localAddress, promise);
-        }
-
-        @Override
-        public void disconnect(ChannelPromise promise) {
-            delegate.disconnect(promise);
-        }
-
-        @Override
-        public void close(ChannelPromise promise) {
-            delegate.close(promise);
-        }
-
-        @Override
-        public void closeForcibly() {
-            delegate.closeForcibly();
-        }
-
-        @Override
-        public void deregister(ChannelPromise promise) {
-            delegate.deregister(promise);
-        }
-
-        @Override
-        public void beginRead() {
-            delegate.beginRead();
-        }
-
-        @Override
-        public void write(Object msg, ChannelPromise promise) {
-            delegate.write(msg, promise);
-        }
-
-        @Override
-        public void flush() {
-            delegate.flush();
-        }
-
-        @Override
-        public ChannelPromise voidPromise() {
-            return delegate.voidPromise();
-        }
-
-        @Override
-        public ChannelOutboundBuffer outboundBuffer() {
-            return delegate.outboundBuffer();
-        }
-    }
-
 }
-
+    */

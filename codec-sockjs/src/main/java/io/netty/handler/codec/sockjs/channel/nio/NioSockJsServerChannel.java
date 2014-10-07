@@ -109,12 +109,13 @@ public class NioSockJsServerChannel extends AbstractServerChannel implements Soc
                 // register the channel.
                 final Channel channel = (Channel) msg;
                 channel.pipeline().addLast(config.getChannelInitializer());
-                channel.unsafe().register(eventLoop(), channel.newPromise());
+                channel.unsafe().register(eventLoop().unwrap(), channel.newPromise());
             }
         });
 
-        socketChannel.unsafe().register(eventLoop(), socketChannel.newPromise());
-        socketChannel.bind(localAddress);
+        final Unsafe unsafe = socketChannel.unsafe();
+        unsafe.register(eventLoop().unwrap(), socketChannel.newPromise());
+        unsafe.bind(localAddress, socketChannel.newPromise());
     }
 
     @Override
@@ -134,7 +135,7 @@ public class NioSockJsServerChannel extends AbstractServerChannel implements Soc
 
     @Override
     public boolean isOpen() {
-        return socketChannel != null || socketChannel.isOpen();
+        return socketChannel != null ? socketChannel.isOpen() : true;
     }
 
     @Override

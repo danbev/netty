@@ -15,9 +15,6 @@
  */
 package io.netty.handler.codec.sockjs.util;
 
-import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.when;
-
 import io.netty.channel.AbstractEventLoop;
 import io.netty.channel.Channel;
 import io.netty.channel.ChannelFuture;
@@ -31,6 +28,8 @@ import io.netty.util.concurrent.Future;
 import io.netty.util.concurrent.ScheduledFuture;
 
 import java.net.SocketAddress;
+import java.util.concurrent.Callable;
+import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
 
 import static io.netty.channel.ChannelHandlerInvokerUtil.*;
@@ -39,28 +38,41 @@ import static io.netty.channel.ChannelHandlerInvokerUtil.*;
  * The sole purpose of this class it to work around that the EmbeddedEventLoop of
  * EmbeddedChannel throws an UnsupportedOperation exception for scheduleAtFixedRate.
  *
- * Instances of this class will delegate all call except schuduleAtFixedRate to the
+ * Instances of this class will delegate all call except the schudule methods to the
  * passed in EventLoop which for testing purposes will be the EmbeddedEventLoop.
+ * For the schedule methods, the passed in {@link SchedulerExecutor} will be used
+ * to provide the implementation to allow testing of different senarios.
  *
- * Note that schuduleAtFixedRate will actually not run the command given to it, but instead
- * just return a ScheduledFuture that is marked as successful.
  */
 public class StubEmbeddedEventLoop extends AbstractEventLoop implements ChannelHandlerInvoker {
 
     private final EventLoop delegate;
+    private final SchedulerExecutor schedulerExecutor;
 
-    public StubEmbeddedEventLoop(final EventLoop delegate) {
+    public StubEmbeddedEventLoop(final EventLoop delegate, final SchedulerExecutor schedulerExecutor) {
         super(delegate);
         this.delegate = delegate;
+        this.schedulerExecutor = schedulerExecutor;
     }
 
     @Override
-    public ScheduledFuture<?> scheduleAtFixedRate(Runnable ignored, long initialDelay, long period, TimeUnit unit) {
-        final ScheduledFuture<?> future = mock(ScheduledFuture.class);
-        when(future.isSuccess()).thenReturn(Boolean.TRUE);
-        when(future.isDone()).thenReturn(Boolean.TRUE);
-        when(future.isCancelled()).thenReturn(Boolean.FALSE);
-        return future;
+    public ScheduledFuture<?> schedule(Runnable command, long delay, TimeUnit unit) {
+        return schedulerExecutor.schedule(command, delay, unit);
+    }
+
+    @Override
+    public ScheduledFuture<?> scheduleAtFixedRate(Runnable runnable, long initialDelay, long period, TimeUnit unit) {
+        return schedulerExecutor.scheduleAtFixedRate(runnable, initialDelay, period, unit);
+    }
+
+    @Override
+    public <V> ScheduledFuture<V> schedule(Callable<V> callable, long delay, TimeUnit unit) {
+        return schedulerExecutor.schedule(callable, delay, unit);
+    }
+
+    @Override
+    public ScheduledFuture<?> scheduleWithFixedDelay(Runnable command, long initialDelay, long delay, TimeUnit unit) {
+        return schedulerExecutor.scheduleWithFixedDelay(command, initialDelay, delay, unit);
     }
 
     @Override
@@ -230,4 +242,20 @@ public class StubEmbeddedEventLoop extends AbstractEventLoop implements ChannelH
     public void invokeFlush(ChannelHandlerContext ctx) {
         invokeFlushNow(ctx);
     }
+
+    /**
+     * This interface declares the schedule methods of {@link ScheduledExecutorService} to
+     * enable different implementations for testing.
+     */
+    public interface SchedulerExecutor {
+
+        ScheduledFuture<?> schedule(Runnable command, long delay, TimeUnit unit);
+
+        <V> ScheduledFuture<V> schedule(Callable<V> callable, long delay, TimeUnit unit);
+
+        ScheduledFuture<?> scheduleAtFixedRate(Runnable command, long initialDelay, long period, TimeUnit unit);
+
+        ScheduledFuture<?> scheduleWithFixedDelay(Runnable command, long initialDelay, long delay, TimeUnit unit);
+    }
+
 }
