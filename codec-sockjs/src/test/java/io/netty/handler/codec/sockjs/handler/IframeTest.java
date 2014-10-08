@@ -43,7 +43,7 @@ public class IframeTest {
         final String path = config.getPrefix() + "/iframe.htm";
         final FullHttpResponse response = (FullHttpResponse) Iframe.response(config, createHttpRequest(path),
                 ByteBufAllocator.DEFAULT);
-        assertThat(response.getStatus().code(), is(HttpResponseStatus.NOT_FOUND.code()));
+        assertThat(response.status().code(), is(HttpResponseStatus.NOT_FOUND.code()));
         response.release();
     }
 
@@ -53,7 +53,7 @@ public class IframeTest {
         final String path = config.getPrefix() + "/iframe.HTML";
         final FullHttpResponse response = (FullHttpResponse) Iframe.response(config, createHttpRequest(path),
                 ByteBufAllocator.DEFAULT);
-        assertThat(response.getStatus().code(), is(HttpResponseStatus.NOT_FOUND.code()));
+        assertThat(response.status().code(), is(HttpResponseStatus.NOT_FOUND.code()));
         response.release();
     }
 
@@ -63,7 +63,7 @@ public class IframeTest {
         final String path = config.getPrefix() + "/IFRAME.HTML";
         final FullHttpResponse response = (FullHttpResponse) Iframe.response(config, createHttpRequest(path),
                 ByteBufAllocator.DEFAULT);
-        assertThat(response.getStatus().code(), is(HttpResponseStatus.NOT_FOUND.code()));
+        assertThat(response.status().code(), is(HttpResponseStatus.NOT_FOUND.code()));
         response.release();
     }
 
@@ -73,7 +73,7 @@ public class IframeTest {
         final String path = config.getPrefix() + "/iframe.xml";
         final FullHttpResponse response = (FullHttpResponse) Iframe.response(config, createHttpRequest(path),
                 ByteBufAllocator.DEFAULT);
-        assertThat(response.getStatus().code(), is(HttpResponseStatus.NOT_FOUND.code()));
+        assertThat(response.status().code(), is(HttpResponseStatus.NOT_FOUND.code()));
         response.release();
     }
 
@@ -83,7 +83,7 @@ public class IframeTest {
         final String path = config.getPrefix() + "/IFRAME";
         final FullHttpResponse response = (FullHttpResponse) Iframe.response(config, createHttpRequest(path),
                 ByteBufAllocator.DEFAULT);
-        assertThat(response.getStatus().code(), is(HttpResponseStatus.NOT_FOUND.code()));
+        assertThat(response.status().code(), is(HttpResponseStatus.NOT_FOUND.code()));
         response.release();
     }
 
@@ -95,7 +95,7 @@ public class IframeTest {
         httpRequest.headers().set(HttpHeaders.Names.IF_NONE_MATCH, "*");
         final HttpResponse response = Iframe.response(config, httpRequest, ByteBufAllocator.DEFAULT);
         assertThat(response.headers().get(HttpHeaders.Names.SET_COOKIE), equalTo("JSESSIONID=dummy; path=/"));
-        assertThat(response.getStatus().code(), is(HttpResponseStatus.NOT_MODIFIED.code()));
+        assertThat(response.status().code(), is(HttpResponseStatus.NOT_MODIFIED.code()));
     }
 
     @Test
@@ -104,7 +104,7 @@ public class IframeTest {
         final String path = config.getPrefix() + "/iframe.html";
         final FullHttpResponse response = (FullHttpResponse) Iframe.response(config, createHttpRequest(path),
                 ByteBufAllocator.DEFAULT);
-        assertThat(response.getStatus().code(), is(HttpResponseStatus.OK.code()));
+        assertThat(response.status().code(), is(HttpResponseStatus.OK.code()));
         assertThat(response.headers().get(HttpHeaders.Names.CONTENT_TYPE), equalTo("text/html; charset=UTF-8"));
         assertThat(response.headers().get(HttpHeaders.Names.CACHE_CONTROL), equalTo("max-age=31536000, public"));
         assertThat(response.headers().get(HttpHeaders.Names.EXPIRES), is(notNullValue()));

@@ -63,7 +63,7 @@ public class JsonpPollingTransport extends ChannelHandlerAdapter {
     @Override
     public void channelRead(final ChannelHandlerContext ctx, final Object msg) throws Exception {
         if (msg instanceof HttpRequest) {
-            final QueryStringDecoder qsd = new QueryStringDecoder(request.getUri());
+            final QueryStringDecoder qsd = new QueryStringDecoder(request.uri());
             final List<String> c = qsd.parameters().get("c");
             if (c == null) {
                 ReferenceCountUtil.release(msg);

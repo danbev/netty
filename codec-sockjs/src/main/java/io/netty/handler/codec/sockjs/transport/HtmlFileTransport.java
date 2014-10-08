@@ -105,7 +105,7 @@ public class HtmlFileTransport extends ChannelHandlerAdapter {
     }
 
     private static String getCallbackFromRequest(final HttpRequest request) {
-        final QueryStringDecoder qsd = new QueryStringDecoder(request.getUri());
+        final QueryStringDecoder qsd = new QueryStringDecoder(request.uri());
         final List<String> c = qsd.parameters().get("c");
         return c == null || c.isEmpty() ? "" : c.get(0);
     }

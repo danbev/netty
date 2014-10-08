@@ -72,7 +72,7 @@ final class Iframe {
     public static HttpResponse response(final SockJsServiceConfig config,
                                         final HttpRequest request,
                                         final ByteBufAllocator alloc) throws Exception {
-        final QueryStringDecoder qsd = new QueryStringDecoder(request.getUri());
+        final QueryStringDecoder qsd = new QueryStringDecoder(request.uri());
         if (!PATH_PATTERN.matcher(qsd.path()).matches()) {
             return HttpResponseBuilder.responseFor(request)
                     .notFound()

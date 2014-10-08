@@ -40,7 +40,7 @@ public class JsonpPollingTransportTest {
     @Test
     public void flushMessageFrame() {
         final FullHttpResponse response = writeFrame(new MessageFrame("a"));
-        assertThat(response.getStatus(), equalTo(HttpResponseStatus.OK));
+        assertThat(response.status(), equalTo(HttpResponseStatus.OK));
         verifyNoCacheHeaders(response);
         assertThat(response.content().toString(CharsetUtil.UTF_8), equalTo("callback(\"a[\\\"a\\\"]\");\r\n"));
         response.release();
@@ -49,7 +49,7 @@ public class JsonpPollingTransportTest {
     @Test
     public void flushOpenFrame() {
         final FullHttpResponse response = writeFrame(new OpenFrame());
-        assertThat(response.getStatus(), equalTo(HttpResponseStatus.OK));
+        assertThat(response.status(), equalTo(HttpResponseStatus.OK));
         verifyNoCacheHeaders(response);
         assertThat(response.content().toString(CharsetUtil.UTF_8), equalTo("callback(\"o\");\r\n"));
         response.release();
@@ -58,7 +58,7 @@ public class JsonpPollingTransportTest {
     @Test
     public void flushCloseFrame() {
         final FullHttpResponse response = writeFrame(new CloseFrame(2000, "Oh no"));
-        assertThat(response.getStatus(), equalTo(HttpResponseStatus.OK));
+        assertThat(response.status(), equalTo(HttpResponseStatus.OK));
         verifyNoCacheHeaders(response);
         assertThat(response.content().toString(CharsetUtil.UTF_8), equalTo("callback(\"c[2000,\\\"Oh no\\\"]\");\r\n"));
         response.release();
@@ -67,7 +67,7 @@ public class JsonpPollingTransportTest {
     @Test
     public void flushHeartbeatFrame() {
         final FullHttpResponse response = writeFrame(new HeartbeatFrame());
-        assertThat(response.getStatus(), equalTo(HttpResponseStatus.OK));
+        assertThat(response.status(), equalTo(HttpResponseStatus.OK));
         verifyNoCacheHeaders(response);
         assertThat(response.content().toString(CharsetUtil.UTF_8), equalTo("callback(\"h\");\r\n"));
         response.release();
@@ -76,7 +76,7 @@ public class JsonpPollingTransportTest {
     @Test
     public void flushNoCallbackSet() {
         final FullHttpResponse response = writeFrame(new HeartbeatFrame(), false);
-        assertThat(response.getStatus(), equalTo(HttpResponseStatus.INTERNAL_SERVER_ERROR));
+        assertThat(response.status(), equalTo(HttpResponseStatus.INTERNAL_SERVER_ERROR));
         assertThat(response.content().toString(CharsetUtil.UTF_8), equalTo("\"callback\" parameter required"));
         response.release();
     }

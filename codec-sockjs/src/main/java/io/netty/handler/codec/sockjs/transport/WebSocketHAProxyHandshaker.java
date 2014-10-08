@@ -34,6 +34,7 @@ import io.netty.channel.ChannelFuture;
 import io.netty.channel.ChannelFutureListener;
 import io.netty.channel.ChannelHandlerContext;
 import io.netty.channel.ChannelPipeline;
+import io.netty.handler.codec.AsciiString;
 import io.netty.handler.codec.http.DefaultFullHttpResponse;
 import io.netty.handler.codec.http.FullHttpRequest;
 import io.netty.handler.codec.http.FullHttpResponse;
@@ -101,8 +102,8 @@ public class WebSocketHAProxyHandshaker extends WebSocketServerHandshaker00 {
     protected FullHttpResponse newHandshakeResponse(FullHttpRequest req, HttpHeaders headers) {
 
         // Serve the WebSocket handshake request.
-        if (!HttpHeaders.equalsIgnoreCase(Values.UPGRADE, req.headers().get(CONNECTION))
-                || !HttpHeaders.equalsIgnoreCase(WEBSOCKET, req.headers().get(Names.UPGRADE))) {
+        if (!AsciiString.equalsIgnoreCase(Values.UPGRADE, req.headers().get(CONNECTION))
+                || !AsciiString.equalsIgnoreCase(WEBSOCKET, req.headers().get(Names.UPGRADE))) {
             throw new WebSocketHandshakeException("not a WebSocket handshake request: missing upgrade");
         }
 

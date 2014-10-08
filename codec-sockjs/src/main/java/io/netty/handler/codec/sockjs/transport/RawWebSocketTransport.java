@@ -79,7 +79,7 @@ public class RawWebSocketTransport extends SimpleChannelInboundHandler<Object> {
     }
 
     private static boolean checkRequestHeaders(final ChannelHandlerContext ctx, final HttpRequest req) {
-        if (req.getMethod() != GET) {
+        if (req.method() != GET) {
             ctx.writeAndFlush(HttpResponseBuilder.responseFor(req)
                     .methodNotAllowed()
                     .header(HttpHeaders.Names.CONTENT_LENGTH, 0)

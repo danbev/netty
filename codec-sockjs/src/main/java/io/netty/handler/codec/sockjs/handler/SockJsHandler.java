@@ -67,12 +67,12 @@ public class SockJsHandler extends SimpleChannelInboundHandler<HttpRequest> {
 
     @Override
     public void messageReceived(final ChannelHandlerContext ctx, final HttpRequest request) throws Exception {
-        if (request.getMethod() == HttpMethod.OPTIONS) {
+        if (request.method() == HttpMethod.OPTIONS) {
             writeMethodNotAllowedResponse(request, ctx);
             return;
         }
         if (logger.isDebugEnabled()) {
-            logger.debug("Requesturi : [{}]", request.getUri());
+            logger.debug("Requesturi : [{}]", request.uri());
         }
         if (requestPathMatchesPrefix(request, config)) {
             final String path = extractPath(request, config);
@@ -103,12 +103,12 @@ public class SockJsHandler extends SimpleChannelInboundHandler<HttpRequest> {
     }
 
     private static String extractPath(final HttpRequest request, final SockJsServiceConfig config) {
-        final String pathWithoutPrefix = request.getUri().replaceFirst(config.getPrefix(), "");
+        final String pathWithoutPrefix = request.uri().replaceFirst(config.getPrefix(), "");
         return new QueryStringDecoder(pathWithoutPrefix).path();
     }
 
     private static boolean requestPathMatchesPrefix(final HttpRequest request, SockJsServiceConfig config) {
-        final String path = new QueryStringDecoder(request.getUri()).path();
+        final String path = new QueryStringDecoder(request.uri()).path();
         return path.startsWith(config.getPrefix());
     }
 

@@ -20,6 +20,8 @@ import io.netty.channel.ChannelConfig;
 import io.netty.channel.ChannelHandlerInvoker;
 import io.netty.channel.ChannelOutboundBuffer;
 import io.netty.channel.ChannelPromise;
+import io.netty.channel.EventLoop;
+import io.netty.channel.RecvByteBufAllocator.Handle;
 import io.netty.channel.embedded.EmbeddedChannel;
 
 import java.net.SocketAddress;
@@ -70,6 +72,11 @@ public class TestEmbeddedChannel extends EmbeddedChannel {
         }
 
         @Override
+        public Handle recvBufAllocHandle() {
+            return delegate.recvBufAllocHandle();
+        }
+
+        @Override
         public ChannelHandlerInvoker invoker() {
             return invoker;
         }
@@ -85,8 +92,8 @@ public class TestEmbeddedChannel extends EmbeddedChannel {
         }
 
         @Override
-        public void register(ChannelPromise promise) {
-            delegate.register(promise);
+        public void register(EventLoop eventLoop, ChannelPromise promise) {
+            delegate.register(eventLoop, promise);
         }
 
         @Override
@@ -112,6 +119,11 @@ public class TestEmbeddedChannel extends EmbeddedChannel {
         @Override
         public void closeForcibly() {
             delegate.closeForcibly();
+        }
+
+        @Override
+        public void deregister(ChannelPromise promise) {
+            delegate.deregister(promise);
         }
 
         @Override

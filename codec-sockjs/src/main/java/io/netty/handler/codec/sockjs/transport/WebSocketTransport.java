@@ -68,8 +68,8 @@ public class WebSocketTransport extends SimpleChannelInboundHandler<Object> {
     }
 
     private static boolean checkRequestHeaders(final ChannelHandlerContext ctx, final HttpRequest req) {
-        if (req.getMethod() != GET) {
-            logger.debug("Request was not of type GET, was {}", req.getMethod());
+        if (req.method() != GET) {
+            logger.debug("Request was not of type GET, was {}", req.method());
             ctx.writeAndFlush(HttpResponseBuilder.responseFor(req)
                     .methodNotAllowed()
                     .header(HttpHeaders.Names.CONTENT_LENGTH, 0)
@@ -159,7 +159,7 @@ public class WebSocketTransport extends SimpleChannelInboundHandler<Object> {
 
     private static String getWebSocketLocation(final boolean tls, final FullHttpRequest req) {
         final String protocol = tls ? "wss://" : "ws://";
-        return protocol + req.headers().get(HttpHeaders.Names.HOST) + req.getUri();
+        return protocol + req.headers().get(HttpHeaders.Names.HOST) + req.uri();
     }
 
     private static String getWebSocketLocation(final boolean tls, final FullHttpRequest req, final String path) {

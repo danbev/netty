@@ -48,7 +48,7 @@ public class XhrStreamingTransportTest {
         ch.writeOutbound(new OpenFrame());
 
         final HttpResponse response = ch.readOutbound();
-        assertThat(response.getStatus(), equalTo(HttpResponseStatus.OK));
+        assertThat(response.status(), equalTo(HttpResponseStatus.OK));
         assertThat(response.headers().get(CONTENT_TYPE), equalTo(CONTENT_TYPE_JAVASCRIPT));
         assertThat(response.headers().get(TRANSFER_ENCODING), equalTo(CHUNKED.toString()));
         verifyNoCacheHeaders(response);

@@ -23,6 +23,7 @@ import io.netty.handler.codec.http.DefaultFullHttpResponse;
 import io.netty.handler.codec.http.DefaultHttpHeaders;
 import io.netty.handler.codec.http.DefaultHttpResponse;
 import io.netty.handler.codec.http.FullHttpResponse;
+import io.netty.handler.codec.http.HttpHeaderUtil;
 import io.netty.handler.codec.http.HttpHeaders;
 import io.netty.handler.codec.http.HttpMessage;
 import io.netty.handler.codec.http.HttpRequest;
@@ -186,7 +187,7 @@ public final class HttpResponseBuilder {
 
     /**
      * Configures that this HTTP response should be chunked, which sets the
-     * HTTP transfer encoding header using {@link HttpHeaders#setTransferEncodingChunked(HttpMessage)}.
+     * HTTP transfer encoding header using {@link HttpHeaderUtil#setTransferEncodingChunked(HttpMessage, boolean)}.
      * <p>
      * This will only be set if the HTTP version supports it (which is determined by the version of the
      * HTTP request).
@@ -243,7 +244,7 @@ public final class HttpResponseBuilder {
      * @return {@link HttpResponse} the configured HTTP response.
      */
     public HttpResponse buildResponse() {
-        final DefaultHttpResponse response = new DefaultHttpResponse(request.getProtocolVersion(), status);
+        final DefaultHttpResponse response = new DefaultHttpResponse(request.protocolVersion(), status);
         addAllHeaders(response);
         return response;
     }
@@ -267,7 +268,7 @@ public final class HttpResponseBuilder {
      */
     public FullHttpResponse buildFullResponse(final ByteBufAllocator alloc) {
         final ByteBuf buf = byteBuf == null ? encodeString(alloc, CharBuffer.wrap(content), UTF_8) : byteBuf;
-        final DefaultFullHttpResponse response = new DefaultFullHttpResponse(request.getProtocolVersion(), status, buf);
+        final DefaultFullHttpResponse response = new DefaultFullHttpResponse(request.protocolVersion(), status, buf);
         header(HttpHeaders.Names.CONTENT_LENGTH, buf.readableBytes());
         addAllHeaders(response);
         return response;
@@ -288,8 +289,8 @@ public final class HttpResponseBuilder {
             response.headers().set(HttpHeaders.Names.CONTENT_TYPE, contentType);
         }
         if (chunked) {
-            if (response.getProtocolVersion() == HttpVersion.HTTP_1_1) {
-                HttpHeaders.setTransferEncodingChunked(response);
+            if (response.protocolVersion() == HttpVersion.HTTP_1_1) {
+                HttpHeaderUtil.setTransferEncodingChunked(response, true);
             }
         }
         response.headers().add(headers);
@@ -300,7 +301,7 @@ public final class HttpResponseBuilder {
         if (cookieHeader != null) {
             final Set<Cookie> cookies = CookieDecoder.decode(cookieHeader);
             for (Cookie c : cookies) {
-                if ("JSESSIONID".equals(c.getName())) {
+                if ("JSESSIONID".equals(c.name())) {
                     c.setPath("/");
                     return ServerCookieEncoder.encode(c);
                 }

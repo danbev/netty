@@ -50,7 +50,7 @@ public class HtmlFileTransportTest {
         final EmbeddedChannel ch = newHtmlFileChannel(url);
         ch.writeInbound(new DefaultHttpRequest(HTTP_1_1, GET, url));
         final HttpResponse response = ch.readOutbound();
-        assertThat(response.getStatus(), equalTo(INTERNAL_SERVER_ERROR));
+        assertThat(response.status(), equalTo(INTERNAL_SERVER_ERROR));
         assertThat(response.headers().get(CONTENT_TYPE), equalTo(HttpResponseBuilder.CONTENT_TYPE_PLAIN));
         verifyNoCacheHeaders(response);
     }
@@ -63,7 +63,7 @@ public class HtmlFileTransportTest {
         ch.writeOutbound(new OpenFrame());
 
         final HttpResponse response = ch.readOutbound();
-        assertThat(response.getStatus(), equalTo(OK));
+        assertThat(response.status(), equalTo(OK));
         assertThat(response.headers().get(CONTENT_TYPE), equalTo(HttpResponseBuilder.CONTENT_TYPE_HTML));
         verifyNoCacheHeaders(response);
 

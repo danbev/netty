@@ -20,7 +20,6 @@ import io.netty.channel.Channel;
 import io.netty.channel.ChannelHandlerAdapter;
 import io.netty.channel.ChannelHandlerContext;
 import io.netty.channel.EventLoop;
-import io.netty.channel.EventLoopGroup;
 import io.netty.channel.ServerChannel;
 import io.netty.channel.socket.nio.NioServerSocketChannel;
 import io.netty.handler.codec.sockjs.channel.DefaultSockJsServerChannelConfig;
@@ -53,8 +52,7 @@ public class NioSockJsServerChannel extends AbstractServerChannel implements Soc
     private final SockJsServerChannelConfig config;
     private NioServerSocketChannel socketChannel;
 
-    public NioSockJsServerChannel(EventLoop eventLoop, EventLoopGroup childGroup) {
-        super(eventLoop, childGroup);
+    public NioSockJsServerChannel() {
         config = new DefaultSockJsServerChannelConfig(this);
     }
 
@@ -81,7 +79,7 @@ public class NioSockJsServerChannel extends AbstractServerChannel implements Soc
 
     @Override
     protected void doBind(SocketAddress localAddress) throws Exception {
-        socketChannel = new NioServerSocketChannel(eventLoop(), childEventLoopGroup().next()) {
+        socketChannel = new NioServerSocketChannel() {
             @Override
             protected int doReadMessages(List<Object> buf) throws Exception {
                 final SocketChannel ch = javaChannel().accept();
@@ -89,7 +87,7 @@ public class NioSockJsServerChannel extends AbstractServerChannel implements Soc
                     if (ch != null) {
                         final SockJsServerSocketChannelAdapter parent = new SockJsServerSocketChannelAdapter(
                                 NioSockJsServerChannel.this, this);
-                        buf.add(new NioSockJsSocketChannel(parent, childEventLoopGroup().next(), ch));
+                        buf.add(new NioSockJsSocketChannel(parent, ch));
                         return 1;
                     }
                 } catch (final Throwable t) {
@@ -111,11 +109,11 @@ public class NioSockJsServerChannel extends AbstractServerChannel implements Soc
                 // register the channel.
                 final Channel channel = (Channel) msg;
                 channel.pipeline().addLast(config.getChannelInitializer());
-                channel.unsafe().register(channel.newPromise());
+                channel.unsafe().register(eventLoop(), channel.newPromise());
             }
         });
 
-        socketChannel.unsafe().register(socketChannel.newPromise());
+        socketChannel.unsafe().register(eventLoop(), socketChannel.newPromise());
         socketChannel.bind(localAddress);
     }
 
@@ -136,7 +134,7 @@ public class NioSockJsServerChannel extends AbstractServerChannel implements Soc
 
     @Override
     public boolean isOpen() {
-        return socketChannel != null ? socketChannel.isOpen() : true;
+        return socketChannel != null || socketChannel.isOpen();
     }
 
     @Override

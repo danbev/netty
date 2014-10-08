@@ -19,6 +19,8 @@ import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
 import io.netty.channel.AbstractEventLoop;
+import io.netty.channel.Channel;
+import io.netty.channel.ChannelFuture;
 import io.netty.channel.ChannelHandlerContext;
 import io.netty.channel.ChannelHandlerInvoker;
 import io.netty.channel.ChannelPromise;
@@ -118,6 +120,16 @@ public class StubEmbeddedEventLoop extends AbstractEventLoop implements ChannelH
     }
 
     @Override
+    public ChannelFuture register(Channel channel) {
+        return delegate.register(channel);
+    }
+
+    @Override
+    public ChannelFuture register(Channel channel, ChannelPromise promise) {
+        return delegate.register(channel, promise);
+    }
+
+    @Override
     public ChannelHandlerInvoker asInvoker() {
         return this;
     }
@@ -135,6 +147,11 @@ public class StubEmbeddedEventLoop extends AbstractEventLoop implements ChannelH
     @Override
     public void invokeChannelRegistered(ChannelHandlerContext ctx) {
         invokeChannelRegisteredNow(ctx);
+    }
+
+    @Override
+    public void invokeChannelUnregistered(ChannelHandlerContext ctx) {
+        invokeChannelUnregisteredNow(ctx);
     }
 
     @Override
@@ -192,6 +209,11 @@ public class StubEmbeddedEventLoop extends AbstractEventLoop implements ChannelH
     @Override
     public void invokeClose(ChannelHandlerContext ctx, ChannelPromise promise) {
         invokeCloseNow(ctx, promise);
+    }
+
+    @Override
+    public void invokeDeregister(ChannelHandlerContext ctx, ChannelPromise promise) {
+        invokeDeregisterNow(ctx, promise);
     }
 
     @Override

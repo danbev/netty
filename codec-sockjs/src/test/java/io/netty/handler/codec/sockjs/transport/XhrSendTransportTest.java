@@ -46,8 +46,8 @@ public class XhrSendTransportTest {
     @Test
     public void messageReceivedNoPayload() {
         final FullHttpResponse response = processHttpRequest(requestWithBody(null));
-        assertThat(response.getStatus(), equalTo(HttpResponseStatus.INTERNAL_SERVER_ERROR));
-        assertThat(response.getProtocolVersion(), equalTo(HttpVersion.HTTP_1_1));
+        assertThat(response.status(), equalTo(HttpResponseStatus.INTERNAL_SERVER_ERROR));
+        assertThat(response.protocolVersion(), equalTo(HttpVersion.HTTP_1_1));
         assertThat(response.content().toString(UTF_8), equalTo("Payload expected."));
         response.release();
     }
@@ -55,8 +55,8 @@ public class XhrSendTransportTest {
     @Test
     public void messageReceivedNoPayloadHttpVersion1_0() {
         final FullHttpResponse response = processHttpRequest(requestWithBody(null, HttpVersion.HTTP_1_0));
-        assertThat(response.getStatus(), equalTo(HttpResponseStatus.INTERNAL_SERVER_ERROR));
-        assertThat(response.getProtocolVersion(), equalTo(HttpVersion.HTTP_1_0));
+        assertThat(response.status(), equalTo(HttpResponseStatus.INTERNAL_SERVER_ERROR));
+        assertThat(response.protocolVersion(), equalTo(HttpVersion.HTTP_1_0));
         assertThat(response.content().toString(UTF_8), equalTo("Payload expected."));
         response.release();
     }
@@ -65,8 +65,8 @@ public class XhrSendTransportTest {
     public void messageReceivedSimpleString() {
         final String body = "[\"some message\"]";
         final FullHttpResponse response = processHttpRequest(requestWithBody(body));
-        assertThat(response.getStatus(), equalTo(HttpResponseStatus.NO_CONTENT));
-        assertThat(response.getProtocolVersion(), equalTo(HttpVersion.HTTP_1_1));
+        assertThat(response.status(), equalTo(HttpResponseStatus.NO_CONTENT));
+        assertThat(response.protocolVersion(), equalTo(HttpVersion.HTTP_1_1));
         assertThat(response.content().capacity(), is(0));
         verifyDefaultResponseHeaders(response, HttpResponseBuilder.CONTENT_TYPE_PLAIN);
         response.release();
@@ -76,8 +76,8 @@ public class XhrSendTransportTest {
     public void messageReceivedJsonObject() {
         final String body = "[{\"firstName\": \"Fletch\"}]";
         final FullHttpResponse response = processHttpRequest(requestWithBody(body));
-        assertThat(response.getStatus(), equalTo(HttpResponseStatus.NO_CONTENT));
-        assertThat(response.getProtocolVersion(), equalTo(HttpVersion.HTTP_1_1));
+        assertThat(response.status(), equalTo(HttpResponseStatus.NO_CONTENT));
+        assertThat(response.protocolVersion(), equalTo(HttpVersion.HTTP_1_1));
         assertThat(response.content().capacity(), is(0));
         verifyDefaultResponseHeaders(response, HttpResponseBuilder.CONTENT_TYPE_PLAIN);
         response.release();
@@ -86,8 +86,8 @@ public class XhrSendTransportTest {
     @Test
     public void messageReceivedNoFormDataParameter() {
         final FullHttpResponse response = processHttpRequest(requestWithFormData(null));
-        assertThat(response.getStatus(), equalTo(HttpResponseStatus.INTERNAL_SERVER_ERROR));
-        assertThat(response.getProtocolVersion(), equalTo(HttpVersion.HTTP_1_1));
+        assertThat(response.status(), equalTo(HttpResponseStatus.INTERNAL_SERVER_ERROR));
+        assertThat(response.protocolVersion(), equalTo(HttpVersion.HTTP_1_1));
         assertThat(response.content().toString(UTF_8), equalTo("Payload expected."));
         response.release();
     }
@@ -96,8 +96,8 @@ public class XhrSendTransportTest {
     public void messageReceivedFormDataParameter() {
         final String data = "[\"some message\"]";
         final FullHttpResponse response = processHttpRequest(requestWithFormData(data));
-        assertThat(response.getStatus(), equalTo(HttpResponseStatus.NO_CONTENT));
-        assertThat(response.getProtocolVersion(), equalTo(HttpVersion.HTTP_1_1));
+        assertThat(response.status(), equalTo(HttpResponseStatus.NO_CONTENT));
+        assertThat(response.protocolVersion(), equalTo(HttpVersion.HTTP_1_1));
         assertThat(response.content().capacity(), is(0));
         verifyDefaultResponseHeaders(response, HttpResponseBuilder.CONTENT_TYPE_PLAIN);
         response.release();
@@ -107,8 +107,8 @@ public class XhrSendTransportTest {
     public void messageReceivedInvalidJson() {
         final String data = "[\"some message";
         final FullHttpResponse response = processHttpRequest(requestWithFormData(data));
-        assertThat(response.getStatus(), equalTo(HttpResponseStatus.INTERNAL_SERVER_ERROR));
-        assertThat(response.getProtocolVersion(), equalTo(HttpVersion.HTTP_1_1));
+        assertThat(response.status(), equalTo(HttpResponseStatus.INTERNAL_SERVER_ERROR));
+        assertThat(response.protocolVersion(), equalTo(HttpVersion.HTTP_1_1));
         verifyContentType(response, HttpResponseBuilder.CONTENT_TYPE_PLAIN);
         assertThat(response.content().toString(UTF_8), equalTo("Broken JSON encoding."));
         response.release();

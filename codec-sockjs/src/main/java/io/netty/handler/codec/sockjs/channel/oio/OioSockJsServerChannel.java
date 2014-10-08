@@ -19,7 +19,6 @@ import io.netty.channel.AbstractServerChannel;
 import io.netty.channel.ChannelHandlerAdapter;
 import io.netty.channel.ChannelHandlerContext;
 import io.netty.channel.EventLoop;
-import io.netty.channel.EventLoopGroup;
 import io.netty.channel.oio.OioEventLoopGroup;
 import io.netty.channel.socket.oio.OioServerSocketChannel;
 import io.netty.handler.codec.sockjs.channel.DefaultSockJsServerChannelConfig;
@@ -46,8 +45,7 @@ public class OioSockJsServerChannel extends AbstractServerChannel implements Soc
     private final SockJsServerChannelConfig config;
     private OioServerSocketChannel oio;
 
-    public OioSockJsServerChannel(final EventLoop eventLoop, final EventLoopGroup childGroup) {
-        super(eventLoop, childGroup);
+    public OioSockJsServerChannel() {
         config = new DefaultSockJsServerChannelConfig(this);
     }
 
@@ -69,7 +67,7 @@ public class OioSockJsServerChannel extends AbstractServerChannel implements Soc
 
     @Override
     public boolean isOpen() {
-        return oio != null ? oio.isOpen() : true;
+        return oio == null || oio.isOpen();
     }
 
     @Override
@@ -79,7 +77,7 @@ public class OioSockJsServerChannel extends AbstractServerChannel implements Soc
 
     @Override
     protected void doBind(SocketAddress localAddress) throws Exception {
-        oio = new OioServerSocketChannel(eventLoop(), childEventLoopGroup()) {
+        oio = new OioServerSocketChannel() {
             @Override
             protected int doReadMessages(List<Object> buf) throws Exception {
                 if (serverSocket().isClosed()) {
@@ -91,7 +89,7 @@ public class OioSockJsServerChannel extends AbstractServerChannel implements Soc
                         if (s != null) {
                             final SockJsServerSocketChannelAdapter parent =
                                     new SockJsServerSocketChannelAdapter(OioSockJsServerChannel.this, this);
-                            buf.add(new OioSockJsSocketChannel(parent, childEventLoopGroup().next(), s));
+                            buf.add(new OioSockJsSocketChannel(parent, s));
                             return 1;
                         }
                     } catch (final Throwable t) {
@@ -119,7 +117,7 @@ public class OioSockJsServerChannel extends AbstractServerChannel implements Soc
             public void channelRead(final ChannelHandlerContext ctx, final Object msg) throws Exception {
                 final OioSockJsSocketChannel channel = (OioSockJsSocketChannel) msg;
                 channel.pipeline().addLast(config.getChannelInitializer());
-                channel.unsafe().register(channel.newPromise());
+                channel.unsafe().register(eventLoop(), channel.newPromise());
             }
         });
         oio.bind(localAddress);

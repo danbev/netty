@@ -90,7 +90,7 @@ public class SockJsMultiplexer extends ChannelHandlerAdapter {
     }
 
     static String requestPrefix(final HttpRequest request) {
-        final Matcher m = PREFIX.matcher(new QueryStringDecoder(request.getUri()).path());
+        final Matcher m = PREFIX.matcher(new QueryStringDecoder(request.uri()).path());
         return m.find() ? '/' + m.group(1) : "not found";
     }
 

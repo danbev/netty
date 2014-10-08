@@ -57,9 +57,9 @@ public class XhrPollingTransportTest {
         channel.writeOutbound(new OpenFrame());
 
         final FullHttpResponse response = channel.readOutbound();
-        assertThat(response.getStatus(), equalTo(HttpResponseStatus.OK));
+        assertThat(response.status(), equalTo(HttpResponseStatus.OK));
         assertThat(response.content().toString(CharsetUtil.UTF_8), equalTo("o" + '\n'));
-        assertThat(response.getProtocolVersion(), equalTo(HttpVersion.HTTP_1_1));
+        assertThat(response.protocolVersion(), equalTo(HttpVersion.HTTP_1_1));
         verifyDefaultResponseHeaders(response, CONTENT_TYPE_JAVASCRIPT);
         response.release();
         channel.finish();

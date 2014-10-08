@@ -16,7 +16,6 @@
 package io.netty.handler.codec.sockjs.channel.oio;
 
 import io.netty.channel.Channel;
-import io.netty.channel.EventLoop;
 import io.netty.channel.socket.oio.OioSocketChannel;
 import io.netty.handler.codec.sockjs.channel.SockJsServerSocketChannelConfig;
 
@@ -26,8 +25,8 @@ public class OioSockJsSocketChannel extends OioSocketChannel {
 
     private final OioSockJsSocketChannelConfig config;
 
-    public OioSockJsSocketChannel(Channel parent, EventLoop eventLoop, Socket socket) {
-        super(parent, eventLoop, socket);
+    public OioSockJsSocketChannel(Channel parent, Socket socket) {
+        super(parent, socket);
         config = new DefaultOioSockJsSocketChannelConfig(this, socket);
         // Some SockJS transports need to know if TLS is in use, we set this pass this setting along
         // to the SocketChannel config.

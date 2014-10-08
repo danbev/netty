@@ -67,7 +67,7 @@ public class WebSocketTransportTest {
         request.retain();
         ch.writeInbound(request);
         final HttpResponse response = decode(ch);
-        assertThat(response.getStatus(), is(METHOD_NOT_ALLOWED));
+        assertThat(response.status(), is(METHOD_NOT_ALLOWED));
         assertThat(response.headers().get(ALLOW), is(GET.toString()));
     }
 
@@ -79,7 +79,7 @@ public class WebSocketTransportTest {
         ch.writeInbound(request);
 
         final FullHttpResponse response = decodeFullHttpResponse(ch);
-        assertThat(response.getStatus(), is(BAD_REQUEST));
+        assertThat(response.status(), is(BAD_REQUEST));
         assertThat(response.headers().get(CONTENT_TYPE), is(CONTENT_TYPE_PLAIN));
         assertThat(response.content().toString(CharsetUtil.UTF_8), equalTo("Can \"Upgrade\" only to \"WebSocket\"."));
         response.release();
@@ -95,7 +95,7 @@ public class WebSocketTransportTest {
         ch.writeInbound(request);
 
         final FullHttpResponse response = decodeFullHttpResponse(ch);
-        assertThat(response.getStatus(), is(BAD_REQUEST));
+        assertThat(response.status(), is(BAD_REQUEST));
         assertThat(response.content().toString(CharsetUtil.UTF_8), equalTo("\"Connection\" must be \"Upgrade\"."));
         response.release();
     }
@@ -157,7 +157,7 @@ public class WebSocketTransportTest {
         ch.writeInbound(request);
 
         final HttpResponse response = decode(ch);
-        assertThat(response.getStatus(), is(HttpResponseStatus.SWITCHING_PROTOCOLS));
+        assertThat(response.status(), is(HttpResponseStatus.SWITCHING_PROTOCOLS));
         assertThat(response.headers().get(CONNECTION), equalTo("Upgrade"));
         ch.finish();
     }
@@ -175,7 +175,7 @@ public class WebSocketTransportTest {
         final FullHttpRequest request = webSocketUpgradeRequest("/echo/123/123/websocket", version);
         ch.writeInbound(request);
         final HttpResponse response = decode(ch);
-        assertThat(response.getStatus(), is(HttpResponseStatus.SWITCHING_PROTOCOLS));
+        assertThat(response.status(), is(HttpResponseStatus.SWITCHING_PROTOCOLS));
         assertThat(response.headers().get(CONNECTION), equalTo("Upgrade"));
         assertThat(response.headers().get(UPGRADE), equalTo("websocket"));
         assertThat(response.headers().get(CONTENT_LENGTH), is(nullValue()));
@@ -186,7 +186,7 @@ public class WebSocketTransportTest {
                 "/123/123/websocket", WebSocketVersion.V13);
         ch.writeInbound(request);
         final HttpResponse response = decode(ch);
-        assertThat(response.getStatus(), is(HttpResponseStatus.SWITCHING_PROTOCOLS));
+        assertThat(response.status(), is(HttpResponseStatus.SWITCHING_PROTOCOLS));
         assertThat(response.headers().get(UPGRADE), equalTo("websocket"));
     }
 

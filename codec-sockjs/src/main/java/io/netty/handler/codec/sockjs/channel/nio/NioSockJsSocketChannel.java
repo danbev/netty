@@ -16,7 +16,6 @@
 package io.netty.handler.codec.sockjs.channel.nio;
 
 import io.netty.channel.Channel;
-import io.netty.channel.EventLoop;
 import io.netty.channel.socket.nio.NioSocketChannel;
 import io.netty.handler.codec.sockjs.channel.DefaultSockJsSocketChannelConfig;
 import io.netty.handler.codec.sockjs.channel.SockJsServerSocketChannelConfig;
@@ -28,8 +27,8 @@ public class NioSockJsSocketChannel extends NioSocketChannel {
 
     private final SockJsSocketChannelConfig config;
 
-    public NioSockJsSocketChannel(final Channel parent, final EventLoop eventLoop, final SocketChannel socketChannel) {
-        super(parent, eventLoop, socketChannel);
+    public NioSockJsSocketChannel(final Channel parent, final SocketChannel socketChannel) {
+        super(parent, socketChannel);
         config = new DefaultSockJsSocketChannelConfig(this, socketChannel.socket());
         // Some SockJS transports need to know if TLS is in use, we set this pass this setting along
         // to the SocketChannel config.

@@ -19,6 +19,8 @@ import io.netty.channel.Channel;
 import io.netty.channel.ChannelFuture;
 import io.netty.channel.ChannelFutureListener;
 import io.netty.channel.ChannelHandlerContext;
+import io.netty.handler.codec.AsciiString;
+import io.netty.handler.codec.http.HttpHeaderUtil;
 import io.netty.handler.codec.http.HttpHeaders;
 import io.netty.handler.codec.http.HttpRequest;
 import io.netty.handler.codec.http.HttpResponse;
@@ -48,12 +50,12 @@ public final class TransportUtil {
     public static void writeResponse(final Channel channel,
                                       final HttpRequest request,
                                       final HttpResponse response) {
-        boolean hasKeepAliveHeader = HttpHeaders.equalsIgnoreCase(KEEP_ALIVE, request.headers().get(CONNECTION));
-        if (!request.getProtocolVersion().isKeepAliveDefault() && hasKeepAliveHeader) {
+        boolean hasKeepAliveHeader = AsciiString.equalsIgnoreCase(KEEP_ALIVE, request.headers().get(CONNECTION));
+        if (!request.protocolVersion().isKeepAliveDefault() && hasKeepAliveHeader) {
             response.headers().set(CONNECTION, KEEP_ALIVE);
         }
         final ChannelFuture wf = channel.writeAndFlush(response);
-        if (!HttpHeaders.isKeepAlive(request)) {
+        if (!HttpHeaderUtil.isKeepAlive(request)) {
             wf.addListener(ChannelFutureListener.CLOSE);
         }
     }

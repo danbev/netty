@@ -55,7 +55,7 @@ public class WebSocketHAProxyHandshakerTest {
                 null,
                 65536);
         final FullHttpResponse response = handshaker.newHandshakeResponse(wsUpgradeRequest(), null);
-        assertThat(response.getStatus(), is(HttpResponseStatus.SWITCHING_PROTOCOLS));
+        assertThat(response.status(), is(HttpResponseStatus.SWITCHING_PROTOCOLS));
         assertThat(response.headers().get(CONNECTION), equalTo("Upgrade"));
         assertThat(response.headers().get(UPGRADE), equalTo("WebSocket"));
         assertThat(response.headers().get(SEC_WEBSOCKET_LOCATION), equalTo("ws://localhost/websocket"));

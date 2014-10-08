@@ -24,7 +24,6 @@ import io.netty.channel.ChannelPipeline;
 import io.netty.channel.ChannelProgressivePromise;
 import io.netty.channel.ChannelPromise;
 import io.netty.channel.EventLoop;
-import io.netty.channel.EventLoopGroup;
 import io.netty.channel.socket.ServerSocketChannel;
 import io.netty.handler.codec.sockjs.SockJsService;
 import io.netty.util.Attribute;
@@ -180,6 +179,11 @@ public class SockJsServerSocketChannelAdapter implements SockJsServerSocketChann
     }
 
     @Override
+    public ChannelFuture deregister() {
+        return delegate.deregister();
+    }
+
+    @Override
     public ChannelFuture bind(SocketAddress localAddress, ChannelPromise promise) {
         return delegate.bind(localAddress, promise);
     }
@@ -202,6 +206,11 @@ public class SockJsServerSocketChannelAdapter implements SockJsServerSocketChann
     @Override
     public ChannelFuture close(ChannelPromise promise) {
         return delegate.close(promise);
+    }
+
+    @Override
+    public ChannelFuture deregister(ChannelPromise promise) {
+        return delegate.deregister(promise);
     }
 
     @Override
@@ -235,13 +244,13 @@ public class SockJsServerSocketChannelAdapter implements SockJsServerSocketChann
     }
 
     @Override
-    public EventLoopGroup childEventLoopGroup() {
-        return delegate.childEventLoopGroup();
+    public <T> Attribute<T> attr(AttributeKey<T> key) {
+        return delegate.attr(key);
     }
 
     @Override
-    public <T> Attribute<T> attr(AttributeKey<T> key) {
-        return delegate.attr(key);
+    public <T> boolean hasAttr(AttributeKey<T> key) {
+        return delegate.hasAttr(key);
     }
 
     @Override

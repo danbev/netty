@@ -44,8 +44,8 @@ public class JsonpSendTransportTest {
     @Test
     public void messageReceivedNoPayload() {
         final FullHttpResponse response = processHttpRequest(requestWithBody(null));
-        assertThat(response.getStatus(), equalTo(HttpResponseStatus.INTERNAL_SERVER_ERROR));
-        assertThat(response.getProtocolVersion(), equalTo(HttpVersion.HTTP_1_1));
+        assertThat(response.status(), equalTo(HttpResponseStatus.INTERNAL_SERVER_ERROR));
+        assertThat(response.protocolVersion(), equalTo(HttpVersion.HTTP_1_1));
         assertThat(response.content().toString(CharsetUtil.UTF_8), equalTo("Payload expected."));
         response.release();
     }
@@ -53,8 +53,8 @@ public class JsonpSendTransportTest {
     @Test
     public void messageReceivedNoPayloadHttpVersion1_0() {
         final FullHttpResponse response = processHttpRequest(requestWithBody(null, HttpVersion.HTTP_1_0));
-        assertThat(response.getStatus(), equalTo(HttpResponseStatus.INTERNAL_SERVER_ERROR));
-        assertThat(response.getProtocolVersion(), equalTo(HttpVersion.HTTP_1_0));
+        assertThat(response.status(), equalTo(HttpResponseStatus.INTERNAL_SERVER_ERROR));
+        assertThat(response.protocolVersion(), equalTo(HttpVersion.HTTP_1_0));
         assertThat(response.content().toString(CharsetUtil.UTF_8), equalTo("Payload expected."));
         response.release();
     }
@@ -63,8 +63,8 @@ public class JsonpSendTransportTest {
     public void messageReceived() {
         final String body = "[\"some message\"]";
         final FullHttpResponse response = processHttpRequest(requestWithBody(body));
-        assertThat(response.getStatus(), equalTo(HttpResponseStatus.OK));
-        assertThat(response.getProtocolVersion(), equalTo(HttpVersion.HTTP_1_1));
+        assertThat(response.status(), equalTo(HttpResponseStatus.OK));
+        assertThat(response.protocolVersion(), equalTo(HttpVersion.HTTP_1_1));
         assertThat(response.content().toString(CharsetUtil.UTF_8), equalTo("ok"));
         verifyDefaultResponseHeaders(response, HttpResponseBuilder.CONTENT_TYPE_PLAIN);
         response.release();
@@ -73,8 +73,8 @@ public class JsonpSendTransportTest {
     @Test
     public void messageReceivedNoFormDataParameter() {
         final FullHttpResponse response = processHttpRequest(requestWithFormData(null));
-        assertThat(response.getStatus(), equalTo(HttpResponseStatus.INTERNAL_SERVER_ERROR));
-        assertThat(response.getProtocolVersion(), equalTo(HttpVersion.HTTP_1_1));
+        assertThat(response.status(), equalTo(HttpResponseStatus.INTERNAL_SERVER_ERROR));
+        assertThat(response.protocolVersion(), equalTo(HttpVersion.HTTP_1_1));
         assertThat(response.content().toString(CharsetUtil.UTF_8), equalTo("Payload expected."));
         response.release();
     }
@@ -83,8 +83,8 @@ public class JsonpSendTransportTest {
     public void messageReceivedFormDataParameter() {
         final String data = "[\"some message\"]";
         final FullHttpResponse response = processHttpRequest(requestWithFormData(data));
-        assertThat(response.getStatus(), equalTo(HttpResponseStatus.OK));
-        assertThat(response.getProtocolVersion(), equalTo(HttpVersion.HTTP_1_1));
+        assertThat(response.status(), equalTo(HttpResponseStatus.OK));
+        assertThat(response.protocolVersion(), equalTo(HttpVersion.HTTP_1_1));
         assertThat(response.content().toString(CharsetUtil.UTF_8), equalTo("ok"));
         verifyDefaultResponseHeaders(response, HttpResponseBuilder.CONTENT_TYPE_PLAIN);
         response.release();
