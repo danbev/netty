@@ -248,14 +248,16 @@ public final class ServerBootstrap extends AbstractBootstrap<ServerBootstrap, Se
             }
 
             try {
-                childGroup.register(child).addListener(new ChannelFutureListener() {
-                    @Override
-                    public void operationComplete(ChannelFuture future) throws Exception {
-                        if (!future.isSuccess()) {
-                            forceClose(child, future.cause());
+                if (!child.isRegistered()) {
+                    childGroup.register(child).addListener(new ChannelFutureListener() {
+                        @Override
+                        public void operationComplete(ChannelFuture future) throws Exception {
+                            if (!future.isSuccess()) {
+                                forceClose(child, future.cause());
+                            }
                         }
-                    }
-                });
+                    });
+                }
             } catch (Throwable t) {
                 forceClose(child, t);
             }
