@@ -50,7 +50,7 @@ public class NioSockJsServerChannel extends AbstractServerChannel implements Soc
     private static final ConcurrentHashMap<String, SockJsService> services =
             new ConcurrentHashMap<String, SockJsService>();
     private final SockJsServerChannelConfig config;
-    private NioServerSocketChannel socketChannel;
+    private NioServerSocketChannel serverSocketChannel;
 
     public NioSockJsServerChannel() {
         config = new DefaultSockJsServerChannelConfig(this);
@@ -74,12 +74,12 @@ public class NioSockJsServerChannel extends AbstractServerChannel implements Soc
 
     @Override
     protected SocketAddress localAddress0() {
-        return socketChannel.localAddress();
+        return serverSocketChannel.localAddress();
     }
 
     @Override
     protected void doBind(SocketAddress localAddress) throws Exception {
-        socketChannel = new NioServerSocketChannel() {
+        serverSocketChannel = new NioServerSocketChannel() {
             @Override
             protected int doReadMessages(List<Object> buf) throws Exception {
                 final SocketChannel ch = javaChannel().accept();
@@ -101,31 +101,31 @@ public class NioSockJsServerChannel extends AbstractServerChannel implements Soc
                 return 0;
             }
         };
-        socketChannel.pipeline().addLast(new ChannelHandlerAdapter() {
+        serverSocketChannel.pipeline().addLast(new ChannelHandlerAdapter() {
             @Override
             public void channelRead(ChannelHandlerContext ctx, Object msg) throws Exception {
                 // Since we have removed the ServerBootstrapAcceptor it will no longer add the
-                // childhandler or register the channel. We will take over the responsibility to
-                // register the channel.
-                final Channel channel = (Channel) msg;
-                channel.pipeline().addLast(config.getChannelInitializer());
-                channel.unsafe().register(eventLoop().unwrap(), channel.newPromise());
+                // childhandler or register the socketChannel. We will take over the responsibility to
+                // register the socketChannel.
+                final Channel socketChannel = (Channel) msg;
+                socketChannel.pipeline().addLast(config.getChannelInitializer());
+                socketChannel.unsafe().register(eventLoop().unwrap(), socketChannel.newPromise());
             }
         });
 
-        final Unsafe unsafe = socketChannel.unsafe();
-        unsafe.register(eventLoop().unwrap(), socketChannel.newPromise());
-        unsafe.bind(localAddress, socketChannel.newPromise());
+        final Unsafe unsafe = serverSocketChannel.unsafe();
+        unsafe.register(eventLoop().unwrap(), serverSocketChannel.newPromise());
+        unsafe.bind(localAddress, serverSocketChannel.newPromise());
     }
 
     @Override
     protected void doClose() throws Exception {
-        socketChannel.close();
+        serverSocketChannel.close();
     }
 
     @Override
     protected void doBeginRead() throws Exception {
-        socketChannel.unsafe().beginRead();
+        serverSocketChannel.unsafe().beginRead();
     }
 
     @Override
@@ -135,7 +135,7 @@ public class NioSockJsServerChannel extends AbstractServerChannel implements Soc
 
     @Override
     public boolean isOpen() {
-        return socketChannel != null ? socketChannel.isOpen() : true;
+        return serverSocketChannel != null ? serverSocketChannel.isOpen() : true;
     }
 
     @Override

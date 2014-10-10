@@ -16,6 +16,7 @@
 package io.netty.handler.codec.sockjs.channel.oio;
 
 import io.netty.channel.AbstractServerChannel;
+import io.netty.channel.Channel;
 import io.netty.channel.ChannelHandlerAdapter;
 import io.netty.channel.ChannelHandlerContext;
 import io.netty.channel.EventLoop;
@@ -43,7 +44,7 @@ public class OioSockJsServerChannel extends AbstractServerChannel implements Soc
             new ConcurrentHashMap<String, SockJsService>();
 
     private final SockJsServerChannelConfig config;
-    private OioServerSocketChannel oio;
+    private OioServerSocketChannel serverSocketChannel;
 
     public OioSockJsServerChannel() {
         config = new DefaultSockJsServerChannelConfig(this);
@@ -67,17 +68,17 @@ public class OioSockJsServerChannel extends AbstractServerChannel implements Soc
 
     @Override
     public boolean isOpen() {
-        return oio == null || oio.isOpen();
+        return serverSocketChannel == null || serverSocketChannel.isOpen();
     }
 
     @Override
     public boolean isActive() {
-        return oio != null && oio.isActive();
+        return serverSocketChannel != null && serverSocketChannel.isActive();
     }
 
     @Override
     protected void doBind(SocketAddress localAddress) throws Exception {
-        oio = new OioServerSocketChannel() {
+        serverSocketChannel = new OioServerSocketChannel() {
             @Override
             protected int doReadMessages(List<Object> buf) throws Exception {
                 if (serverSocket().isClosed()) {
@@ -108,18 +109,18 @@ public class OioSockJsServerChannel extends AbstractServerChannel implements Soc
                 return 0;
             }
         };
-        oio.config().setMaxMessagesPerRead(config().getMaxMessagesPerRead());
-        oio.config().setSoTimeout(50);
-        oio.pipeline().addLast(new ChannelHandlerAdapter() {
+        serverSocketChannel.config().setMaxMessagesPerRead(config().getMaxMessagesPerRead());
+        serverSocketChannel.config().setSoTimeout(50);
+        serverSocketChannel.pipeline().addLast(new ChannelHandlerAdapter() {
             @Override
             public void channelRead(final ChannelHandlerContext ctx, final Object msg) throws Exception {
-                final OioSockJsSocketChannel channel = (OioSockJsSocketChannel) msg;
-                channel.pipeline().addLast(config.getChannelInitializer());
-                eventLoop().parent().register(channel);
+                final Channel socketChannel = (Channel) msg;
+                socketChannel.pipeline().addLast(config.getChannelInitializer());
+                eventLoop().parent().register(socketChannel);
             }
         });
-        eventLoop().register(oio);
-        oio.unsafe().bind(localAddress, oio.newPromise());
+        eventLoop().register(serverSocketChannel);
+        serverSocketChannel.unsafe().bind(localAddress, serverSocketChannel.newPromise());
     }
 
     @Override
@@ -129,13 +130,13 @@ public class OioSockJsServerChannel extends AbstractServerChannel implements Soc
 
     @Override
     protected SocketAddress localAddress0() {
-        return oio != null ? oio.localAddress() : null;
+        return serverSocketChannel != null ? serverSocketChannel.localAddress() : null;
     }
 
     @Override
     protected void doClose() throws Exception {
-        if (oio != null) {
-            oio.close();
+        if (serverSocketChannel != null) {
+            serverSocketChannel.close();
         }
     }
 
