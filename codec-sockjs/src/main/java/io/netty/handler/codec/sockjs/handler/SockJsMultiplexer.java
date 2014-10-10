@@ -70,10 +70,15 @@ public class SockJsMultiplexer extends ChannelHandlerAdapter {
 
     private static void addHandlerForSockJsService(SockJsService sockJsService, ChannelHandlerContext ctx) {
         ctx.pipeline().addAfter(ctx.name(), "childHandler", sockJsService.childChannelInitializer());
+        // Have the ChannelInitializer run by calling fireChannelRegistred. This will add
+        // ServerBootstrap.ServerBootstrapAcceptor to the pipeline.
         ctx.fireChannelRegistered();
+        // Next we need the ServerBootstrap.ServerBootstrapAcceptor to run. This set the childOptions,
+        // childAttributes on the channel, and also add the childHandler (the users SockJS handler or it might
+        // be a ChannelInitializer)
         ctx.fireChannelRead(ctx.channel());
 
-        // If the channel handler that that the user configured is a ChannelInitializer then it must be
+        // If the childHandler that that the user configured is a ChannelInitializer then it must be
         // invoked to actually be added to the pipeline.
         ctx.fireChannelRegistered();
 
