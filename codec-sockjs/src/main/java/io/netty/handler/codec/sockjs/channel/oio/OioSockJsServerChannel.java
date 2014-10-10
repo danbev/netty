@@ -108,19 +108,18 @@ public class OioSockJsServerChannel extends AbstractServerChannel implements Soc
                 return 0;
             }
         };
-        // Force only one read per loop, otherwise the above socket.accept will timeout
-        // causing a delay of about 1 sec for each and every request.
-        // TODO: run this by the Norman or Trustin and see what I'm missing.
-        oio.config().setMaxMessagesPerRead(1);
+        oio.config().setMaxMessagesPerRead(config().getMaxMessagesPerRead());
+        oio.config().setSoTimeout(50);
         oio.pipeline().addLast(new ChannelHandlerAdapter() {
             @Override
             public void channelRead(final ChannelHandlerContext ctx, final Object msg) throws Exception {
                 final OioSockJsSocketChannel channel = (OioSockJsSocketChannel) msg;
                 channel.pipeline().addLast(config.getChannelInitializer());
-                channel.unsafe().register(eventLoop(), channel.newPromise());
+                eventLoop().parent().register(channel);
             }
         });
-        oio.bind(localAddress);
+        eventLoop().register(oio);
+        oio.unsafe().bind(localAddress, oio.newPromise());
     }
 
     @Override
